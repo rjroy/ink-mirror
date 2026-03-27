@@ -1,7 +1,7 @@
 ---
 title: "Research: Observer history window strategy"
 type: research
-status: open
+status: complete
 date: 2026-03-26
 origin: vision open question
 tags: [observer, research, performance, cost]
