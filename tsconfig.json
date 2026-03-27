@@ -11,6 +11,7 @@
     "declarationMap": true,
     "composite": true
   },
+  "include": [],
   "references": [
     { "path": "packages/shared" },
     { "path": "packages/daemon" },

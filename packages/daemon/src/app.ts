@@ -10,6 +10,8 @@ export interface AppDeps {
    * Each factory receives its own deps slice and returns a RouteModule.
    */
   routeModules?: RouteModule[];
+  /** Provide an external EventBus. If omitted, a new one is created. */
+  eventBus?: EventBus;
 }
 
 export interface App {
@@ -25,7 +27,7 @@ export interface App {
 export function createApp(deps: AppDeps = {}): App {
   const hono = new Hono();
   const registry = createOperationsRegistry();
-  const eventBus = createEventBus();
+  const eventBus = deps.eventBus ?? createEventBus();
 
   // Register any provided route modules
   const routeModules = deps.routeModules ?? [];

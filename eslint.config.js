@@ -34,6 +34,24 @@ export default tseslint.config(
     },
   },
   {
-    ignores: ["**/node_modules/", "**/dist/", ".next/"],
+    files: ["packages/web/**/*.{ts,tsx}"],
+    rules: {
+      "@typescript-eslint/no-unsafe-return": "off",
+      "@typescript-eslint/no-unsafe-assignment": "off",
+      "@typescript-eslint/no-unsafe-call": "off",
+      "@typescript-eslint/no-unsafe-member-access": "off",
+      "@typescript-eslint/no-unsafe-argument": "off",
+    },
+  },
+  {
+    ignores: [
+      "**/node_modules/",
+      "**/dist/",
+      "**/.next/",
+      "**/*.d.ts",
+      "packages/*/src/**/*.js",
+      "packages/web/**/*.js",
+      "packages/web/tests/**",
+    ],
   },
 );

@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import { entryId, CreateEntryRequestSchema } from "@ink-mirror/shared";
 import type { EntryStore } from "../entry-store.js";
-import type { RouteModule } from "../types.js";
+import type { EventBus, RouteModule } from "../types.js";
 import type { ObserveResult } from "../observer.js";
 
 /**
@@ -13,6 +13,7 @@ export type ObserveFn = (entryId: string, entryText: string) => Promise<ObserveR
 export interface EntriesDeps {
   entryStore: EntryStore;
   onEntryCreated?: ObserveFn;
+  eventBus?: EventBus;
 }
 
 /**
@@ -24,7 +25,7 @@ export interface EntriesDeps {
  */
 export function createEntryRoutes(deps: EntriesDeps): RouteModule {
   const app = new Hono();
-  const { entryStore, onEntryCreated } = deps;
+  const { entryStore, onEntryCreated, eventBus } = deps;
 
   app.post("/entries", async (c) => {
     const raw: unknown = await c.req.json();
@@ -48,6 +49,13 @@ export function createEntryRoutes(deps: EntriesDeps): RouteModule {
         observeResult = await onEntryCreated(entry.id, entry.body);
       } catch {
         // Observer failure doesn't block entry creation
+      }
+    }
+
+    // Emit observation events for SSE subscribers
+    if (observeResult && eventBus) {
+      for (const obs of observeResult.observations) {
+        eventBus.emit("observation:created", obs);
       }
     }
 

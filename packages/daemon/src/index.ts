@@ -2,6 +2,7 @@ import { join } from "node:path";
 import { entryId } from "@ink-mirror/shared";
 import type { ObservationDimension } from "@ink-mirror/shared";
 import { createApp } from "./app.js";
+import { createEventBus } from "./event-bus.js";
 import { createEntryStore } from "./entry-store.js";
 import { createObservationStore } from "./observation-store.js";
 import { createProfileStore } from "./profile-store.js";
@@ -12,6 +13,7 @@ import { computeEntryMetrics } from "./metrics/index.js";
 import { createEntryRoutes } from "./routes/entries.js";
 import { createObservationRoutes } from "./routes/observations.js";
 import { createProfileRoutes } from "./routes/profile.js";
+import { createEventsRoutes } from "./routes/events.js";
 
 const SOCKET_PATH = process.env.INK_MIRROR_SOCKET ?? "/tmp/ink-mirror.sock";
 const DATA_DIR = process.env.INK_MIRROR_DATA ?? join(process.env.HOME ?? ".", ".ink-mirror");
@@ -80,11 +82,17 @@ const onIntentional = async (pattern: string, dimension: string) => {
   await profileStore.addOrMergeRule(pattern, dimension as ObservationDimension);
 };
 
-const entryRoutes = createEntryRoutes({ entryStore, onEntryCreated });
+const eventBus = createEventBus();
+
+const entryRoutes = createEntryRoutes({ entryStore, onEntryCreated, eventBus });
 const observationRoutes = createObservationRoutes({ observationStore, entryStore, onIntentional });
 const profileRoutes = createProfileRoutes({ profileStore });
+const eventsRoutes = createEventsRoutes({ eventBus });
 
-const { hono } = createApp({ routeModules: [entryRoutes, observationRoutes, profileRoutes] });
+const { hono } = createApp({
+  routeModules: [entryRoutes, observationRoutes, profileRoutes, eventsRoutes],
+  eventBus,
+});
 
 // Clean up stale socket file
 try {
