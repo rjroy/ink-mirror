@@ -1,5 +1,5 @@
 import { describe, expect, test, spyOn, beforeEach, afterEach } from "bun:test";
-import { writeFileSync, readFileSync } from "node:fs";
+import { writeFileSync } from "node:fs";
 import type { DaemonClient } from "../src/client.js";
 import { writeEntry } from "../src/write.js";
 
@@ -114,7 +114,7 @@ describe("writeEntry", () => {
       },
     };
 
-    const editorSpawn = async (file: string) => {
+    const editorSpawn = async (_file: string) => {
       // Leave file empty
       return 0;
     };

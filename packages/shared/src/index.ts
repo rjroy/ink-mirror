@@ -36,3 +36,16 @@ export {
   type WordFrequencyAnalysis,
   type EntryMetrics,
 } from "./metrics.js";
+
+export {
+  ObservationDimensionSchema,
+  CurationStatusSchema,
+  ObservationSchema,
+  RawObservationSchema,
+  ObserverOutputSchema,
+  type ObservationDimension,
+  type CurationStatus,
+  type Observation,
+  type RawObservation,
+  type ObserverOutput,
+} from "./observations.js";

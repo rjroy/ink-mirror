@@ -2,9 +2,17 @@ import { Hono } from "hono";
 import { entryId, CreateEntryRequestSchema } from "@ink-mirror/shared";
 import type { EntryStore } from "../entry-store.js";
 import type { RouteModule } from "../types.js";
+import type { ObserveResult } from "../observer.js";
+
+/**
+ * Observer function signature. When provided, runs automatically
+ * after entry creation (REQ-V1-4).
+ */
+export type ObserveFn = (entryId: string, entryText: string) => Promise<ObserveResult>;
 
 export interface EntriesDeps {
   entryStore: EntryStore;
+  onEntryCreated?: ObserveFn;
 }
 
 /**
@@ -16,10 +24,10 @@ export interface EntriesDeps {
  */
 export function createEntryRoutes(deps: EntriesDeps): RouteModule {
   const app = new Hono();
-  const { entryStore } = deps;
+  const { entryStore, onEntryCreated } = deps;
 
   app.post("/entries", async (c) => {
-    const raw = await c.req.json();
+    const raw: unknown = await c.req.json();
     const parsed = CreateEntryRequestSchema.safeParse(raw);
 
     if (!parsed.success) {
@@ -30,7 +38,26 @@ export function createEntryRoutes(deps: EntriesDeps): RouteModule {
     }
 
     const entry = await entryStore.create(parsed.data.body, parsed.data.title);
-    return c.json(entry, 201);
+
+    // Auto-trigger observation (REQ-V1-4).
+    // Runs after storage so the entry is durable before we call the LLM.
+    // Observation errors don't fail entry creation.
+    let observeResult: ObserveResult | undefined;
+    if (onEntryCreated) {
+      try {
+        observeResult = await onEntryCreated(entry.id, entry.body);
+      } catch {
+        // Observer failure doesn't block entry creation
+      }
+    }
+
+    return c.json(
+      {
+        ...entry,
+        ...(observeResult ? { observations: observeResult.observations } : {}),
+      },
+      201,
+    );
   });
 
   app.get("/entries", async (c) => {

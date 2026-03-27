@@ -71,14 +71,18 @@ describe("OperationsRegistry", () => {
     );
 
     const entries = tree.children!.entries;
-    expect(entries.operations).toHaveLength(2);
-    expect(entries.operations!.map((o) => o.operationId)).toEqual(
-      expect.arrayContaining(["entries.list", "entries.create"]),
+    expect(entries.children).toBeDefined();
+    expect(Object.keys(entries.children!)).toEqual(
+      expect.arrayContaining(["list", "create"]),
     );
+    expect(entries.children!.list.operations).toHaveLength(1);
+    expect(entries.children!.list.operations![0].operationId).toBe("entries.list");
+    expect(entries.children!.create.operations).toHaveLength(1);
+    expect(entries.children!.create.operations![0].operationId).toBe("entries.create");
 
     const profile = tree.children!.profile;
-    expect(profile.operations).toHaveLength(1);
-    expect(profile.operations![0].operationId).toBe("profile.get");
+    expect(profile.children!.get.operations).toHaveLength(1);
+    expect(profile.children!.get.operations![0].operationId).toBe("profile.get");
   });
 
   test("findByPath navigates the tree", () => {
@@ -93,7 +97,7 @@ describe("OperationsRegistry", () => {
     const node = registry.findByPath(["entries"]);
     expect(node).toBeDefined();
     expect(node!.name).toBe("entries");
-    expect(node!.operations).toHaveLength(1);
+    expect(node!.children!.list.operations).toHaveLength(1);
   });
 
   test("findByPath returns undefined for invalid path", () => {
@@ -103,11 +107,10 @@ describe("OperationsRegistry", () => {
     ]);
 
     expect(registry.findByPath(["nonexistent"])).toBeUndefined();
-    // "list" is no longer a child node; operations are flat on "entries"
-    expect(registry.findByPath(["entries", "list"])).toBeUndefined();
+    expect(registry.findByPath(["entries", "nonexistent"])).toBeUndefined();
   });
 
-  test("findByPath returns node with its operations", () => {
+  test("findByPath navigates to feature level", () => {
     const registry = createOperationsRegistry();
     registry.register([
       makeOp({
@@ -117,7 +120,7 @@ describe("OperationsRegistry", () => {
       }),
     ]);
 
-    const node = registry.findByPath(["entries"]);
+    const node = registry.findByPath(["entries", "list"]);
     expect(node).toBeDefined();
     expect(node!.operations).toHaveLength(1);
     expect(node!.operations![0].name).toBe("list");

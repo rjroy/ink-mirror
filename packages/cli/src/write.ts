@@ -52,7 +52,7 @@ export async function writeEntry(
       process.exit(1);
     }
 
-    const entry = await res.json();
+    const entry = (await res.json()) as { id: string };
     console.log(`Entry saved: ${entry.id}`);
   } finally {
     try {

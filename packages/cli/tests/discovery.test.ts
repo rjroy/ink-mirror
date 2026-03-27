@@ -2,7 +2,6 @@ import { describe, expect, test } from "bun:test";
 import {
   formatHelpTree,
   resolveCommand,
-  type Resolution,
 } from "../src/discovery.js";
 import type { DaemonClient } from "../src/client.js";
 import type { HelpTreeNode } from "@ink-mirror/shared";

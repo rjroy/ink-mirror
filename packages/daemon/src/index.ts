@@ -1,14 +1,61 @@
 import { join } from "node:path";
 import { createApp } from "./app.js";
 import { createEntryStore } from "./entry-store.js";
+import { createObservationStore } from "./observation-store.js";
+import { createSessionRunner } from "./session-runner.js";
+import type { SessionRequest } from "./session-runner.js";
+import { observe } from "./observer.js";
+import { computeEntryMetrics } from "./metrics/index.js";
 import { createEntryRoutes } from "./routes/entries.js";
 
 const SOCKET_PATH = process.env.INK_MIRROR_SOCKET ?? "/tmp/ink-mirror.sock";
 const DATA_DIR = process.env.INK_MIRROR_DATA ?? join(process.env.HOME ?? ".", ".ink-mirror");
 const ENTRIES_DIR = join(DATA_DIR, "entries");
+const OBSERVATIONS_DIR = join(DATA_DIR, "observations");
 
 const entryStore = createEntryStore({ entriesDir: ENTRIES_DIR });
-const entryRoutes = createEntryRoutes({ entryStore });
+const observationStore = createObservationStore({ observationsDir: OBSERVATIONS_DIR });
+
+// Production queryFn using the Claude Agent SDK.
+// Lazily imports to avoid hard dependency when running tests.
+async function productionQueryFn(request: SessionRequest) {
+  const { query } = await import("@anthropic-ai/claude-agent-sdk");
+
+  // Build the prompt from the last user message
+  const lastUserMsg = [...request.messages].reverse().find((m) => m.role === "user");
+  const prompt = lastUserMsg?.content ?? "";
+
+  let result = "";
+  for await (const message of query({
+    prompt,
+    options: {
+      systemPrompt: request.system,
+      maxTurns: 1,
+      model: "claude-opus-4-6",
+    },
+  })) {
+    if ("result" in message) {
+      result = message.result;
+    }
+  }
+
+  return { content: result };
+}
+
+const sessionRunner = createSessionRunner({ queryFn: productionQueryFn });
+
+const onEntryCreated = (entryId: string, entryText: string) =>
+  observe(
+    {
+      sessionRunner,
+      observationStore,
+      computeMetrics: computeEntryMetrics,
+    },
+    entryId,
+    entryText,
+  );
+
+const entryRoutes = createEntryRoutes({ entryStore, onEntryCreated });
 
 const { hono } = createApp({ routeModules: [entryRoutes] });
 
@@ -23,8 +70,6 @@ try {
 const server = Bun.serve({
   unix: SOCKET_PATH,
   fetch: hono.fetch,
-  // Disable idle timeout for long-lived SSE connections
-  idleTimeout: 0,
 });
 
 console.log(`ink-mirror daemon listening on ${server.url}`);

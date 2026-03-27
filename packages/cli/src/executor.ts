@@ -55,7 +55,7 @@ export async function executeOperation(
 
   // Try to pretty-print JSON, fall back to raw text
   try {
-    const json = JSON.parse(text);
+    const json: unknown = JSON.parse(text);
     console.log(JSON.stringify(json, null, 2));
   } catch {
     if (text.trim()) console.log(text);

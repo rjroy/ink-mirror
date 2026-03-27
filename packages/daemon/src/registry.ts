@@ -21,7 +21,7 @@ export function createOperationsRegistry(): OperationsRegistry {
     const root: HelpTreeNode = { name: "ink-mirror" };
 
     for (const op of operations) {
-      const { root: rootName } = op.hierarchy;
+      const { root: rootName, feature } = op.hierarchy;
 
       if (!root.children) root.children = {};
       if (!root.children[rootName]) {
@@ -29,8 +29,14 @@ export function createOperationsRegistry(): OperationsRegistry {
       }
 
       const rootNode = root.children[rootName];
-      if (!rootNode.operations) rootNode.operations = [];
-      rootNode.operations.push(op);
+      if (!rootNode.children) rootNode.children = {};
+      if (!rootNode.children[feature]) {
+        rootNode.children[feature] = { name: feature };
+      }
+
+      const featureNode = rootNode.children[feature];
+      if (!featureNode.operations) featureNode.operations = [];
+      featureNode.operations.push(op);
     }
 
     return root;

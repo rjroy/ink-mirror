@@ -1,5 +1,4 @@
 import { describe, expect, test } from "bun:test";
-import { entryId } from "@ink-mirror/shared";
 import type { Entry, EntryListItem } from "@ink-mirror/shared";
 import type { EntryId } from "@ink-mirror/shared";
 import { createEntryRoutes } from "../src/routes/entries.js";
@@ -178,7 +177,7 @@ describe("GET /entries/:id", () => {
     const store = mockEntryStore();
     const { routes } = createEntryRoutes({ entryStore: store });
 
-    const res = await routes.request(req("/entries/../../etc/passwd"));
+    const res = await routes.request(req("/entries/..%2F..%2Fetc%2Fpasswd"));
     expect(res.status).toBe(400);
 
     const json = await res.json();

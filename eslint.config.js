@@ -11,8 +11,29 @@ export default tseslint.config(
         tsconfigRootDir: import.meta.dirname,
       },
     },
+    rules: {
+      "@typescript-eslint/no-unused-vars": [
+        "error",
+        { argsIgnorePattern: "^_", varsIgnorePattern: "^_" },
+      ],
+    },
   },
   {
-    ignores: ["node_modules/", "dist/", ".next/"],
+    files: ["eslint.config.js"],
+    ...tseslint.configs.disableTypeChecked,
+  },
+  {
+    files: ["**/tests/**/*.ts"],
+    rules: {
+      "@typescript-eslint/require-await": "off",
+      "@typescript-eslint/no-unsafe-assignment": "off",
+      "@typescript-eslint/no-unsafe-member-access": "off",
+      "@typescript-eslint/no-unsafe-call": "off",
+      "@typescript-eslint/no-unsafe-argument": "off",
+      "@typescript-eslint/await-thenable": "off",
+    },
+  },
+  {
+    ignores: ["**/node_modules/", "**/dist/", ".next/"],
   },
 );
