@@ -26,9 +26,15 @@ ink-mirror solves both problems by making the implicit visible. It watches what 
 
 The audience is anyone who writes regularly and wants their voice to sharpen rather than flatten. Journalists, engineers writing docs, people who journal, anyone whose writing matters to them but who doesn't have an editor reading over their shoulder.
 
+## Principles
+
+**Frictionless.** Every interaction should require the minimum number of steps. The system does work automatically when it can and stays out of the way when it should. Writing is the only action the user must take. Everything else (observation, profile updates, contradiction detection) happens without being asked.
+
+**Clients are views.** The daemon is the authority. Web and CLI are rendering surfaces over the same data and the same API. Neither is primary. A terminal-native writer and a browser-native writer get the same experience through different glass.
+
 ## How It Works
 
-Four phases, each one human-initiated.
+Four phases. The user initiates the first one. The rest follow automatically.
 
 ### Write
 
@@ -82,13 +88,13 @@ ink-mirror follows the Guild Hall daemon-centric pattern where it fits. The daem
 
 **No git isolation.** Journal entries aren't code. They don't need branches, worktrees, or merge strategies. Entries are append-only files in a directory. The three-branch model and worktree layout from Guild Hall don't apply here.
 
-**No commissions.** Nothing in ink-mirror runs autonomously in the background. Every LLM interaction is user-initiated: you submit an entry, you request observations, you trigger profile updates. The commission lifecycle (pending, dispatched, in_progress) is unnecessary machinery. Observation requests are synchronous (with streaming), not fire-and-forget.
+**No commissions.** ink-mirror's LLM interactions are triggered by user actions (submitting an entry triggers observation automatically), not dispatched as background work. The commission lifecycle (pending, dispatched, in_progress) is unnecessary machinery. Observations are synchronous with the submit action (streamed back), not fire-and-forget.
 
 **Meetings don't map cleanly either.** The curation step is interactive, but it's closer to a form (classify each observation) than a multi-turn conversation. If curation ever becomes conversational ("tell me more about why you flagged this pattern"), a lightweight session model would suffice. The full meeting system with worktrees, note generation, and branch merging is more than needed.
 
 **The five-layer service architecture is too deep.** ink-mirror's state model is simpler: entries in, observations out, profile updated. Two or three layers (storage, observation pipeline, API surface) are enough. Splitting into five layers would create abstraction without justification.
 
-**The operations registry and CLI discovery are optional.** If a CLI client exists, it will have a small surface: submit an entry, list entries, show profile. That's three commands, not a discoverable tree. Build it simply first.
+**The operations registry and CLI discovery are simpler.** The CLI is first-class but has a small surface: submit an entry, list entries, show profile, review observations. That's a handful of commands, not a discoverable tree. Build it simply.
 
 ### What's New
 
@@ -110,32 +116,36 @@ ink-mirror follows the Guild Hall daemon-centric pattern where it fits. The daem
 
 **Not an editor.** ink-mirror does not suggest rewrites, reorganizations, or structural improvements. The Observer names patterns. It does not propose alternatives.
 
-## Open Questions
+## Resolved Questions
+
+### Observer runs automatically on submit
+
+The Observer analyzes every entry on submit without a second action from the user. This follows the frictionless principle: writing is the only step the user takes. Observations are produced automatically and available when the user is ready to review them.
+
+### Contradictions are escalated to the user
+
+When the Observer detects contradictory patterns (short declarative sentences in technical writing, long flowing sentences in journal entries), it surfaces the tension during curation. The user decides: both are intentional (the profile holds both), or one is drift (it gets trimmed). The system never auto-reconciles. The act of deciding is part of the learning process.
+
+### CLI is first-class
+
+The CLI is a view, not a secondary client. Same daemon, same API, same data. Terminal-native writers get `ink-mirror write` (opens $EDITOR, submits on save), observation review, and profile access. The "clients are views" principle means this isn't an afterthought; it's implied by the architecture.
+
+## Open Questions (Research Required)
+
+The following questions require research before they can be resolved. Each has a corresponding issue in `.lore/issues/`.
 
 ### How much history does the Observer need?
 
-Comparing a new entry against your entire corpus is expensive and slow. Comparing against nothing makes observations shallow. What's the right window? Last 10 entries? Last 30 days? Weighted by recency? This affects both cost and observation quality.
-
-### Should the Observer run automatically on submit, or only on demand?
-
-Automatic observation means every entry gets analyzed, building a richer dataset. On-demand means the user controls when they want feedback, which respects the "write first" principle more strictly. A middle ground: observe automatically but don't surface results until the user asks.
+See `.lore/issues/research-observer-history-window.md`. Token window strategies, RAG approaches, cost modeling, and prior art in writing analysis tools.
 
 ### What's the right granularity for observations?
 
-"You use short sentences" is too broad. "You used the word 'just' 47 times in March" is too narrow. The Observer needs a level of abstraction that's specific enough to act on and general enough to form patterns. This probably requires iteration more than upfront design.
+See `.lore/issues/research-observation-granularity.md`. Computational stylistics, writing pedagogy, and what level of abstraction supports curation decisions. Constrained by the frictionless principle.
 
-### How does the style profile handle contradictions?
+### What's the minimum viable observation set?
 
-Real voices are inconsistent. You might write punchy sentences in technical docs and flowing paragraphs in personal journal entries. Does the profile have modes or contexts? Or is it a single description that captures the range? This shapes both the curation interface and the profile format.
-
-### Is the CLI a first-class client or an afterthought?
-
-Terminal-native writers might prefer `ink-mirror write` over opening a browser. If the CLI is real, it needs a decent text editor integration (open $EDITOR, submit on save). If it's secondary, it can wait. This decision affects early architecture choices.
-
-### What's the minimum viable observation?
-
-The Observer could analyze dozens of dimensions: sentence structure, vocabulary diversity, tonal shifts, paragraph rhythm, use of metaphor, punctuation habits. Shipping all of these from day one means none of them will be good. Which two or three dimensions matter most for a first version that proves the concept?
+See `.lore/issues/research-minimum-viable-observation.md`. Likely falls out of the granularity research. Which two or three dimensions prove the core loop?
 
 ### How should the profile version over time?
 
-If your voice changes (and it will), should old profile versions be preserved? A diff view ("your voice in January vs. your voice now") could be valuable. But versioning adds complexity to storage and UI. Worth doing, but when?
+See `.lore/issues/research-profile-versioning.md`. Linguistics research on voice evolution, version models, and what a useful "voice diff" looks like.
