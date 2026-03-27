@@ -1,7 +1,7 @@
 ---
 title: "ink-mirror v1: Core Loop"
 date: 2026-03-26
-status: draft
+status: approved
 tags: [spec, v1, core-loop, observer, curation, profile]
 req-prefix: V1
 related:
