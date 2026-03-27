@@ -3,6 +3,9 @@
   "private": true,
   "workspaces": ["packages/*"],
   "scripts": {
+    "dev": "trap 'kill 0' EXIT; bun run --filter '@ink-mirror/daemon' dev & bun run --filter '@ink-mirror/web' dev & wait",
+    "start": "trap 'kill 0' EXIT; bun run --filter '@ink-mirror/daemon' start & bun run --filter '@ink-mirror/web' start & wait",
+    "build": "bun run --filter '@ink-mirror/web' build",
     "test": "bun test packages/shared packages/daemon/tests packages/cli/tests packages/web/tests",
     "lint": "eslint .",
     "typecheck": "tsc --build"
