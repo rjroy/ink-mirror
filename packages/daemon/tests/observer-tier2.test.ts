@@ -22,6 +22,15 @@ const stubMetrics: EntryMetrics = {
     intensifiers: {},
     repeatedPhrases: {},
   },
+  sentenceStructure: {
+    passiveCount: 0,
+    activeCount: 1,
+    passiveRatio: 0,
+    paragraphOpeners: [{ pattern: "other", count: 1 }],
+    paragraphCount: 1,
+    fragmentCount: 0,
+    totalSentences: 1,
+  },
 };
 
 describe("Tier 2 context assembly", () => {

@@ -29,11 +29,13 @@ export {
   RhythmAnalysisSchema,
   PaceChangeSchema,
   WordFrequencyAnalysisSchema,
+  SentenceStructureAnalysisSchema,
   EntryMetricsSchema,
   type SentenceMetrics,
   type RhythmAnalysis,
   type PaceChange,
   type WordFrequencyAnalysis,
+  type SentenceStructureAnalysis,
   type EntryMetrics,
 } from "./metrics.js";
 

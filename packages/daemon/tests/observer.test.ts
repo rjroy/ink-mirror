@@ -74,10 +74,11 @@ describe("buildSystemPrompt", () => {
     expect(prompt).toContain("other writers");
   });
 
-  test("includes both active dimensions", () => {
+  test("includes all three active dimensions", () => {
     const prompt = buildSystemPrompt();
     expect(prompt).toContain("sentence-rhythm");
     expect(prompt).toContain("word-level-habits");
+    expect(prompt).toContain("sentence-structure");
   });
 
   test("specifies JSON output format", () => {
@@ -141,6 +142,17 @@ describe("buildUserMessage", () => {
 
     expect(message).toContain("Word-Level Habits");
     expect(message).toContain("Total tokens");
+  });
+
+  test("includes sentence structure metrics", () => {
+    const metrics = computeEntryMetrics(SAMPLE_ENTRY);
+    const message = buildUserMessage(SAMPLE_ENTRY, metrics, "");
+
+    expect(message).toContain("### Sentence Structure");
+    expect(message).toContain("Active voice:");
+    expect(message).toContain("Passive voice:");
+    expect(message).toContain("Fragments:");
+    expect(message).toContain("Paragraphs:");
   });
 });
 

@@ -46,12 +46,39 @@ export const WordFrequencyAnalysisSchema = z.object({
 
 export type WordFrequencyAnalysis = z.infer<typeof WordFrequencyAnalysisSchema>;
 
+// --- Sentence structure analysis ---
+
+export const SentenceStructureAnalysisSchema = z.object({
+  /** Count of sentences detected as passive voice. */
+  passiveCount: z.number().int().nonnegative(),
+  /** Count of sentences detected as active voice. */
+  activeCount: z.number().int().nonnegative(),
+  /** Passive voice ratio (0-1). */
+  passiveRatio: z.number().min(0).max(1),
+  /** Most common paragraph opener patterns (e.g., "I + verb", "temporal marker"). */
+  paragraphOpeners: z.array(
+    z.object({
+      pattern: z.string(),
+      count: z.number().int().positive(),
+    }),
+  ),
+  /** Total number of paragraphs analyzed. */
+  paragraphCount: z.number().int().nonnegative(),
+  /** Count of sentence fragments (sentences lacking a main verb). */
+  fragmentCount: z.number().int().nonnegative(),
+  /** Total sentences analyzed (denominator for ratios). */
+  totalSentences: z.number().int().nonnegative(),
+});
+
+export type SentenceStructureAnalysis = z.infer<typeof SentenceStructureAnalysisSchema>;
+
 // --- Top-level entry metrics ---
 
 export const EntryMetricsSchema = z.object({
   sentences: z.array(SentenceMetricsSchema),
   rhythm: RhythmAnalysisSchema,
   wordFrequency: WordFrequencyAnalysisSchema,
+  sentenceStructure: SentenceStructureAnalysisSchema,
 });
 
 export type EntryMetrics = z.infer<typeof EntryMetricsSchema>;

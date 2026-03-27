@@ -5,6 +5,7 @@ import { z } from "zod";
 export const ObservationDimensionSchema = z.enum([
   "sentence-rhythm",
   "word-level-habits",
+  "sentence-structure",
 ]);
 
 export type ObservationDimension = z.infer<typeof ObservationDimensionSchema>;

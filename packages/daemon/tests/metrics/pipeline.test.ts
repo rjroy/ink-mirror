@@ -24,6 +24,13 @@ describe("computeEntryMetrics", () => {
     expect(typeof metrics.wordFrequency.totalTokens).toBe("number");
     expect(typeof metrics.wordFrequency.uniqueTokens).toBe("number");
     expect(typeof metrics.wordFrequency.tokenFrequencies).toBe("object");
+    // Sentence structure
+    expect(typeof metrics.sentenceStructure.passiveCount).toBe("number");
+    expect(typeof metrics.sentenceStructure.activeCount).toBe("number");
+    expect(typeof metrics.sentenceStructure.passiveRatio).toBe("number");
+    expect(typeof metrics.sentenceStructure.fragmentCount).toBe("number");
+    expect(typeof metrics.sentenceStructure.paragraphCount).toBe("number");
+    expect(Array.isArray(metrics.sentenceStructure.paragraphOpeners)).toBe(true);
   });
 
   test("output is JSON-serializable and round-trips cleanly", () => {

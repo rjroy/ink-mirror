@@ -45,6 +45,7 @@ function emptyProfile(now: string): Profile {
 const DIMENSION_LABELS: Record<string, string> = {
   "sentence-rhythm": "Sentence Rhythm",
   "word-level-habits": "Word-Level Habits",
+  "sentence-structure": "Sentence Structure",
 };
 
 /**
@@ -118,9 +119,11 @@ function headerToDimension(header: string): ObservationDimension | undefined {
   // Substring match (handles e.g. "My Sentence Rhythm Notes")
   if (lower.includes("sentence rhythm")) return "sentence-rhythm";
   if (lower.includes("word-level") || lower.includes("word level")) return "word-level-habits";
+  if (lower.includes("sentence structure")) return "sentence-structure";
   // Direct dimension key as header
   if (lower === "sentence-rhythm") return "sentence-rhythm";
   if (lower === "word-level-habits") return "word-level-habits";
+  if (lower === "sentence-structure") return "sentence-structure";
   return undefined;
 }
 

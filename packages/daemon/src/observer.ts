@@ -106,7 +106,7 @@ You observe. You cite evidence. You name patterns.
 2. Each observation must pass the curation test: the writer can meaningfully answer "is this intentional?" If not, the observation is at the wrong grain.
 3. Every observation must cite specific text from the entry as evidence. A count is supporting data; the cited text is the observation.
 4. Name a specific pattern, not a broad category. "Uses three consecutive short sentences for emphasis at paragraph endings" not "varies sentence length."
-5. Categorize each observation by dimension: "sentence-rhythm" or "word-level-habits".
+5. Categorize each observation by dimension: "sentence-rhythm", "word-level-habits", or "sentence-structure".
 6. All comparisons must be within the entry itself or against the writer's own style profile. NEVER compare to external standards.
 
 ## Dimensions
@@ -114,6 +114,8 @@ You observe. You cite evidence. You name patterns.
 **sentence-rhythm**: Length patterns within the entry. Consecutive short or long sentences, pace changes between sections, uniformity or variation in sentence length.
 
 **word-level-habits**: Repeated words or phrases, hedging language ("just", "actually", "probably", "I think"), intensifiers, filler patterns.
+
+**sentence-structure**: Active vs. passive voice patterns, paragraph opener tendencies (e.g., most paragraphs start with "I"), sentence fragments used for effect.
 
 ## Output Format
 
@@ -124,7 +126,7 @@ Respond with valid JSON only. No markdown fencing, no explanation outside the JS
     {
       "pattern": "A specific, named pattern description",
       "evidence": "Exact quoted text from the entry demonstrating the pattern",
-      "dimension": "sentence-rhythm" or "word-level-habits"
+      "dimension": "sentence-rhythm" or "word-level-habits" or "sentence-structure"
     }
   ]
 }`;
@@ -204,6 +206,18 @@ function formatMetrics(metrics: EntryMetrics): string {
     .slice(0, 10);
   if (topWords.length > 0) {
     lines.push("- Top 10 words: " + topWords.map(([w, c]) => `"${w}" (${c}x)`).join(", "));
+  }
+
+  // Sentence structure summary
+  const ss = metrics.sentenceStructure;
+  lines.push("\n### Sentence Structure");
+  lines.push(`- Total sentences analyzed: ${ss.totalSentences}`);
+  lines.push(`- Active voice: ${ss.activeCount}, Passive voice: ${ss.passiveCount} (${Math.round(ss.passiveRatio * 100)}% passive)`);
+  lines.push(`- Fragments: ${ss.fragmentCount}`);
+  lines.push(`- Paragraphs: ${ss.paragraphCount}`);
+
+  if (ss.paragraphOpeners.length > 0) {
+    lines.push("- Paragraph opener patterns: " + ss.paragraphOpeners.map((o) => `"${o.pattern}" (${o.count}x)`).join(", "));
   }
 
   return lines.join("\n");

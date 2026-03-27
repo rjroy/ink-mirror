@@ -54,6 +54,26 @@ const MOCK_OBSERVER_OUTPUT = JSON.stringify({
   ],
 });
 
+const THREE_DIM_OBSERVER_OUTPUT = JSON.stringify({
+  observations: [
+    {
+      pattern: "Three consecutive short declarative sentences",
+      evidence: "I stopped. I turned. I left.",
+      dimension: "sentence-rhythm",
+    },
+    {
+      pattern: 'Hedging with "just" and "probably"',
+      evidence: "I probably should have stayed longer, but I just couldn't take it anymore.",
+      dimension: "word-level-habits",
+    },
+    {
+      pattern: "Consistent 'I + past tense' paragraph opener pattern",
+      evidence: "I stopped.",
+      dimension: "sentence-structure",
+    },
+  ],
+});
+
 describe("observer integration: entry submission triggers observations", () => {
   test("POST /entries returns entry with observations (mocked LLM)", async () => {
     const fs = mockFs();
@@ -150,6 +170,63 @@ describe("observer integration: entry submission triggers observations", () => {
     const json = await res.json();
     expect(json.id).toMatch(/^entry-/);
     expect(json.observations).toBeUndefined();
+  });
+
+  test("POST /entries supports all three observation dimensions (REQ-V1-10)", async () => {
+    const fs = mockFs();
+
+    const entryStore = createEntryStore({
+      entriesDir: "/data/entries",
+      fs,
+      now: () => "2026-03-27",
+    });
+
+    const observationStore = createObservationStore({
+      observationsDir: "/data/observations",
+      fs,
+      now: () => "2026-03-27T10:00:00.000Z",
+    });
+
+    const sessionRunner = createSessionRunner({
+      queryFn: async () => ({ content: THREE_DIM_OBSERVER_OUTPUT }),
+    });
+
+    const onEntryCreated = (entryId: string, entryText: string) =>
+      observe(
+        {
+          sessionRunner,
+          observationStore,
+          computeMetrics: computeEntryMetrics,
+        },
+        entryId,
+        entryText,
+      );
+
+    const entryRoutes = createEntryRoutes({ entryStore, onEntryCreated });
+    const { hono } = createApp({ routeModules: [entryRoutes] });
+
+    const res = await hono.request(
+      new Request("http://localhost/entries", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ body: SAMPLE_ENTRY }),
+      }),
+    );
+
+    expect(res.status).toBe(201);
+    const json = await res.json();
+
+    // All three dimensions present
+    expect(json.observations).toHaveLength(3);
+    const dimensions = json.observations.map((o: { dimension: string }) => o.dimension).sort();
+    expect(dimensions).toEqual(["sentence-rhythm", "sentence-structure", "word-level-habits"]);
+
+    // Sentence structure observation stored correctly
+    const structureObs = json.observations.find(
+      (o: { dimension: string }) => o.dimension === "sentence-structure",
+    );
+    expect(structureObs.pattern).toContain("opener pattern");
+    expect(structureObs.status).toBe("pending");
   });
 
   test("observations are stored with correct entry reference", async () => {
