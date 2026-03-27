@@ -11,6 +11,17 @@ The daemon is the application. Everything else is a client.
 
 Web, CLI, and agents don't make decisions or hold state. They relay user intent to the daemon and render what comes back. If the daemon stops, there is no application. If a client stops, nothing is lost.
 
+## Hard Constraint: Claude Agent SDK Only
+
+All AI functionality uses `@anthropic-ai/claude-agent-sdk`. No other AI or LLM library is permitted. This means:
+
+- **No `@anthropic-ai/sdk`** (the raw API client). The raw SDK bills per-token. The Agent SDK routes through Claude Code's OAuth, which means no separate API key and no per-token cost.
+- **No other LLM libraries** (OpenAI, LangChain, LlamaIndex, etc.). One SDK, one model provider, one integration surface.
+
+This is a cost and architecture constraint, not a preference. The Agent SDK gives us Claude Code integration and OAuth for free. The raw API does not.
+
+The "One Entry Point for SDK Calls" section below describes how SDK usage is structured within the codebase.
+
 ## Three Clients, One App
 
 | System | Stack | Role |
@@ -46,11 +57,11 @@ Tests provide mock deps. The app can start with a fallback if production setup f
 
 ### One Entry Point for SDK Calls
 
-All LLM interaction flows through a single session runner. No direct SDK calls from routes, services, or domain logic.
+All LLM interaction flows through a single session runner that wraps `@anthropic-ai/claude-agent-sdk`. No direct SDK calls from routes, services, or domain logic.
 
 The runner handles session preparation (tool resolution, prompt assembly, model selection) and iteration (streaming events back to the caller). Callers describe what they need. The runner decides how to talk to the SDK.
 
-This isn't about abstraction for its own sake. When SDK calls scatter across the codebase, every caller reinvents error handling, streaming, and tool resolution. One entry point means one place to fix, observe, and evolve.
+This isn't about abstraction for its own sake. When SDK calls scatter across the codebase, every caller reinvents error handling, streaming, and tool resolution. One entry point means one place to fix, observe, and evolve. It also enforces the constraint that all AI interaction goes through the Agent SDK (see "Hard Constraint" above).
 
 ## Operations Registry and CLI Discovery
 
