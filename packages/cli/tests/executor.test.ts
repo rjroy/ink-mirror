@@ -241,6 +241,28 @@ describe("executeOperation", () => {
     expect(body).toEqual({ value: "patched" });
   });
 
+  // --- Path parameter substitution ---
+
+  test("substitutes path parameters from args for GET", async () => {
+    let capturedPath: string | undefined;
+    const client: DaemonClient = {
+      async fetch(path: string) {
+        capturedPath = path;
+        return new Response("{}");
+      },
+      async fetchJson<T>() { return {} as T; },
+      async getHelpTree() { throw new Error("unused"); },
+    };
+
+    const op = makeOp({
+      invocation: { method: "GET", path: "/entries/:id" },
+      parameters: [{ name: "id", description: "Entry ID", required: true, type: "string" as const }],
+    });
+
+    await executeOperation(client, op, ["entry-2026-03-27-001"]);
+    expect(capturedPath).toBe("/entries/entry-2026-03-27-001");
+  });
+
   // --- Invocation path ---
 
   test("fetches the correct operation path", async () => {

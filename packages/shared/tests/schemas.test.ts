@@ -4,6 +4,9 @@ import {
   HelpTreeNodeSchema,
   ApiErrorSchema,
   ApiSuccessSchema,
+  CreateEntryRequestSchema,
+  EntrySchema,
+  EntryListItemSchema,
 } from "../src/schemas.js";
 
 describe("OperationDefinitionSchema", () => {
@@ -139,5 +142,63 @@ describe("ApiSuccessSchema", () => {
 
   test("rejects non-true value", () => {
     expect(() => ApiSuccessSchema.parse({ ok: false })).toThrow();
+  });
+});
+
+describe("CreateEntryRequestSchema", () => {
+  test("accepts body with no title", () => {
+    const result = CreateEntryRequestSchema.parse({ body: "Some text" });
+    expect(result.body).toBe("Some text");
+    expect(result.title).toBeUndefined();
+  });
+
+  test("accepts body with title", () => {
+    const result = CreateEntryRequestSchema.parse({
+      body: "Some text",
+      title: "My Entry",
+    });
+    expect(result.title).toBe("My Entry");
+  });
+
+  test("rejects empty body", () => {
+    expect(() => CreateEntryRequestSchema.parse({ body: "" })).toThrow();
+  });
+
+  test("rejects missing body", () => {
+    expect(() => CreateEntryRequestSchema.parse({})).toThrow();
+  });
+});
+
+describe("EntrySchema", () => {
+  test("accepts a full entry", () => {
+    const result = EntrySchema.parse({
+      id: "entry-2026-03-27-001",
+      date: "2026-03-27",
+      title: "Test Entry",
+      body: "Some content here.",
+    });
+    expect(result.id).toBe("entry-2026-03-27-001");
+    expect(result.date).toBe("2026-03-27");
+  });
+
+  test("accepts entry without title", () => {
+    const result = EntrySchema.parse({
+      id: "entry-2026-03-27-001",
+      date: "2026-03-27",
+      body: "Content",
+    });
+    expect(result.title).toBeUndefined();
+  });
+});
+
+describe("EntryListItemSchema", () => {
+  test("accepts a list item with preview", () => {
+    const result = EntryListItemSchema.parse({
+      id: "entry-2026-03-27-001",
+      date: "2026-03-27",
+      title: "Test",
+      preview: "First few words...",
+    });
+    expect(result.preview).toBe("First few words...");
   });
 });

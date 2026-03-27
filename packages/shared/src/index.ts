@@ -16,4 +16,10 @@ export {
   type HelpTreeNode,
   type ApiError,
   type ApiSuccess,
+  CreateEntryRequestSchema,
+  EntrySchema,
+  EntryListItemSchema,
+  type CreateEntryRequest,
+  type Entry,
+  type EntryListItem,
 } from "./schemas.js";

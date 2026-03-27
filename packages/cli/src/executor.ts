@@ -10,14 +10,32 @@ export async function executeOperation(
   operation: OperationDefinition,
   args: string[],
 ): Promise<void> {
-  const { method, path } = operation.invocation;
+  const { method } = operation.invocation;
+  let { path } = operation.invocation;
 
-  // Build request body from positional args matched to parameters
+  // Build request body from positional args matched to parameters.
+  // For GET/DELETE, path params (e.g., :id) are substituted from args.
+  // For POST/PUT/PATCH, args become the JSON body.
   let body: Record<string, string> | undefined;
-  if (operation.parameters?.length && args.length > 0) {
+  const params = operation.parameters ?? [];
+  const argsCopy = [...args];
+
+  // Substitute path parameters (e.g., /entries/:id) from args
+  for (const param of params) {
+    const placeholder = `:${param.name}`;
+    if (path.includes(placeholder) && argsCopy.length > 0) {
+      path = path.replace(placeholder, encodeURIComponent(argsCopy.shift()!));
+    }
+  }
+
+  // Remaining args become the body for write methods
+  if (argsCopy.length > 0 && params.length > 0) {
     body = {};
-    for (let i = 0; i < operation.parameters.length && i < args.length; i++) {
-      body[operation.parameters[i].name] = args[i];
+    const remainingParams = params.filter(
+      (p) => !operation.invocation.path.includes(`:${p.name}`),
+    );
+    for (let i = 0; i < remainingParams.length && i < argsCopy.length; i++) {
+      body[remainingParams[i].name] = argsCopy[i];
     }
   }
 

@@ -56,3 +56,28 @@ export const ApiSuccessSchema = z.object({
 
 export type ApiError = z.infer<typeof ApiErrorSchema>;
 export type ApiSuccess = z.infer<typeof ApiSuccessSchema>;
+
+// --- Entry schemas ---
+
+export const CreateEntryRequestSchema = z.object({
+  body: z.string().min(1, "Entry body cannot be empty"),
+  title: z.string().optional(),
+});
+
+export const EntrySchema = z.object({
+  id: z.string(),
+  date: z.string(),
+  title: z.string().optional(),
+  body: z.string(),
+});
+
+export const EntryListItemSchema = z.object({
+  id: z.string(),
+  date: z.string(),
+  title: z.string().optional(),
+  preview: z.string(),
+});
+
+export type CreateEntryRequest = z.infer<typeof CreateEntryRequestSchema>;
+export type Entry = z.infer<typeof EntrySchema>;
+export type EntryListItem = z.infer<typeof EntryListItemSchema>;

@@ -1,8 +1,16 @@
+import { join } from "node:path";
 import { createApp } from "./app.js";
+import { createEntryStore } from "./entry-store.js";
+import { createEntryRoutes } from "./routes/entries.js";
 
 const SOCKET_PATH = process.env.INK_MIRROR_SOCKET ?? "/tmp/ink-mirror.sock";
+const DATA_DIR = process.env.INK_MIRROR_DATA ?? join(process.env.HOME ?? ".", ".ink-mirror");
+const ENTRIES_DIR = join(DATA_DIR, "entries");
 
-const { hono } = createApp();
+const entryStore = createEntryStore({ entriesDir: ENTRIES_DIR });
+const entryRoutes = createEntryRoutes({ entryStore });
+
+const { hono } = createApp({ routeModules: [entryRoutes] });
 
 // Clean up stale socket file
 try {
