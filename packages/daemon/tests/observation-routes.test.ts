@@ -68,7 +68,7 @@ function req(path: string, init?: RequestInit): Request {
 describe("GET /observations/pending", () => {
   test("returns empty session when no observations", async () => {
     const { observationStore, entryStore } = mockStores();
-    const { routes } = createObservationRoutes({ observationStore, entryStore });
+    const { routes } = createObservationRoutes({ observationStore, entryStore, onIntentional: async () => {} });
 
     const res = await routes.request(req("/observations/pending"));
     expect(res.status).toBe(200);
@@ -82,7 +82,7 @@ describe("GET /observations/pending", () => {
     const obs = [makeObs({ id: "obs-001" })];
     const entries = [makeEntry("entry-2026-03-27-001", "Entry body text")];
     const { observationStore, entryStore } = mockStores(obs, entries);
-    const { routes } = createObservationRoutes({ observationStore, entryStore });
+    const { routes } = createObservationRoutes({ observationStore, entryStore, onIntentional: async () => {} });
 
     const res = await routes.request(req("/observations/pending"));
     const json = await res.json();
@@ -107,7 +107,7 @@ describe("GET /observations/pending", () => {
       makeEntry("entry-2026-03-27-002", "Long and flowing."),
     ];
     const { observationStore, entryStore } = mockStores(obs, entries);
-    const { routes } = createObservationRoutes({ observationStore, entryStore });
+    const { routes } = createObservationRoutes({ observationStore, entryStore, onIntentional: async () => {} });
 
     const res = await routes.request(req("/observations/pending"));
     const json = await res.json();
@@ -121,7 +121,7 @@ describe("PATCH /observations/:id", () => {
   test("classifies a pending observation as intentional", async () => {
     const obs = [makeObs({ id: "obs-001", status: "pending" })];
     const { observationStore, entryStore } = mockStores(obs);
-    const { routes } = createObservationRoutes({ observationStore, entryStore });
+    const { routes } = createObservationRoutes({ observationStore, entryStore, onIntentional: async () => {} });
 
     const res = await routes.request(
       req("/observations/obs-001", {
@@ -138,7 +138,7 @@ describe("PATCH /observations/:id", () => {
 
   test("rejects invalid observation ID format", async () => {
     const { observationStore, entryStore } = mockStores();
-    const { routes } = createObservationRoutes({ observationStore, entryStore });
+    const { routes } = createObservationRoutes({ observationStore, entryStore, onIntentional: async () => {} });
 
     const res = await routes.request(
       req("/observations/not-an-obs-id", {
@@ -153,7 +153,7 @@ describe("PATCH /observations/:id", () => {
 
   test("returns 404 for unknown observation", async () => {
     const { observationStore, entryStore } = mockStores();
-    const { routes } = createObservationRoutes({ observationStore, entryStore });
+    const { routes } = createObservationRoutes({ observationStore, entryStore, onIntentional: async () => {} });
 
     const res = await routes.request(
       req("/observations/obs-nonexistent", {
@@ -169,7 +169,7 @@ describe("PATCH /observations/:id", () => {
   test("rejects invalid state transition (accidental -> intentional)", async () => {
     const obs = [makeObs({ id: "obs-001", status: "accidental" })];
     const { observationStore, entryStore } = mockStores(obs);
-    const { routes } = createObservationRoutes({ observationStore, entryStore });
+    const { routes } = createObservationRoutes({ observationStore, entryStore, onIntentional: async () => {} });
 
     const res = await routes.request(
       req("/observations/obs-001", {
@@ -187,7 +187,7 @@ describe("PATCH /observations/:id", () => {
   test("rejects classification as pending", async () => {
     const obs = [makeObs({ id: "obs-001", status: "undecided" })];
     const { observationStore, entryStore } = mockStores(obs);
-    const { routes } = createObservationRoutes({ observationStore, entryStore });
+    const { routes } = createObservationRoutes({ observationStore, entryStore, onIntentional: async () => {} });
 
     const res = await routes.request(
       req("/observations/obs-001", {
@@ -203,7 +203,7 @@ describe("PATCH /observations/:id", () => {
   test("allows undecided -> accidental", async () => {
     const obs = [makeObs({ id: "obs-001", status: "undecided" })];
     const { observationStore, entryStore } = mockStores(obs);
-    const { routes } = createObservationRoutes({ observationStore, entryStore });
+    const { routes } = createObservationRoutes({ observationStore, entryStore, onIntentional: async () => {} });
 
     const res = await routes.request(
       req("/observations/obs-001", {
@@ -220,7 +220,7 @@ describe("PATCH /observations/:id", () => {
 
   test("rejects invalid JSON body", async () => {
     const { observationStore, entryStore } = mockStores();
-    const { routes } = createObservationRoutes({ observationStore, entryStore });
+    const { routes } = createObservationRoutes({ observationStore, entryStore, onIntentional: async () => {} });
 
     const res = await routes.request(
       req("/observations/obs-001", {
@@ -241,7 +241,7 @@ describe("GET /observations", () => {
       makeObs({ id: "obs-002", status: "intentional" }),
     ];
     const { observationStore, entryStore } = mockStores(obs);
-    const { routes } = createObservationRoutes({ observationStore, entryStore });
+    const { routes } = createObservationRoutes({ observationStore, entryStore, onIntentional: async () => {} });
 
     const res = await routes.request(req("/observations"));
     expect(res.status).toBe(200);
@@ -257,7 +257,7 @@ describe("GET /observations", () => {
       makeObs({ id: "obs-003", status: "pending" }),
     ];
     const { observationStore, entryStore } = mockStores(obs);
-    const { routes } = createObservationRoutes({ observationStore, entryStore });
+    const { routes } = createObservationRoutes({ observationStore, entryStore, onIntentional: async () => {} });
 
     const res = await routes.request(req("/observations?status=pending"));
     const json = await res.json();
@@ -268,7 +268,7 @@ describe("GET /observations", () => {
 
   test("rejects invalid status filter", async () => {
     const { observationStore, entryStore } = mockStores();
-    const { routes } = createObservationRoutes({ observationStore, entryStore });
+    const { routes } = createObservationRoutes({ observationStore, entryStore, onIntentional: async () => {} });
 
     const res = await routes.request(req("/observations?status=bogus"));
     expect(res.status).toBe(400);
@@ -282,7 +282,7 @@ describe("GET /observations", () => {
       makeObs({ id: "obs-004", status: "undecided" }),
     ];
     const { observationStore, entryStore } = mockStores(obs);
-    const { routes } = createObservationRoutes({ observationStore, entryStore });
+    const { routes } = createObservationRoutes({ observationStore, entryStore, onIntentional: async () => {} });
 
     const res = await routes.request(req("/observations"));
     const json = await res.json();
@@ -298,7 +298,7 @@ describe("GET /observations", () => {
   test("returns empty array when no observations match filter", async () => {
     const obs = [makeObs({ id: "obs-001", status: "pending" })];
     const { observationStore, entryStore } = mockStores(obs);
-    const { routes } = createObservationRoutes({ observationStore, entryStore });
+    const { routes } = createObservationRoutes({ observationStore, entryStore, onIntentional: async () => {} });
 
     const res = await routes.request(req("/observations?status=intentional"));
     const json = await res.json();

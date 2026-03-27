@@ -73,7 +73,7 @@ describe("curation integration", () => {
 
     // Wire up the app
     const entryRoutes = createEntryRoutes({ entryStore });
-    const observationRoutes = createObservationRoutes({ observationStore, entryStore });
+    const observationRoutes = createObservationRoutes({ observationStore, entryStore, onIntentional: async () => {} });
     const { hono } = createApp({ routeModules: [entryRoutes, observationRoutes] });
 
     // Get curation session
@@ -155,7 +155,7 @@ describe("curation integration", () => {
     });
 
     const entryRoutes = createEntryRoutes({ entryStore });
-    const observationRoutes = createObservationRoutes({ observationStore, entryStore });
+    const observationRoutes = createObservationRoutes({ observationStore, entryStore, onIntentional: async () => {} });
     const { hono } = createApp({ routeModules: [entryRoutes, observationRoutes] });
 
     // Get curation session: should surface the contradiction
@@ -190,7 +190,7 @@ describe("curation integration", () => {
     });
 
     const entryRoutes = createEntryRoutes({ entryStore });
-    const observationRoutes = createObservationRoutes({ observationStore, entryStore });
+    const observationRoutes = createObservationRoutes({ observationStore, entryStore, onIntentional: async () => {} });
     const { hono } = createApp({ routeModules: [entryRoutes, observationRoutes] });
 
     // Classify as accidental

@@ -177,4 +177,98 @@ describe("Tier 2 activation logic", () => {
 
     expect(recentCalled).toBe(true);
   });
+
+  // F7: Tier 2 boundary tests at the exact threshold (4 and 5)
+  test("recentEntries not called when corpus is exactly 4", async () => {
+    const { observe } = await import("../src/observer.js");
+    let recentCalled = false;
+
+    await observe(
+      {
+        sessionRunner: {
+          run: async () => ({
+            content: JSON.stringify({
+              observations: [{
+                pattern: "Test pattern",
+                evidence: "hello world",
+                dimension: "sentence-rhythm",
+              }],
+            }),
+          }),
+        },
+        observationStore: {
+          save: async (_eid, raw) => ({
+            id: "obs-1",
+            entryId: "entry-1",
+            pattern: raw.pattern,
+            evidence: raw.evidence,
+            dimension: raw.dimension,
+            status: "pending" as const,
+            createdAt: "2026-01-01",
+            updatedAt: "2026-01-01",
+          }),
+          list: async () => [],
+          get: async () => undefined,
+          updateStatus: async () => undefined,
+        },
+        computeMetrics: () => stubMetrics,
+        corpusSize: async () => 4,
+        recentEntries: async () => {
+          recentCalled = true;
+          return [];
+        },
+      },
+      "entry-1",
+      "hello world",
+    );
+
+    expect(recentCalled).toBe(false);
+  });
+
+  test("recentEntries called when corpus is exactly 5", async () => {
+    const { observe } = await import("../src/observer.js");
+    let recentCalled = false;
+
+    await observe(
+      {
+        sessionRunner: {
+          run: async () => ({
+            content: JSON.stringify({
+              observations: [{
+                pattern: "Test pattern",
+                evidence: "hello world",
+                dimension: "sentence-rhythm",
+              }],
+            }),
+          }),
+        },
+        observationStore: {
+          save: async (_eid, raw) => ({
+            id: "obs-1",
+            entryId: "entry-1",
+            pattern: raw.pattern,
+            evidence: raw.evidence,
+            dimension: raw.dimension,
+            status: "pending" as const,
+            createdAt: "2026-01-01",
+            updatedAt: "2026-01-01",
+          }),
+          list: async () => [],
+          get: async () => undefined,
+          updateStatus: async () => undefined,
+        },
+        computeMetrics: () => stubMetrics,
+        corpusSize: async () => 5,
+        recentEntries: async (limit: number) => {
+          recentCalled = true;
+          expect(limit).toBe(5);
+          return [{ id: "e1", body: "Entry." }];
+        },
+      },
+      "entry-1",
+      "hello world",
+    );
+
+    expect(recentCalled).toBe(true);
+  });
 });

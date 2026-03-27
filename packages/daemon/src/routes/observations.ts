@@ -17,7 +17,7 @@ export type OnIntentionalFn = (pattern: string, dimension: string) => Promise<vo
 export interface ObservationsDeps {
   observationStore: ObservationStore;
   entryStore: EntryStore;
-  onIntentional?: OnIntentionalFn;
+  onIntentional: OnIntentionalFn;
 }
 
 /**
@@ -90,15 +90,17 @@ export function createObservationRoutes(deps: ObservationsDeps): RouteModule {
     }
 
     // When classified as intentional, add/merge into the profile (REQ-V1-20)
+    let profileUpdated = true;
     if (newStatus === "intentional" && onIntentional) {
       try {
         await onIntentional(updated.pattern, updated.dimension);
-      } catch {
-        // Profile update failure doesn't block classification
+      } catch (err) {
+        profileUpdated = false;
+        console.error("Profile update failed after classification:", err);
       }
     }
 
-    return c.json(updated);
+    return c.json({ ...updated, profileUpdated });
   });
 
   // List all observations with optional status filter

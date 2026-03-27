@@ -4,6 +4,7 @@ import {
   profileToMarkdown,
   profileFromMarkdown,
   transformToStablePattern,
+  patternsMatch,
 } from "../src/profile-store.js";
 import type { Profile } from "@ink-mirror/shared";
 
@@ -138,7 +139,8 @@ describe("profileToMarkdown / profileFromMarkdown", () => {
     const md = profileToMarkdown(sampleProfile);
     expect(md).toContain("**Uses staccato rhythm for emphasis at paragraph endings**");
     expect(md).toContain("*Confirmed across 3 entries*");
-    expect(md).toContain("<!-- id:rule-sentence-rhythm-001 -->");
+    expect(md).toContain(`<!-- id:rule-sentence-rhythm-001 created:${FIXED_TIME} -->`);
+
   });
 
   test("round-trips: serialize then parse preserves rules", () => {
@@ -345,5 +347,171 @@ describe("ProfileStore", () => {
       const { store } = createTestStore();
       await expect(store.replaceFromMarkdown("not markdown")).rejects.toThrow();
     });
+  });
+});
+
+// --- patternsMatch (F6: direct unit tests for the merge heuristic) ---
+
+describe("patternsMatch", () => {
+  test("matches exact patterns after normalization", () => {
+    expect(patternsMatch("Uses staccato rhythm", "uses staccato rhythm")).toBe(true);
+  });
+
+  test("matches when one contains the other", () => {
+    expect(patternsMatch("Uses staccato rhythm", "Uses staccato rhythm for emphasis")).toBe(true);
+  });
+
+  test("matches patterns with high word overlap (>=60%)", () => {
+    // "staccato rhythm paragraph endings" vs "staccato rhythm sentence endings"
+    // shared: staccato, rhythm, endings (3/4 = 75%)
+    expect(patternsMatch(
+      "Uses staccato rhythm at paragraph endings",
+      "Uses staccato rhythm at sentence endings",
+    )).toBe(true);
+  });
+
+  test("does not match patterns with low word overlap (<60%)", () => {
+    expect(patternsMatch(
+      "Uses short sentences for emphasis",
+      "Relies on hedging words in technical writing",
+    )).toBe(false);
+  });
+
+  test("does not match when one pattern has only short words", () => {
+    // After normalization and filtering words <3 chars, if nothing remains
+    expect(patternsMatch("is a", "at on")).toBe(false);
+  });
+
+  test("handles filler word stripping ('uses', 'tends to', etc.)", () => {
+    // After stripping "uses" and "tends to", core content should still compare
+    expect(patternsMatch(
+      "Uses hedging words in technical prose",
+      "Tends to use hedging words in technical prose",
+    )).toBe(true);
+  });
+
+  test("does not false-merge unrelated patterns with some shared words", () => {
+    // Only 1 shared word out of 3+ = below threshold
+    expect(patternsMatch(
+      "Short sentences at paragraph breaks",
+      "Long compound sentences with subordinate clauses",
+    )).toBe(false);
+  });
+});
+
+// --- profileFromMarkdown: unrecognized section handling (F5) ---
+
+describe("profileFromMarkdown unrecognized sections", () => {
+  test("preserves rules in sections with known headers", () => {
+    const md = [
+      "---",
+      "version: 1",
+      "updatedAt: 2026-03-27T12:00:00.000Z",
+      "---",
+      "",
+      "# Writing Style Profile",
+      "",
+      "## Sentence Rhythm",
+      "",
+      "- **Uses staccato rhythm**",
+      `  *Confirmed across 3 entries* <!-- id:rule-sentence-rhythm-001 created:2026-03-20T00:00:00.000Z -->`,
+      "",
+    ].join("\n");
+
+    const profile = profileFromMarkdown(md);
+    expect(profile).toBeDefined();
+    expect(profile!.rules).toHaveLength(1);
+  });
+
+  test("skips rules in sections with unrecognized headers", () => {
+    const md = [
+      "---",
+      "version: 1",
+      "updatedAt: 2026-03-27T12:00:00.000Z",
+      "---",
+      "",
+      "# Writing Style Profile",
+      "",
+      "## My Custom Section",
+      "",
+      "- **Some pattern**",
+      "  *Confirmed across 1 entry* <!-- id:rule-custom-001 -->",
+      "",
+    ].join("\n");
+
+    const profile = profileFromMarkdown(md);
+    expect(profile).toBeDefined();
+    expect(profile!.rules).toHaveLength(0);
+  });
+
+  test("matches dimension when header uses raw dimension key", () => {
+    const md = [
+      "---",
+      "version: 1",
+      "updatedAt: 2026-03-27T12:00:00.000Z",
+      "---",
+      "",
+      "# Writing Style Profile",
+      "",
+      "## sentence-rhythm",
+      "",
+      "- **Uses staccato rhythm**",
+      `  *Confirmed across 1 entry* <!-- id:rule-sentence-rhythm-001 -->`,
+      "",
+    ].join("\n");
+
+    const profile = profileFromMarkdown(md);
+    expect(profile).toBeDefined();
+    expect(profile!.rules).toHaveLength(1);
+    expect(profile!.rules[0].dimension).toBe("sentence-rhythm");
+  });
+});
+
+// --- createdAt round-trip (F8) ---
+
+describe("profileToMarkdown / profileFromMarkdown createdAt preservation", () => {
+  test("preserves createdAt through markdown round-trip", () => {
+    const profile: Profile = {
+      version: 1,
+      updatedAt: "2026-03-27T12:00:00.000Z",
+      rules: [{
+        id: "rule-sentence-rhythm-001",
+        pattern: "Uses staccato rhythm",
+        dimension: "sentence-rhythm",
+        sourceCount: 1,
+        sourceSummary: "Confirmed across 1 entry",
+        createdAt: "2026-03-20T00:00:00.000Z",
+        updatedAt: "2026-03-27T12:00:00.000Z",
+      }],
+    };
+
+    const md = profileToMarkdown(profile);
+    expect(md).toContain("created:2026-03-20T00:00:00.000Z");
+
+    const parsed = profileFromMarkdown(md);
+    expect(parsed).toBeDefined();
+    expect(parsed!.rules[0].createdAt).toBe("2026-03-20T00:00:00.000Z");
+    expect(parsed!.rules[0].updatedAt).toBe("2026-03-27T12:00:00.000Z");
+  });
+
+  test("falls back to updatedAt when createdAt not in comment (old format)", () => {
+    const md = [
+      "---",
+      "version: 1",
+      "updatedAt: 2026-03-27T12:00:00.000Z",
+      "---",
+      "",
+      "# Writing Style Profile",
+      "",
+      "## Sentence Rhythm",
+      "",
+      "- **Uses staccato rhythm**",
+      "  *Confirmed across 1 entry* <!-- id:rule-sentence-rhythm-001 -->",
+      "",
+    ].join("\n");
+
+    const parsed = profileFromMarkdown(md);
+    expect(parsed).toBeDefined();
+    expect(parsed!.rules[0].createdAt).toBe("2026-03-27T12:00:00.000Z");
   });
 });

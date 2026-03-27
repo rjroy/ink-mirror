@@ -41,6 +41,12 @@ function emptyProfile(now: string): Profile {
   return { version: 1, updatedAt: now, rules: [] };
 }
 
+/** Shared dimension-to-label map used by both human markdown and LLM prompt rendering. */
+const DIMENSION_LABELS: Record<string, string> = {
+  "sentence-rhythm": "Sentence Rhythm",
+  "word-level-habits": "Word-Level Habits",
+};
+
 /**
  * Generates a rule ID from the dimension and a sequence number.
  */
@@ -79,28 +85,43 @@ export function profileToMarkdown(profile: Profile): string {
     byDimension.set(rule.dimension, existing);
   }
 
-  const dimensionLabels: Record<string, string> = {
-    "sentence-rhythm": "Sentence Rhythm",
-    "word-level-habits": "Word-Level Habits",
-  };
-
   if (byDimension.size === 0) {
     lines.push("*No patterns confirmed yet. Write entries and curate observations to build your profile.*");
     lines.push("");
   }
 
   for (const [dimension, rules] of byDimension) {
-    const label = dimensionLabels[dimension] ?? dimension;
+    const label = DIMENSION_LABELS[dimension] ?? dimension;
     lines.push(`## ${label}`);
     lines.push("");
     for (const rule of rules) {
       lines.push(`- **${rule.pattern}**`);
-      lines.push(`  *${rule.sourceSummary}* <!-- id:${rule.id} -->`);
+      lines.push(`  *${rule.sourceSummary}* <!-- id:${rule.id} created:${rule.createdAt} -->`);
       lines.push("");
     }
   }
 
   return lines.join("\n");
+}
+
+/**
+ * Map a section header back to a dimension key.
+ * Checks exact label matches first, then fuzzy substring matches,
+ * then falls back to raw dimension key (e.g. user writes "sentence-rhythm" as header).
+ */
+function headerToDimension(header: string): ObservationDimension | undefined {
+  const lower = header.toLowerCase();
+  // Exact label match
+  for (const [dim, label] of Object.entries(DIMENSION_LABELS)) {
+    if (lower === label.toLowerCase()) return dim as ObservationDimension;
+  }
+  // Substring match (handles e.g. "My Sentence Rhythm Notes")
+  if (lower.includes("sentence rhythm")) return "sentence-rhythm";
+  if (lower.includes("word-level") || lower.includes("word level")) return "word-level-habits";
+  // Direct dimension key as header
+  if (lower === "sentence-rhythm") return "sentence-rhythm";
+  if (lower === "word-level-habits") return "word-level-habits";
+  return undefined;
 }
 
 /**
@@ -126,8 +147,8 @@ export function profileFromMarkdown(content: string): Profile | undefined {
 
   // Parse rules from markdown bullet points with embedded ID comments.
   // Format: - **pattern text**
-  //           *source summary* <!-- id:rule-id -->
-  const ruleRegex = /- \*\*(.+?)\*\*\n\s+\*(.+?)\*\s*<!-- id:(\S+) -->/g;
+  //           *source summary* <!-- id:rule-id created:timestamp -->
+  const ruleRegex = /- \*\*(.+?)\*\*\n\s+\*(.+?)\*\s*<!-- id:(\S+)(?:\s+created:(\S+))? -->/g;
 
   // Determine current dimension from section headers
   const sections = body.split(/^## /m).filter(Boolean);
@@ -139,15 +160,17 @@ export function profileFromMarkdown(content: string): Profile | undefined {
     const header = section.slice(0, headerEnd).trim();
     const sectionBody = section.slice(headerEnd + 1);
 
-    // Reverse-map header to dimension
-    let dimension: ObservationDimension | undefined;
-    if (header.toLowerCase().includes("sentence rhythm")) {
-      dimension = "sentence-rhythm";
-    } else if (header.toLowerCase().includes("word-level") || header.toLowerCase().includes("word level")) {
-      dimension = "word-level-habits";
-    }
+    // Reverse-map header to dimension via label lookup and direct key match
+    const dimension = headerToDimension(header);
 
-    if (!dimension) continue;
+    if (!dimension) {
+      // Check if section contains rule-formatted content that would be lost
+      ruleRegex.lastIndex = 0;
+      if (ruleRegex.test(sectionBody)) {
+        console.warn(`Profile section "${header}" contains rules but doesn't match a known dimension. Rules in this section will be skipped.`);
+      }
+      continue;
+    }
 
     ruleRegex.lastIndex = 0;
     let match: RegExpExecArray | null;
@@ -155,6 +178,7 @@ export function profileFromMarkdown(content: string): Profile | undefined {
       const pattern = match[1].trim();
       const sourceSummary = match[2].trim();
       const id = match[3].trim();
+      const createdAt = match[4]?.trim() ?? updatedAt;
 
       // Extract source count from summary
       const countMatch = sourceSummary.match(/(\d+)\s+entr/);
@@ -166,13 +190,43 @@ export function profileFromMarkdown(content: string): Profile | undefined {
         dimension,
         sourceCount,
         sourceSummary,
-        createdAt: updatedAt,
+        createdAt,
         updatedAt,
       });
     }
   }
 
   return { version: 1, updatedAt, rules };
+}
+
+/**
+ * Checks if two patterns likely describe the same writing characteristic.
+ * Extracts a "core" by removing filler words and modifiers, then checks
+ * if the cores overlap significantly (60%+ word overlap).
+ */
+export function patternsMatch(a: string, b: string): boolean {
+  const normalize = (s: string) =>
+    s.toLowerCase()
+      .replace(/\b(uses?|tends? to|often|frequently|consistently|typically|for\s+\w+(\s+\w+)?)\b/g, "")
+      .replace(/\s+/g, " ")
+      .trim();
+  const na = normalize(a);
+  const nb = normalize(b);
+  // Exact match, or one contains the other
+  if (na === nb || na.includes(nb) || nb.includes(na)) return true;
+
+  // Extract significant words (3+ chars) and check overlap
+  const wordsA = new Set(na.split(" ").filter((w) => w.length >= 3));
+  const wordsB = new Set(nb.split(" ").filter((w) => w.length >= 3));
+  if (wordsA.size === 0 || wordsB.size === 0) return false;
+
+  let overlap = 0;
+  for (const w of wordsA) {
+    if (wordsB.has(w)) overlap++;
+  }
+  const minSize = Math.min(wordsA.size, wordsB.size);
+  // If at least 60% of the smaller set's words appear in the larger set, merge
+  return minSize > 0 && overlap / minSize >= 0.6;
 }
 
 export function createProfileStore(deps: ProfileStoreDeps): ProfileStore {
@@ -192,36 +246,6 @@ export function createProfileStore(deps: ProfileStoreDeps): ProfileStore {
   async function write(profile: Profile): Promise<void> {
     await fs.mkdir(dirname(profilePath), { recursive: true });
     await fs.writeFile(profilePath, profileToMarkdown(profile));
-  }
-
-  /**
-   * Checks if two patterns likely describe the same writing characteristic.
-   * Extracts a "core" by removing filler words and modifiers, then checks
-   * if the cores overlap significantly.
-   */
-  function patternsMatch(a: string, b: string): boolean {
-    const normalize = (s: string) =>
-      s.toLowerCase()
-        .replace(/\b(uses?|tends? to|often|frequently|consistently|typically|for\s+\w+(\s+\w+)?)\b/g, "")
-        .replace(/\s+/g, " ")
-        .trim();
-    const na = normalize(a);
-    const nb = normalize(b);
-    // Exact match, or one contains the other
-    if (na === nb || na.includes(nb) || nb.includes(na)) return true;
-
-    // Extract significant words (3+ chars) and check overlap
-    const wordsA = new Set(na.split(" ").filter((w) => w.length >= 3));
-    const wordsB = new Set(nb.split(" ").filter((w) => w.length >= 3));
-    if (wordsA.size === 0 || wordsB.size === 0) return false;
-
-    let overlap = 0;
-    for (const w of wordsA) {
-      if (wordsB.has(w)) overlap++;
-    }
-    const minSize = Math.min(wordsA.size, wordsB.size);
-    // If at least 60% of the smaller set's words appear in the larger set, merge
-    return minSize > 0 && overlap / minSize >= 0.6;
   }
 
   return {
@@ -319,13 +343,8 @@ export function createProfileStore(deps: ProfileStoreDeps): ProfileStore {
         byDimension.set(rule.dimension, existing);
       }
 
-      const dimensionLabels: Record<string, string> = {
-        "sentence-rhythm": "Sentence Rhythm",
-        "word-level-habits": "Word-Level Habits",
-      };
-
       for (const [dimension, rules] of byDimension) {
-        const label = dimensionLabels[dimension] ?? dimension;
+        const label = DIMENSION_LABELS[dimension] ?? dimension;
         lines.push(`### ${label}`);
         for (const rule of rules) {
           lines.push(`- ${rule.pattern} (${rule.sourceSummary.toLowerCase()})`);

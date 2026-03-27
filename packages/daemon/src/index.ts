@@ -61,7 +61,9 @@ const onEntryCreated = (entryIdStr: string, entryText: string) =>
       corpusSize: async () => (await entryStore.list()).length,
       recentEntries: async (limit: number) => {
         const items = await entryStore.list();
-        const recent = items.slice(0, limit);
+        // Filter out the current entry to avoid duplication (it appears as "Current Entry" in the prompt)
+        const filtered = items.filter((item) => item.id !== entryIdStr);
+        const recent = filtered.slice(0, limit);
         const entries = [];
         for (const item of recent) {
           const entry = await entryStore.get(entryId(item.id));

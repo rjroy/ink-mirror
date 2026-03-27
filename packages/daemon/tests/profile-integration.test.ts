@@ -99,6 +99,7 @@ describe("Profile generation on intentional classification", () => {
     expect(res.status).toBe(200);
     const body = await res.json();
     expect(body.status).toBe("intentional");
+    expect(body.profileUpdated).toBe(true);
 
     // Profile should now have a rule
     const profile = await profileStore.get();
@@ -146,6 +147,81 @@ describe("Profile generation on intentional classification", () => {
 
     expect(res.status).toBe(200);
     expect(profileUpdated).toBe(false);
+  });
+
+  test("returns profileUpdated: true when profile update succeeds", async () => {
+    const mock = createMockFs();
+    const profileStore = createProfileStore({
+      profilePath: "/test/profile.md",
+      fs: mock.fs,
+      now: () => FIXED_TIME,
+    });
+
+    const observation: Observation = {
+      id: "obs-2026-03-27-001",
+      entryId: "entry-1",
+      pattern: "Uses staccato rhythm",
+      evidence: "Short.",
+      dimension: "sentence-rhythm",
+      status: "pending",
+      createdAt: FIXED_TIME,
+      updatedAt: FIXED_TIME,
+    };
+
+    const observationStore = createMockObservationStore([observation]);
+    const entryStore = createMockEntryStore();
+    const onIntentional = async (pattern: string, dimension: string) => {
+      await profileStore.addOrMergeRule(pattern, dimension as ObservationDimension);
+    };
+
+    const { routes } = createObservationRoutes({ observationStore, entryStore, onIntentional });
+    const app = new Hono();
+    app.route("/", routes);
+
+    const res = await app.request("/observations/obs-2026-03-27-001", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status: "intentional" }),
+    });
+
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.profileUpdated).toBe(true);
+  });
+
+  test("returns profileUpdated: false when profile update fails", async () => {
+    const observation: Observation = {
+      id: "obs-2026-03-27-001",
+      entryId: "entry-1",
+      pattern: "Uses staccato rhythm",
+      evidence: "Short.",
+      dimension: "sentence-rhythm",
+      status: "pending",
+      createdAt: FIXED_TIME,
+      updatedAt: FIXED_TIME,
+    };
+
+    const observationStore = createMockObservationStore([observation]);
+    const entryStore = createMockEntryStore();
+    const onIntentional = async () => {
+      throw new Error("Filesystem write failed");
+    };
+
+    const { routes } = createObservationRoutes({ observationStore, entryStore, onIntentional });
+    const app = new Hono();
+    app.route("/", routes);
+
+    const res = await app.request("/observations/obs-2026-03-27-001", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status: "intentional" }),
+    });
+
+    // Classification still succeeds (200), but profileUpdated is false
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.status).toBe("intentional");
+    expect(body.profileUpdated).toBe(false);
   });
 
   test("repeated intentional patterns merge into single rule", async () => {
