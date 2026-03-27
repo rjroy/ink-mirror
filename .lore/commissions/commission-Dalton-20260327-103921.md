@@ -1,7 +1,7 @@
 ---
 title: "Commission: Phase 2B: Observer Integration"
 date: 2026-03-27
-status: pending
+status: dispatched
 type: one-shot
 tags: [commission]
 worker: Dalton
@@ -72,6 +72,11 @@ activity_timeline:
   - timestamp: 2026-03-27T19:08:03.885Z
     event: result_submitted
     reason: "Commission 2B: Observer Integration complete. Built all components for the LLM observation pipeline.\n\n**Session runner** (`session-runner.ts`): Single entry point for all LLM calls (REQ-V1-27). Injectable `queryFn` for testing, retry logic for transient errors (overloaded, rate limit, timeout). Tests verify request passthrough, retry behavior, and error propagation.\n\n**Observer prompt** (`observer.ts`): System prompt enforces all constraints: 2-3 observations per entry (REQ-V1-8), curation test grain (REQ-V1-6), no text generation, no external comparisons (REQ-V1-9), cited evidence required (REQ-V1-7), named patterns required (REQ-V1-5). Two dimensions active: sentence-rhythm and word-level-habits (REQ-V1-10 partial).\n\n**Tier 1 context assembly**: Style profile (empty initially) + pre-computed metrics + current entry text (REQ-V1-13). Entry placed last for highest attention (REQ-V1-15). Metrics formatted as human-readable markdown showing rhythm analysis and word-level habits.\n\n**Observation storage** (`observation-store.ts`): One YAML file per observation in `observations/` directory. Each file contains: pattern name, cited evidence, dimension, entry reference, curation status (pending), timestamps. Sequential IDs (`obs-YYYY-MM-DD-NNN`). Same filesystem DI pattern as EntryStore for testability.\n\n**Output validation**: `parseObserverOutput` handles JSON parsing (including code-fence stripping). `validateObservations` checks each observation has cited evidence that appears in the entry text and a non-empty pattern name. Invalid observations are filtered out with error messages; valid ones are stored.\n\n**Auto-trigger** (REQ-V1-4): `POST /entries` calls the Observer after storing the entry. Observer failures don't block entry creation. Observations returned inline in the response.\n\n**Production wiring** (`index.ts`): Anthropic SDK lazy-imported for production `queryFn`. Observation store wired to `~/.ink-mirror/observations/`. Entry route receives `onEntryCreated` callback.\n\n**Tests**: 6 test files covering session runner (5 tests), observation store (9 tests), observer prompt/parsing/validation (20 tests), observer pipeline (3 tests), integration (3 tests), shared schemas (10 tests). All use dependency injection with mocked queryFn, mocked filesystem, or in-memory stores. No `mock.module()`.\n\n**Limitation**: Could not run `bun test` or `bun run typecheck` because `bun install` fails (npm registry blocked by sandbox, 403). No node_modules or package cache exist in the worktree. Code follows identical patterns to Phase 1 files that passed tests in their original commissions."
+  - timestamp: 2026-03-27T20:17:10.235Z
+    event: status_dispatched
+    reason: "Dispatched to worker"
+    from: "pending"
+    to: "dispatched"
 current_progress: "All source code written. Cannot run tests because npm registry is blocked by sandbox network restrictions. bun install returns 403 for all packages. No node_modules or bun cache exists in this worktree. Attempting to verify code through typecheck instead."
 projectName: ink-mirror
 ---
