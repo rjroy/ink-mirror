@@ -14,10 +14,6 @@ describe("api client module", () => {
     expect(typeof api.listEntries).toBe("function");
   });
 
-  test("exports getEntry", () => {
-    expect(typeof api.getEntry).toBe("function");
-  });
-
   test("exports getCurationSession", () => {
     expect(typeof api.getCurationSession).toBe("function");
   });

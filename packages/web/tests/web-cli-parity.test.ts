@@ -12,7 +12,7 @@ import { createProfileRoutes } from "../../daemon/src/routes/profile.js";
 import { createEventsRoutes } from "../../daemon/src/routes/events.js";
 import { createEventBus } from "../../daemon/src/event-bus.js";
 import type { Hono } from "hono";
-import type { Entry, EntryListItem, Observation, Profile, CurationSession } from "@ink-mirror/shared";
+import type { Entry, EntryListItem, Observation, Profile, CurationSession, ObservationDimension } from "@ink-mirror/shared";
 
 /**
  * Tests that web API calls produce identical results to CLI calls
@@ -48,7 +48,7 @@ describe("web-cli parity", () => {
       observationStore,
       entryStore,
       onIntentional: async (pattern, dimension) => {
-        await profileStore.addOrMergeRule(pattern, dimension as "sentence-rhythm" | "word-level-habits");
+        await profileStore.addOrMergeRule(pattern, dimension as ObservationDimension);
       },
     });
     const profileRoutes = createProfileRoutes({ profileStore });

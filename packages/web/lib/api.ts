@@ -43,10 +43,6 @@ export async function listEntries(): Promise<EntryListItem[]> {
   return fetchApi<EntryListItem[]>("/entries");
 }
 
-export async function getEntry(id: string): Promise<Entry> {
-  return fetchApi<Entry>(`/entries/${id}`);
-}
-
 export async function getCurationSession(): Promise<CurationSession> {
   return fetchApi<CurationSession>("/observations/pending");
 }

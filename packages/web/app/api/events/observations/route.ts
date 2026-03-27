@@ -5,17 +5,21 @@ import { daemonFetch } from "@/lib/daemon";
  * The daemon SSE endpoint uses the EventBus internally.
  */
 export async function GET() {
-  const daemonResponse = await daemonFetch("/events/observations");
+  try {
+    const daemonResponse = await daemonFetch("/events/observations");
 
-  if (!daemonResponse.body) {
-    return new Response("No stream available", { status: 502 });
+    if (!daemonResponse.body) {
+      return new Response("No stream available", { status: 502 });
+    }
+
+    return new Response(daemonResponse.body, {
+      headers: {
+        "Content-Type": "text/event-stream",
+        "Cache-Control": "no-cache",
+        Connection: "keep-alive",
+      },
+    });
+  } catch {
+    return new Response("Daemon unavailable", { status: 502 });
   }
-
-  return new Response(daemonResponse.body, {
-    headers: {
-      "Content-Type": "text/event-stream",
-      "Cache-Control": "no-cache",
-      Connection: "keep-alive",
-    },
-  });
 }

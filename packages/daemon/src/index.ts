@@ -40,7 +40,7 @@ async function productionQueryFn(request: SessionRequest) {
     options: {
       systemPrompt: request.system,
       maxTurns: 1,
-      model: "claude-opus-4-6",
+      model: "claude-sonnet-4-6",
     },
   })) {
     if ("result" in message) {

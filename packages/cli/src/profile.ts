@@ -40,6 +40,7 @@ export async function showProfile(client: DaemonClient): Promise<void> {
   const labels: Record<string, string> = {
     "sentence-rhythm": "Sentence Rhythm",
     "word-level-habits": "Word-Level Habits",
+    "sentence-structure": "Sentence Structure",
   };
 
   for (const [dimension, rules] of byDimension) {
@@ -146,6 +147,7 @@ function buildProfileMarkdown(profile: ProfileResponse): string {
   const labels: Record<string, string> = {
     "sentence-rhythm": "Sentence Rhythm",
     "word-level-habits": "Word-Level Habits",
+    "sentence-structure": "Sentence Structure",
   };
 
   if (byDimension.size === 0) {

@@ -1,4 +1,9 @@
-import { observationId, type ObservationId } from "@ink-mirror/shared";
+import {
+  observationId,
+  ObservationDimensionSchema,
+  CurationStatusSchema,
+  type ObservationId,
+} from "@ink-mirror/shared";
 import type {
   Observation,
   RawObservation,
@@ -82,11 +87,18 @@ export function fromYaml(content: string): Observation | undefined {
     return undefined;
   }
 
+  const parsedDimension = ObservationDimensionSchema.safeParse(dimension);
+  const parsedStatus = CurationStatusSchema.safeParse(status);
+
+  if (!parsedDimension.success || !parsedStatus.success) {
+    return undefined;
+  }
+
   return {
     id,
     entryId,
-    dimension: dimension as Observation["dimension"],
-    status: status as Observation["status"],
+    dimension: parsedDimension.data,
+    status: parsedStatus.data,
     createdAt,
     updatedAt,
     pattern,

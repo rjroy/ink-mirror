@@ -12,7 +12,7 @@ import { createProfileRoutes } from "../../daemon/src/routes/profile.js";
 import { createEventsRoutes } from "../../daemon/src/routes/events.js";
 import { createEventBus } from "../../daemon/src/event-bus.js";
 import type { Hono } from "hono";
-import type { Entry, Observation, CurationSession, Profile } from "@ink-mirror/shared";
+import type { Entry, Observation, CurationSession, Profile, ObservationDimension } from "@ink-mirror/shared";
 
 /**
  * Full loop integration test through the daemon API.
@@ -60,7 +60,7 @@ describe("full loop integration", () => {
       observationStore,
       entryStore,
       onIntentional: async (pattern, dimension) => {
-        await profileStore.addOrMergeRule(pattern, dimension as "sentence-rhythm" | "word-level-habits");
+        await profileStore.addOrMergeRule(pattern, dimension as ObservationDimension);
       },
     });
     const profileRoutes = createProfileRoutes({ profileStore });
@@ -208,6 +208,73 @@ describe("full loop integration", () => {
       const final: Profile = await finalRes.json();
       expect(final.rules).toHaveLength(0);
     }
+  });
+
+  test("sentence-structure dimension flows through full loop", async () => {
+    // Set up a separate app with sentence-structure observations
+    const dataDir3 = mkdtempSync(join(tmpdir(), "ink-mirror-dim3-test-"));
+    const entryStore = createEntryStore({ entriesDir: join(dataDir3, "entries") });
+    const observationStore = createObservationStore({ observationsDir: join(dataDir3, "observations") });
+    const profileStore = createProfileStore({ profilePath: join(dataDir3, "profile.md") });
+    const eventBus = createEventBus();
+
+    const onEntryCreated = async (entryId: string, _entryText: string) => {
+      const obs = await observationStore.save(entryId, {
+        pattern: "Favors compound sentences joined by conjunctions",
+        evidence: "Multiple clauses connected with 'and' or 'but'.",
+        dimension: "sentence-structure",
+      });
+      return { observations: [obs], errors: [] };
+    };
+
+    const entryRoutes = createEntryRoutes({ entryStore, onEntryCreated, eventBus });
+    const observationRoutes = createObservationRoutes({
+      observationStore,
+      entryStore,
+      onIntentional: async (pattern, dimension) => {
+        await profileStore.addOrMergeRule(pattern, dimension as ObservationDimension);
+      },
+    });
+    const profileRoutes = createProfileRoutes({ profileStore });
+    const eventsRoutes = createEventsRoutes({ eventBus });
+
+    const app = createApp({
+      routeModules: [entryRoutes, observationRoutes, profileRoutes, eventsRoutes],
+      eventBus,
+    });
+
+    // Create entry
+    const createRes = await app.hono.request(
+      req("/entries", {
+        method: "POST",
+        body: { body: "She walked and she talked, but she never stopped." },
+      }),
+    );
+    expect(createRes.status).toBe(201);
+
+    // Get pending observations
+    const pendingRes = await app.hono.request(req("/observations/pending"));
+    const session: CurationSession = await pendingRes.json();
+    expect(session.observations.length).toBeGreaterThan(0);
+    expect(session.observations[0].dimension).toBe("sentence-structure");
+
+    // Classify as intentional
+    const classifyRes = await app.hono.request(
+      req(`/observations/${session.observations[0].id}`, {
+        method: "PATCH",
+        body: { status: "intentional" },
+      }),
+    );
+    expect(classifyRes.status).toBe(200);
+
+    // Verify profile
+    const profileRes = await app.hono.request(req("/profile"));
+    const profile: Profile & { markdown: string } = await profileRes.json();
+    expect(profile.rules.length).toBeGreaterThan(0);
+    expect(profile.rules[0].dimension).toBe("sentence-structure");
+    expect(profile.rules[0].pattern).toBe("Favors compound sentences joined by conjunctions");
+
+    rmSync(dataDir3, { recursive: true, force: true });
   });
 
   test("EventBus receives observation events during entry creation", async () => {

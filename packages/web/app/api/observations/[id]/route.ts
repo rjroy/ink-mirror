@@ -5,9 +5,13 @@ export async function PATCH(
   request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const { id } = await params;
-  const body: unknown = await request.json();
-  const res = await daemonFetch(`/observations/${id}`, { method: "PATCH", body });
-  const data = await res.json();
-  return NextResponse.json(data, { status: res.status });
+  try {
+    const { id } = await params;
+    const body: unknown = await request.json();
+    const res = await daemonFetch(`/observations/${id}`, { method: "PATCH", body });
+    const data = await res.json();
+    return NextResponse.json(data, { status: res.status });
+  } catch {
+    return NextResponse.json({ error: "Daemon unavailable" }, { status: 502 });
+  }
 }
