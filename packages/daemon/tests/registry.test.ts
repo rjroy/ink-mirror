@@ -71,11 +71,14 @@ describe("OperationsRegistry", () => {
     );
 
     const entries = tree.children!.entries;
-    expect(entries.children!.list.operations).toHaveLength(1);
-    expect(entries.children!.create.operations).toHaveLength(1);
+    expect(entries.operations).toHaveLength(2);
+    expect(entries.operations!.map((o) => o.operationId)).toEqual(
+      expect.arrayContaining(["entries.list", "entries.create"]),
+    );
 
     const profile = tree.children!.profile;
-    expect(profile.children!.get.operations).toHaveLength(1);
+    expect(profile.operations).toHaveLength(1);
+    expect(profile.operations![0].operationId).toBe("profile.get");
   });
 
   test("findByPath navigates the tree", () => {
@@ -90,7 +93,7 @@ describe("OperationsRegistry", () => {
     const node = registry.findByPath(["entries"]);
     expect(node).toBeDefined();
     expect(node!.name).toBe("entries");
-    expect(node!.children!.list).toBeDefined();
+    expect(node!.operations).toHaveLength(1);
   });
 
   test("findByPath returns undefined for invalid path", () => {
@@ -100,10 +103,11 @@ describe("OperationsRegistry", () => {
     ]);
 
     expect(registry.findByPath(["nonexistent"])).toBeUndefined();
-    expect(registry.findByPath(["entries", "nonexistent"])).toBeUndefined();
+    // "list" is no longer a child node; operations are flat on "entries"
+    expect(registry.findByPath(["entries", "list"])).toBeUndefined();
   });
 
-  test("findByPath returns leaf node", () => {
+  test("findByPath returns node with its operations", () => {
     const registry = createOperationsRegistry();
     registry.register([
       makeOp({
@@ -113,10 +117,10 @@ describe("OperationsRegistry", () => {
       }),
     ]);
 
-    const leaf = registry.findByPath(["entries", "list"]);
-    expect(leaf).toBeDefined();
-    expect(leaf!.operations).toHaveLength(1);
-    expect(leaf!.operations![0].name).toBe("list");
+    const node = registry.findByPath(["entries"]);
+    expect(node).toBeDefined();
+    expect(node!.operations).toHaveLength(1);
+    expect(node!.operations![0].name).toBe("list");
   });
 
   test("accumulates operations from multiple register calls", () => {

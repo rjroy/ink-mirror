@@ -31,6 +31,9 @@ function mockFs(
       written[path] = content;
     },
     async mkdir(): Promise<void> {},
+    async exists(path: string): Promise<boolean> {
+      return path in store;
+    },
   };
 }
 
@@ -117,6 +120,34 @@ describe("fromMarkdown", () => {
     };
     const parsed = fromMarkdown(toMarkdown(original));
     expect(parsed).toEqual(original);
+  });
+
+  test("handles title with double quotes (F-04)", () => {
+    const original = {
+      id: "entry-2026-03-27-001",
+      date: "2026-03-27",
+      title: 'She said "hello"',
+      body: "Content.",
+    };
+    const md = toMarkdown(original);
+    expect(md).toContain('title: "She said \\"hello\\""');
+
+    const parsed = fromMarkdown(md);
+    expect(parsed).toBeDefined();
+    expect(parsed!.title).toBe('She said "hello"');
+  });
+
+  test("handles title with backslashes", () => {
+    const original = {
+      id: "entry-2026-03-27-001",
+      date: "2026-03-27",
+      title: "path\\to\\file",
+      body: "Content.",
+    };
+    const md = toMarkdown(original);
+    const parsed = fromMarkdown(md);
+    expect(parsed).toBeDefined();
+    expect(parsed!.title).toBe("path\\to\\file");
   });
 });
 

@@ -38,42 +38,32 @@ const sampleTree: HelpTreeNode = {
   children: {
     entries: {
       name: "entries",
-      children: {
-        list: {
+      operations: [
+        {
+          operationId: "entries.list",
           name: "list",
-          operations: [
-            {
-              operationId: "entries.list",
-              name: "list",
-              description: "List all entries",
-              invocation: { method: "GET", path: "/entries" },
-              hierarchy: { root: "entries", feature: "list" },
-              idempotent: true,
-            },
-          ],
+          description: "List all entries",
+          invocation: { method: "GET", path: "/entries" },
+          hierarchy: { root: "entries", feature: "list" },
+          idempotent: true,
         },
-        create: {
+        {
+          operationId: "entries.create",
           name: "create",
-          operations: [
+          description: "Create entry",
+          invocation: { method: "POST", path: "/entries" },
+          hierarchy: { root: "entries", feature: "create" },
+          parameters: [
             {
-              operationId: "entries.create",
-              name: "create",
-              description: "Create entry",
-              invocation: { method: "POST", path: "/entries" },
-              hierarchy: { root: "entries", feature: "create" },
-              parameters: [
-                {
-                  name: "body",
-                  description: "Entry body",
-                  required: true,
-                  type: "string" as const,
-                },
-              ],
-              idempotent: false,
+              name: "body",
+              description: "Entry body",
+              required: true,
+              type: "string" as const,
             },
           ],
+          idempotent: false,
         },
-      },
+      ],
     },
   },
 };
@@ -145,6 +135,15 @@ describe("resolveCommand", () => {
     if (result.type === "operation") {
       expect(result.operation.operationId).toBe("entries.create");
       expect(result.args).toEqual(["body-text"]);
+    }
+  });
+
+  test("'entries' alone resolves to list operation (F-02)", async () => {
+    const result = await resolveCommand(client, ["entries"]);
+    expect(result.type).toBe("operation");
+    if (result.type === "operation") {
+      expect(result.operation.operationId).toBe("entries.list");
+      expect(result.args).toEqual([]);
     }
   });
 

@@ -1,6 +1,6 @@
 import { entryId, type EntryId } from "@ink-mirror/shared";
 import type { Entry, EntryListItem } from "@ink-mirror/shared";
-import { readdir, readFile, writeFile, mkdir } from "node:fs/promises";
+import { readdir, readFile, writeFile, mkdir, access } from "node:fs/promises";
 import { join } from "node:path";
 
 /**
@@ -12,6 +12,8 @@ export interface EntryStoreFs {
   readFile(path: string, encoding: "utf-8"): Promise<string>;
   writeFile(path: string, content: string): Promise<void>;
   mkdir(path: string, opts: { recursive: true }): Promise<void>;
+  /** Returns true if the file exists. Used to guard against ID collisions. */
+  exists(path: string): Promise<boolean>;
 }
 
 export interface EntryStore {
@@ -64,7 +66,10 @@ async function nextId(
  */
 function toMarkdown(entry: Entry): string {
   const lines = ["---", `id: ${entry.id}`, `date: ${entry.date}`];
-  if (entry.title) lines.push(`title: "${entry.title}"`);
+  if (entry.title) {
+    const escaped = entry.title.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
+    lines.push(`title: "${escaped}"`);
+  }
   lines.push("---", "", entry.body, "");
   return lines.join("\n");
 }
@@ -81,8 +86,10 @@ function fromMarkdown(content: string): Entry | undefined {
 
   const id = frontmatter.match(/^id:\s*(.+)$/m)?.[1]?.trim();
   const date = frontmatter.match(/^date:\s*(.+)$/m)?.[1]?.trim();
-  const titleMatch = frontmatter.match(/^title:\s*"?([^"]*)"?$/m);
-  const title = titleMatch?.[1]?.trim();
+  const titleMatch = frontmatter.match(/^title:\s*"((?:[^"\\]|\\.)*)"/m);
+  const title = titleMatch
+    ? titleMatch[1].replace(/\\"/g, '"').replace(/\\\\/g, "\\")
+    : undefined;
 
   if (!id || !date) return undefined;
 
@@ -100,6 +107,10 @@ const realFs: EntryStoreFs = {
   readFile: (p, enc) => readFile(p, enc),
   writeFile: (p, c) => writeFile(p, c, "utf-8"),
   mkdir: (p, o) => mkdir(p, o).then(() => {}),
+  exists: (p) =>
+    access(p)
+      .then(() => true)
+      .catch(() => false),
 };
 
 export function createEntryStore(deps: EntryStoreDeps): EntryStore {
@@ -112,7 +123,18 @@ export function createEntryStore(deps: EntryStoreDeps): EntryStore {
       await fs.mkdir(entriesDir, { recursive: true });
 
       const dateStr = now();
-      const id = await nextId(entriesDir, dateStr, fs);
+      let id = await nextId(entriesDir, dateStr, fs);
+      let filepath = join(entriesDir, `${id}.md`);
+
+      // Guard against race condition: if file already exists, increment (F-03)
+      while (await fs.exists(filepath)) {
+        const seqStr = (id as string).slice(-3);
+        const nextSeq = parseInt(seqStr, 10) + 1;
+        id = entryId(
+          `entry-${dateStr}-${String(nextSeq).padStart(3, "0")}`,
+        );
+        filepath = join(entriesDir, `${id}.md`);
+      }
 
       const entry: Entry = {
         id: id as string,
@@ -121,7 +143,6 @@ export function createEntryStore(deps: EntryStoreDeps): EntryStore {
         body,
       };
 
-      const filepath = join(entriesDir, `${id}.md`);
       await fs.writeFile(filepath, toMarkdown(entry));
 
       return entry;

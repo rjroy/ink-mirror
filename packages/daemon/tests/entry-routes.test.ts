@@ -173,6 +173,25 @@ describe("GET /entries/:id", () => {
     const json = await res.json();
     expect(json.error).toBe("Entry not found");
   });
+
+  test("rejects path traversal attempt with 400 (F-01)", async () => {
+    const store = mockEntryStore();
+    const { routes } = createEntryRoutes({ entryStore: store });
+
+    const res = await routes.request(req("/entries/../../etc/passwd"));
+    expect(res.status).toBe(400);
+
+    const json = await res.json();
+    expect(json.error).toBe("Invalid entry ID");
+  });
+
+  test("rejects ID with special characters", async () => {
+    const store = mockEntryStore();
+    const { routes } = createEntryRoutes({ entryStore: store });
+
+    const res = await routes.request(req("/entries/entry-foo;rm -rf"));
+    expect(res.status).toBe(400);
+  });
 });
 
 describe("operations registration", () => {
@@ -188,13 +207,16 @@ describe("operations registration", () => {
     expect(ids).toContain("entries.read");
   });
 
-  test("create operation has body parameter", () => {
+  test("create operation has body and title parameters (F-07)", () => {
     const store = mockEntryStore();
     const { operations } = createEntryRoutes({ entryStore: store });
 
     const create = operations.find((o) => o.operationId === "entries.create");
-    expect(create!.parameters).toHaveLength(1);
+    expect(create!.parameters).toHaveLength(2);
     expect(create!.parameters![0].name).toBe("body");
+    expect(create!.parameters![0].required).toBe(true);
+    expect(create!.parameters![1].name).toBe("title");
+    expect(create!.parameters![1].required).toBe(false);
   });
 
   test("read operation has id parameter", () => {

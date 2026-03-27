@@ -39,7 +39,14 @@ export function createEntryRoutes(deps: EntriesDeps): RouteModule {
   });
 
   app.get("/entries/:id", async (c) => {
-    const id = entryId(c.req.param("id"));
+    const raw = c.req.param("id");
+
+    // Validate ID format to prevent path traversal (F-01)
+    if (!/^entry-[\w-]+$/.test(raw)) {
+      return c.json({ error: "Invalid entry ID" }, 400);
+    }
+
+    const id = entryId(raw);
     const entry = await entryStore.get(id);
 
     if (!entry) {
@@ -63,6 +70,12 @@ export function createEntryRoutes(deps: EntriesDeps): RouteModule {
             name: "body",
             description: "Entry text content",
             required: true,
+            type: "string" as const,
+          },
+          {
+            name: "title",
+            description: "Optional entry title",
+            required: false,
             type: "string" as const,
           },
         ],

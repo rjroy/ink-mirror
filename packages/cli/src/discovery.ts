@@ -110,5 +110,13 @@ export async function resolveCommand(
     return { type: "operation", operation: current.operations[0], args: [] };
   }
 
+  // Multiple operations: use "list" as default if available (F-02)
+  if (current.operations && current.operations.length > 1) {
+    const listOp = current.operations.find((o) => o.name === "list");
+    if (listOp) {
+      return { type: "operation", operation: listOp, args: [] };
+    }
+  }
+
   return { type: "help", tree: current };
 }
