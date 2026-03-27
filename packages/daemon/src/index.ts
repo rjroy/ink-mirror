@@ -7,6 +7,7 @@ import type { SessionRequest } from "./session-runner.js";
 import { observe } from "./observer.js";
 import { computeEntryMetrics } from "./metrics/index.js";
 import { createEntryRoutes } from "./routes/entries.js";
+import { createObservationRoutes } from "./routes/observations.js";
 
 const SOCKET_PATH = process.env.INK_MIRROR_SOCKET ?? "/tmp/ink-mirror.sock";
 const DATA_DIR = process.env.INK_MIRROR_DATA ?? join(process.env.HOME ?? ".", ".ink-mirror");
@@ -56,8 +57,9 @@ const onEntryCreated = (entryId: string, entryText: string) =>
   );
 
 const entryRoutes = createEntryRoutes({ entryStore, onEntryCreated });
+const observationRoutes = createObservationRoutes({ observationStore, entryStore });
 
-const { hono } = createApp({ routeModules: [entryRoutes] });
+const { hono } = createApp({ routeModules: [entryRoutes, observationRoutes] });
 
 // Clean up stale socket file
 try {

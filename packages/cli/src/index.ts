@@ -3,6 +3,7 @@ import { createDaemonClient } from "./client.js";
 import { resolveCommand, formatHelpTree } from "./discovery.js";
 import { executeOperation } from "./executor.js";
 import { writeEntry } from "./write.js";
+import { curateObservations } from "./curate.js";
 
 const SOCKET_PATH =
   process.env.INK_MIRROR_SOCKET ?? "/tmp/ink-mirror.sock";
@@ -14,6 +15,12 @@ async function main(): Promise<void> {
   // "write" is a CLI-specific command that opens $EDITOR
   if (args[0] === "write") {
     await writeEntry(client);
+    return;
+  }
+
+  // "curate" is interactive: presents observations one at a time
+  if (args[0] === "curate") {
+    await curateObservations(client);
     return;
   }
 

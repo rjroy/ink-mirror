@@ -28,14 +28,26 @@ export async function executeOperation(
     }
   }
 
-  // Remaining args become the body for write methods
-  if (argsCopy.length > 0 && params.length > 0) {
-    body = {};
-    const remainingParams = params.filter(
-      (p) => !operation.invocation.path.includes(`:${p.name}`),
-    );
-    for (let i = 0; i < remainingParams.length && i < argsCopy.length; i++) {
-      body[remainingParams[i].name] = argsCopy[i];
+  // Remaining args become body (for write methods) or query params (for read methods)
+  const remainingParams = params.filter(
+    (p) => !operation.invocation.path.includes(`:${p.name}`),
+  );
+
+  if (argsCopy.length > 0 && remainingParams.length > 0) {
+    if (method === "GET" || method === "DELETE") {
+      // For read methods, remaining args become query parameters
+      const query = new URLSearchParams();
+      for (let i = 0; i < remainingParams.length && i < argsCopy.length; i++) {
+        query.set(remainingParams[i].name, argsCopy[i]);
+      }
+      const qs = query.toString();
+      if (qs) path += `?${qs}`;
+    } else {
+      // For write methods, remaining args become the JSON body
+      body = {};
+      for (let i = 0; i < remainingParams.length && i < argsCopy.length; i++) {
+        body[remainingParams[i].name] = argsCopy[i];
+      }
     }
   }
 
