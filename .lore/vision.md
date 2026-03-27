@@ -26,9 +26,17 @@ The audience is anyone who writes regularly and wants their voice to sharpen rat
 
 ## Principles
 
-**Frictionless.** Writing is the only action the user must take. Everything else (observation, profile updates, contradiction detection) happens without being asked. Every interaction should require the minimum number of steps. The system does work automatically when it can and stays out of the way when it should.
+### 1. Writing Takes Practice
 
-**Clients are views.** The daemon is the authority. Web and CLI are rendering surfaces over the same data and the same API. Neither is primary. A terminal-native writer and a browser-native writer get the same experience through different glass.
+### 2. Feedback Accelerates Skill
+
+### 3. Practice Should Be Frictionless
+
+Writing is the only action the user must take. Everything else (observation, profile updates, contradiction detection) happens without being asked. Every interaction should require the minimum number of steps. The system does work automatically when it can and stays out of the way when it should.
+
+### 4. Clients are Views
+
+The daemon is the authority. Web and CLI are rendering surfaces over the same data and the same API. Neither is primary. A terminal-native writer and a browser-native writer get the same experience through different glass.
 
 ## How It Works
 
