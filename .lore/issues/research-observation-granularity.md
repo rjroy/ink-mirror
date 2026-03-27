@@ -1,6 +1,6 @@
 ---
 title: "Research: Observation granularity"
-type: research
+type: complete
 status: open
 date: 2026-03-26
 origin: vision open question
