@@ -1,7 +1,7 @@
 ---
 title: "Plan: DX Cleanup and Visual Alignment"
 date: 2026-03-27
-status: planned
+status: approved
 tags: [plan, dx, scripts, visual-direction, web]
 ---
 
