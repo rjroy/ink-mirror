@@ -1,0 +1,15 @@
+{
+  "name": "@ink-mirror/cli",
+  "version": "0.1.0",
+  "type": "module",
+  "bin": {
+    "ink-mirror": "src/index.ts"
+  },
+  "scripts": {
+    "start": "bun run src/index.ts",
+    "test": "bun test"
+  },
+  "dependencies": {
+    "@ink-mirror/shared": "workspace:*"
+  }
+}
