@@ -1,7 +1,7 @@
 ---
 title: "Research: Minimum viable observation set"
 type: research
-status: open
+status: complete
 date: 2026-03-26
 origin: vision open question
 tags: [observer, research, observation-model, mvp]
