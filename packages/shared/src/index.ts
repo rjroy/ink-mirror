@@ -23,3 +23,16 @@ export {
   type Entry,
   type EntryListItem,
 } from "./schemas.js";
+
+export {
+  SentenceMetricsSchema,
+  RhythmAnalysisSchema,
+  PaceChangeSchema,
+  WordFrequencyAnalysisSchema,
+  EntryMetricsSchema,
+  type SentenceMetrics,
+  type RhythmAnalysis,
+  type PaceChange,
+  type WordFrequencyAnalysis,
+  type EntryMetrics,
+} from "./metrics.js";
