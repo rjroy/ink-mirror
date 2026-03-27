@@ -1,0 +1,11 @@
+.container {
+  padding: 52px 48px 40px;
+}
+
+.heading {
+  font-size: 12px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  margin-bottom: 32px;
+}

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Nav } from "@/components/nav";
+import "./globals.css";
 
 export const metadata: Metadata = {
   title: "ink-mirror",
@@ -13,9 +14,9 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body style={{ margin: 0, fontFamily: "system-ui, -apple-system, sans-serif" }}>
+      <body>
         <Nav />
-        <main style={{ padding: "2rem" }}>{children}</main>
+        <main>{children}</main>
       </body>
     </html>
   );

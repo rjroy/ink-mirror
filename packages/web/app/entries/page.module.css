@@ -1,0 +1,68 @@
+.container {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 52px 48px 40px;
+}
+
+.heading {
+  font-size: 12px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  margin-bottom: 32px;
+}
+
+.empty {
+  color: var(--ink-muted);
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.emptyLink {
+  color: var(--observer-accent);
+}
+
+.card {
+  display: block;
+  padding: 16px 20px;
+  margin-bottom: 8px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--surface);
+  transition: border-color 0.15s;
+}
+
+.card:hover {
+  border-color: var(--ink-faint);
+}
+
+.cardHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+
+.cardTitle {
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 15px;
+  color: var(--ink);
+}
+
+.cardDate {
+  font-size: 11px;
+  color: var(--ink-faint);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.cardPreview {
+  font-size: 13px;
+  color: var(--ink-muted);
+  margin-top: 6px;
+  line-height: 1.5;
+}
+
+.error {
+  color: var(--accid-border);
+  font-size: 14px;
+}

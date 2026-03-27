@@ -1,0 +1,169 @@
+.container {
+  max-width: 720px;
+  margin: 0 auto;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 32px;
+}
+
+.sectionTitle {
+  font-size: 12px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.error {
+  color: var(--accid-border);
+  font-size: 13px;
+  margin-bottom: 16px;
+}
+
+.empty {
+  color: var(--ink-muted);
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+/* Subtle button style */
+.subtleBtn {
+  font-size: 11px;
+  letter-spacing: 0.05em;
+  color: var(--ink-muted);
+  background: transparent;
+  border: 1px solid var(--border);
+  padding: 5px 12px;
+  border-radius: 3px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.subtleBtn:hover {
+  border-color: var(--ink-muted);
+  color: var(--ink);
+}
+
+.subtleBtn:disabled {
+  cursor: default;
+  opacity: 0.5;
+}
+
+.primaryBtn {
+  composes: subtleBtn;
+  background: var(--ink);
+  color: var(--surface);
+  border-color: var(--ink);
+}
+
+.primaryBtn:hover {
+  background: var(--ink-muted);
+  border-color: var(--ink-muted);
+  color: var(--surface);
+}
+
+.dangerBtn {
+  composes: subtleBtn;
+  color: var(--accid-border);
+}
+
+.dangerBtn:hover {
+  border-color: var(--accid-border);
+}
+
+/* Dimension section */
+.dimensionSection {
+  margin-bottom: 24px;
+}
+
+.dimensionLabel {
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--observer-faint);
+  margin-bottom: 10px;
+}
+
+/* Rule card */
+.ruleCard {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 12px 14px;
+  margin-bottom: 8px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--surface);
+}
+
+.ruleContent {
+  flex: 1;
+}
+
+.rulePattern {
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--ink);
+}
+
+.ruleSource {
+  font-size: 11px;
+  color: var(--ink-faint);
+  margin-top: 4px;
+}
+
+.ruleInput {
+  width: 100%;
+  padding: 6px 8px;
+  font-size: 13px;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  background: var(--surface);
+  color: var(--ink);
+  font-family: inherit;
+}
+
+.ruleInput:focus {
+  outline: none;
+  border-color: var(--observer-accent);
+}
+
+.ruleActions {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+/* Markdown editor */
+.markdownHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.markdownHeaderActions {
+  display: flex;
+  gap: 8px;
+}
+
+.markdownTextarea {
+  width: 100%;
+  padding: 16px;
+  font-size: 13px;
+  font-family: 'SF Mono', 'Fira Code', monospace;
+  line-height: 1.6;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--surface);
+  color: var(--ink);
+  resize: vertical;
+}
+
+.markdownTextarea:focus {
+  outline: none;
+  border-color: var(--observer-accent);
+}

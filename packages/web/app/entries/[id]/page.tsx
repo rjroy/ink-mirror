@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { daemonJson } from "@/lib/daemon";
 import type { Entry, Observation } from "@ink-mirror/shared";
+import styles from "./page.module.css";
 
 export const dynamic = "force-dynamic";
 
@@ -27,46 +28,49 @@ export default async function EntryDetailPage({
     // Observations loading failure is non-fatal
   }
 
+  const hasObservations = observations.length > 0;
+
   return (
-    <div style={{ maxWidth: "48rem", margin: "0 auto" }}>
-      <Link href="/entries" style={{ fontSize: "0.9rem", color: "#666", textDecoration: "none" }}>
-        &larr; Back to entries
-      </Link>
+    <div className={hasObservations ? styles.layout : styles.layoutFullWidth}>
+      <section className={styles.entryPane}>
+        <Link href="/entries" className={styles.backLink}>
+          &larr; Entries
+        </Link>
 
-      <h1 style={{ fontSize: "1.5rem", marginTop: "1rem", marginBottom: "0.25rem" }}>
-        {entry.title ?? entry.id}
-      </h1>
-      <div style={{ fontSize: "0.9rem", color: "#999", marginBottom: "1.5rem" }}>
-        {entry.date}
-      </div>
+        <div className={styles.entryDate}>{entry.date}</div>
+        {entry.title && <h1 className={styles.entryTitle}>{entry.title}</h1>}
+        <div className={styles.entryBody}>{entry.body}</div>
+      </section>
 
-      <div style={{ lineHeight: 1.6, whiteSpace: "pre-wrap", marginBottom: "2rem" }}>
-        {entry.body}
-      </div>
+      {hasObservations && (
+        <aside className={styles.observerPane}>
+          <div className={styles.observerHeader}>
+            <span className={styles.observerLabel}>Observations</span>
+            <span className={styles.observerCount}>
+              {observations.length} observation{observations.length !== 1 ? "s" : ""}
+            </span>
+          </div>
 
-      {observations.length > 0 && (
-        <div>
-          <h2 style={{ fontSize: "1.1rem", marginBottom: "0.75rem" }}>Observations</h2>
-          {observations.map((obs) => (
-            <div
-              key={obs.id}
-              style={{
-                padding: "0.75rem",
-                marginBottom: "0.5rem",
-                border: "1px solid #e5e5e5",
-                borderRadius: "4px",
-              }}
-            >
-              <div style={{ fontWeight: 500 }}>{obs.pattern}</div>
-              <div style={{ fontSize: "0.85rem", color: "#666", marginTop: "0.25rem" }}>
-                {obs.dimension} | {obs.status}
+          <div className={styles.observationsList}>
+            {observations.map((obs) => (
+              <div key={obs.id} className={styles.obsCard}>
+                <div className={styles.obsDimension}>{obs.dimension}</div>
+                <div className={styles.obsText}>{obs.pattern}</div>
+                {obs.evidence && (
+                  <div className={styles.obsEvidence}>
+                    <div className={styles.obsEvidenceLabel}>from your entry</div>
+                    <div className={styles.obsEvidenceText}>
+                      &ldquo;{obs.evidence}&rdquo;
+                    </div>
+                  </div>
+                )}
+                <div className={styles.obsStatus}>
+                  {obs.status}
+                </div>
               </div>
-              <div style={{ fontSize: "0.9rem", fontStyle: "italic", marginTop: "0.25rem", color: "#555" }}>
-                &ldquo;{obs.evidence}&rdquo;
-              </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        </aside>
       )}
     </div>
   );

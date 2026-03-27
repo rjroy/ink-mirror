@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { getCurationSession, classifyObservation } from "@/lib/api";
 import type { CurationSession, ObservationWithContext, Contradiction } from "@ink-mirror/shared";
+import styles from "./curation-panel.module.css";
 
 type ClassificationStatus = "intentional" | "accidental" | "undecided";
 
@@ -34,7 +35,6 @@ export function CurationPanel() {
       setClassifying(id);
       try {
         await classifyObservation(id, status);
-        // Remove classified observation from session
         setSession((prev) => {
           if (!prev) return null;
           return {
@@ -51,38 +51,31 @@ export function CurationPanel() {
     [],
   );
 
-  if (loading) return <div>Loading curation session...</div>;
-  if (error) return <div style={{ color: "#c00" }}>{error}</div>;
-  if (!session) return <div>No session data</div>;
+  if (loading) return <div className={styles.loading}>Loading curation session...</div>;
+  if (error) return <div className={styles.error}>{error}</div>;
+  if (!session) return <div className={styles.loading}>No session data</div>;
 
   const { observations, contradictions } = session;
 
   if (observations.length === 0) {
     return (
-      <div style={{ maxWidth: "48rem", margin: "0 auto" }}>
-        <p style={{ color: "#666" }}>No pending observations to curate. Write a new entry to generate observations.</p>
+      <div className={styles.container}>
+        <p className={styles.empty}>
+          No pending observations to curate. Write a new entry to generate observations.
+        </p>
       </div>
     );
   }
 
   return (
-    <div style={{ maxWidth: "48rem", margin: "0 auto" }}>
+    <div className={styles.container}>
       {contradictions.length > 0 && (
-        <div style={{ marginBottom: "2rem" }}>
-          <h3 style={{ marginBottom: "0.5rem" }}>Contradictions Detected</h3>
+        <div className={styles.contradictions}>
+          <div className={styles.contradictionsLabel}>Contradictions Detected</div>
           {contradictions.map((c: Contradiction, i: number) => (
-            <div
-              key={i}
-              style={{
-                padding: "0.75rem",
-                marginBottom: "0.5rem",
-                border: "1px solid #f0c040",
-                borderRadius: "4px",
-                backgroundColor: "#fffbe6",
-              }}
-            >
-              <div style={{ fontWeight: 500 }}>Tension in {c.dimension}</div>
-              <div style={{ marginTop: "0.5rem", fontSize: "0.9rem" }}>
+            <div key={i} className={styles.contradictionCard}>
+              <div className={styles.contradictionDimension}>Tension in {c.dimension}</div>
+              <div className={styles.contradictionPatterns}>
                 <div>New: {c.newObservation.pattern}</div>
                 <div>Confirmed: {c.confirmedObservation.pattern}</div>
               </div>
@@ -102,18 +95,7 @@ export function CurationPanel() {
         ))}
       </div>
 
-      <button
-        onClick={loadSession}
-        style={{
-          marginTop: "1rem",
-          padding: "0.5rem 1rem",
-          fontSize: "0.9rem",
-          border: "1px solid #ddd",
-          borderRadius: "4px",
-          cursor: "pointer",
-          backgroundColor: "#fff",
-        }}
-      >
+      <button onClick={loadSession} className={styles.refreshBtn}>
         Refresh Session
       </button>
     </div>
@@ -130,79 +112,47 @@ function ObservationCard({
   classifying: boolean;
 }) {
   return (
-    <div
-      style={{
-        padding: "1rem",
-        marginBottom: "1rem",
-        border: "1px solid #e5e5e5",
-        borderRadius: "4px",
-      }}
-    >
-      <div style={{ fontWeight: 500, marginBottom: "0.5rem" }}>
-        {observation.pattern}
+    <div className={styles.obsCard}>
+      <div className={styles.obsMeta}>
+        {observation.dimension} &middot; {observation.status}
       </div>
+      <div className={styles.obsPattern}>{observation.pattern}</div>
 
-      <div style={{ fontSize: "0.9rem", color: "#666", marginBottom: "0.5rem" }}>
-        {observation.dimension} | {observation.status}
-      </div>
-
-      <div
-        style={{
-          padding: "0.5rem 0.75rem",
-          backgroundColor: "#f7f7f7",
-          borderRadius: "4px",
-          fontSize: "0.9rem",
-          fontStyle: "italic",
-          marginBottom: "0.75rem",
-        }}
-      >
-        &ldquo;{observation.evidence}&rdquo;
+      <div className={styles.obsEvidence}>
+        <div className={styles.obsEvidenceText}>
+          &ldquo;{observation.evidence}&rdquo;
+        </div>
       </div>
 
       {observation.entryText && (
-        <details style={{ marginBottom: "0.75rem" }}>
-          <summary style={{ cursor: "pointer", fontSize: "0.9rem", color: "#666" }}>
-            Original entry text
-          </summary>
-          <div
-            style={{
-              marginTop: "0.5rem",
-              padding: "0.75rem",
-              backgroundColor: "#fafafa",
-              borderRadius: "4px",
-              fontSize: "0.9rem",
-              lineHeight: 1.6,
-              whiteSpace: "pre-wrap",
-            }}
-          >
-            {observation.entryText}
-          </div>
+        <details className={styles.obsEntryText}>
+          <summary className={styles.obsEntryTextSummary}>Original entry text</summary>
+          <div className={styles.obsEntryTextBody}>{observation.entryText}</div>
         </details>
       )}
 
-      <div style={{ display: "flex", gap: "0.5rem" }}>
-        {(["intentional", "accidental", "undecided"] as const).map((status) => (
-          <button
-            key={status}
-            onClick={() => void onClassify(observation.id, status)}
-            disabled={classifying}
-            style={{
-              padding: "0.4rem 0.8rem",
-              fontSize: "0.85rem",
-              border: "1px solid #ddd",
-              borderRadius: "4px",
-              cursor: classifying ? "default" : "pointer",
-              backgroundColor:
-                status === "intentional"
-                  ? "#e8f5e9"
-                  : status === "accidental"
-                    ? "#fce4ec"
-                    : "#fff3e0",
-            }}
-          >
-            {status}
-          </button>
-        ))}
+      <div className={styles.obsClassify}>
+        <button
+          onClick={() => void onClassify(observation.id, "intentional")}
+          disabled={classifying}
+          className={styles.classifyBtnIntentional}
+        >
+          Intentional
+        </button>
+        <button
+          onClick={() => void onClassify(observation.id, "accidental")}
+          disabled={classifying}
+          className={styles.classifyBtnAccidental}
+        >
+          Accidental
+        </button>
+        <button
+          onClick={() => void onClassify(observation.id, "undecided")}
+          disabled={classifying}
+          className={styles.classifyBtnUndecided}
+        >
+          Undecided
+        </button>
       </div>
     </div>
   );

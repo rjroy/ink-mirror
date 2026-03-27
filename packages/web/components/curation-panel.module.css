@@ -1,0 +1,191 @@
+.container {
+  max-width: 720px;
+  margin: 0 auto;
+}
+
+.empty {
+  color: var(--ink-muted);
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.error {
+  color: var(--accid-border);
+  font-size: 14px;
+  margin-bottom: 16px;
+}
+
+.loading {
+  color: var(--ink-faint);
+  font-size: 13px;
+}
+
+/* Contradiction cards */
+.contradictions {
+  margin-bottom: 32px;
+}
+
+.contradictionsLabel {
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--observer-faint);
+  margin-bottom: 12px;
+}
+
+.contradictionCard {
+  padding: 14px 16px;
+  margin-bottom: 8px;
+  border: 1px solid var(--undecided-border);
+  border-radius: 4px;
+  background: var(--undecided-bg);
+}
+
+.contradictionDimension {
+  font-size: 13px;
+  color: var(--ink);
+  margin-bottom: 8px;
+}
+
+.contradictionPatterns {
+  font-size: 12px;
+  color: var(--ink-muted);
+  line-height: 1.5;
+}
+
+/* Observation card */
+.obsCard {
+  background: var(--surface);
+  border-radius: 4px;
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--observer-border);
+  padding: 14px 16px 12px;
+  margin-bottom: 12px;
+}
+
+.obsPattern {
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--ink);
+  margin-bottom: 8px;
+}
+
+.obsMeta {
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--observer-faint);
+  margin-bottom: 6px;
+}
+
+.obsEvidence {
+  background: rgba(74, 92, 112, 0.06);
+  border-left: 2px solid var(--observer-border);
+  border-radius: 2px;
+  padding: 7px 10px;
+  margin-bottom: 12px;
+}
+
+.obsEvidenceText {
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 12px;
+  font-style: italic;
+  line-height: 1.5;
+  color: var(--observer-evidence);
+}
+
+.obsEntryText {
+  margin-bottom: 12px;
+}
+
+.obsEntryTextSummary {
+  cursor: pointer;
+  font-size: 11px;
+  color: var(--ink-faint);
+  letter-spacing: 0.04em;
+}
+
+.obsEntryTextBody {
+  margin-top: 8px;
+  padding: 12px;
+  background: var(--bg);
+  border-radius: 4px;
+  font-size: 13px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  color: var(--ink-muted);
+}
+
+.obsClassify {
+  display: flex;
+  gap: 6px;
+}
+
+.classifyBtn {
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  padding: 4px 9px;
+  border-radius: 3px;
+  border: 1px solid var(--border);
+  background: transparent;
+  cursor: pointer;
+  color: var(--ink-muted);
+  transition: all 0.15s;
+}
+
+.classifyBtn:hover {
+  background: var(--bg);
+}
+
+.classifyBtn:disabled {
+  cursor: default;
+  opacity: 0.5;
+}
+
+.classifyBtnIntentional {
+  composes: classifyBtn;
+}
+
+.classifyBtnIntentional:hover {
+  border-color: var(--intent-border);
+  color: var(--intent-border);
+  background: var(--intent-bg);
+}
+
+.classifyBtnAccidental {
+  composes: classifyBtn;
+}
+
+.classifyBtnAccidental:hover {
+  border-color: var(--accid-border);
+  color: var(--accid-border);
+  background: var(--accid-bg);
+}
+
+.classifyBtnUndecided {
+  composes: classifyBtn;
+}
+
+.classifyBtnUndecided:hover {
+  border-color: var(--undecided-border);
+  color: var(--undecided-border);
+  background: var(--undecided-bg);
+}
+
+.refreshBtn {
+  font-size: 11px;
+  letter-spacing: 0.05em;
+  color: var(--ink-muted);
+  background: transparent;
+  border: 1px solid var(--border);
+  padding: 7px 16px;
+  border-radius: 3px;
+  cursor: pointer;
+  margin-top: 16px;
+  transition: all 0.15s;
+}
+
+.refreshBtn:hover {
+  border-color: var(--ink-muted);
+  color: var(--ink);
+}
