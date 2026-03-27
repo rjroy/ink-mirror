@@ -8,8 +8,6 @@ tags: [vision, project-identity]
 
 # ink-mirror
 
-## What It Is
-
 A journal where you write first and the AI reads second. You put something down, rough or short, whatever you have. The AI reflects back what it noticed about your choices: sentence rhythm, word habits, structural patterns. Not corrections, not rewrites, not suggestions. Observations.
 
 You review those observations and mark which patterns are intentional and which are accidents. The intentional ones accumulate into a style profile. That profile is descriptive, extracted from what you actually do, not prescriptive, not what sounds good in theory.
