@@ -1,7 +1,7 @@
 ---
 title: "Research: Observation granularity"
-type: complete
-status: open
+type: research
+status: complete
 date: 2026-03-26
 origin: vision open question
 tags: [observer, research, observation-model]
