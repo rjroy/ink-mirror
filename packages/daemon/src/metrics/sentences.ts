@@ -51,18 +51,12 @@ export function stripMarkdown(text: string): string {
 }
 
 /**
- * Split text into sentences. Handles:
- * - Standard sentence-ending punctuation (. ! ?)
- * - Abbreviations (Mr., Dr., etc., e.g., i.e.)
- * - Dialogue quotes ("Hello." she said)
- * - Ellipses (...)
- * - Multiple punctuation marks (!!, ?!, ...)
+ * Split already-stripped prose into sentences. Does not strip markdown.
+ * Use this when the caller has already removed markdown formatting.
  */
-export function splitSentences(text: string): string[] {
-  const stripped = stripMarkdown(text);
-
-  // Normalize whitespace: collapse runs of whitespace (including newlines) into single spaces
-  const normalized = stripped.replace(/\s+/g, " ").trim();
+export function splitProse(text: string): string[] {
+  // Normalize Unicode ellipsis to ASCII, then collapse whitespace
+  const normalized = text.replace(/\u2026/g, "...").replace(/\s+/g, " ").trim();
 
   if (normalized.length === 0) return [];
 
@@ -99,8 +93,10 @@ export function splitSentences(text: string): string[] {
         if (ABBREVIATIONS.has(cleaned)) {
           continue;
         }
-        // Single letter followed by period (initials like "J." or "U.S.")
-        if (cleaned.length === 1) {
+        // Single letter followed by period (initials like "J." or "K.")
+        // Suppress for all single letters except "I" and "a", which are
+        // common single-letter words that end sentences.
+        if (cleaned.length === 1 && cleaned !== "i" && cleaned !== "a") {
           continue;
         }
         // Dotted abbreviations like "Ph.D." - check two patterns:
@@ -108,8 +104,9 @@ export function splitSentences(text: string): string[] {
         if (/^[a-z]{1,3}(\.[a-z]{1,3})+$/i.test(cleaned)) {
           continue;
         }
-        // 2. The next chars form another abbreviated segment (e.g., after "Ph." comes "D.")
-        const rest = normalized.slice(i + 1);
+        // 2. The next chars form another abbreviated segment (e.g., after "Ph." comes "D.",
+        //    or after "J." comes "K." in "J. K. Rowling")
+        const rest = normalized.slice(i + 1).trimStart();
         if (/^[A-Za-z]{1,3}\./.test(rest)) {
           continue;
         }
@@ -137,6 +134,14 @@ export function splitSentences(text: string): string[] {
   }
 
   return sentences;
+}
+
+/**
+ * Split text into sentences. Strips markdown first, then splits.
+ * Convenience wrapper for callers that have raw markdown input.
+ */
+export function splitSentences(text: string): string[] {
+  return splitProse(stripMarkdown(text));
 }
 
 /**

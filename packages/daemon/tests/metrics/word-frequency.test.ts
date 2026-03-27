@@ -62,6 +62,21 @@ describe("analyzeWordFrequency", () => {
       const result = analyzeWordFrequency("The cat sat on the mat.");
       expect(Object.keys(result.hedgingWords).length).toBe(0);
     });
+
+    test("does not match hedging phrases across word boundaries", () => {
+      const result = analyzeWordFrequency(
+        "The mankind of old sailed across the resort of kings.",
+      );
+      // "kind of" should not match inside "mankind of"
+      expect(result.hedgingWords["kind of"]).toBeUndefined();
+      // "sort of" should not match inside "resort of"
+      expect(result.hedgingWords["sort of"]).toBeUndefined();
+    });
+
+    test("does not match 'a bit' inside longer words", () => {
+      const result = analyzeWordFrequency("That was a bitter pill.");
+      expect(result.hedgingWords["a bit"]).toBeUndefined();
+    });
   });
 
   describe("intensifiers", () => {

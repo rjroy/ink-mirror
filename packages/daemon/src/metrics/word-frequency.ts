@@ -124,14 +124,10 @@ function findHedgingWords(
 
   const lowerText = text.toLowerCase();
   for (const phrase of HEDGING_PHRASES) {
-    let count = 0;
-    let pos = 0;
-    while ((pos = lowerText.indexOf(phrase, pos)) !== -1) {
-      count++;
-      pos += phrase.length;
-    }
-    if (count > 0) {
-      result[phrase] = count;
+    const pattern = new RegExp(`\\b${phrase}\\b`, "g");
+    const matches = lowerText.match(pattern);
+    if (matches) {
+      result[phrase] = matches.length;
     }
   }
 

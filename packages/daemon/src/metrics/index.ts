@@ -1,9 +1,9 @@
 import type { EntryMetrics } from "@ink-mirror/shared";
-import { splitSentences, stripMarkdown, computeSentenceMetrics } from "./sentences.js";
+import { splitProse, stripMarkdown, computeSentenceMetrics } from "./sentences.js";
 import { analyzeRhythm } from "./rhythm.js";
 import { analyzeWordFrequency } from "./word-frequency.js";
 
-export { splitSentences, stripMarkdown, computeSentenceMetrics, countWords } from "./sentences.js";
+export { splitSentences, splitProse, stripMarkdown, computeSentenceMetrics, countWords } from "./sentences.js";
 export { analyzeRhythm } from "./rhythm.js";
 export { analyzeWordFrequency } from "./word-frequency.js";
 
@@ -16,7 +16,7 @@ export { analyzeWordFrequency } from "./word-frequency.js";
  */
 export function computeEntryMetrics(text: string): EntryMetrics {
   const prose = stripMarkdown(text);
-  const sentences = splitSentences(prose);
+  const sentences = splitProse(prose);
   const sentenceMetrics = computeSentenceMetrics(sentences);
 
   return {

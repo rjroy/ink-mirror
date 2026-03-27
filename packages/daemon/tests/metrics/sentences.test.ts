@@ -163,6 +163,23 @@ describe("splitSentences", () => {
       "J. K. Rowling wrote books.",
     ]);
   });
+
+  test("handles Unicode ellipsis", () => {
+    expect(splitSentences("Well\u2026 I don't know.")).toEqual([
+      "Well... I don't know.",
+    ]);
+  });
+
+  test("handles Unicode ellipsis at end of text", () => {
+    expect(splitSentences("And then\u2026")).toEqual(["And then..."]);
+  });
+
+  test("splits after single-letter word 'I' at end of sentence", () => {
+    expect(splitSentences("The answer is I. She agreed.")).toEqual([
+      "The answer is I.",
+      "She agreed.",
+    ]);
+  });
 });
 
 describe("countWords", () => {
