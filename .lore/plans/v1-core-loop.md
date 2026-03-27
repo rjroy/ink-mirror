@@ -1,7 +1,7 @@
 ---
 title: "Plan: ink-mirror v1 Core Loop"
 date: 2026-03-27
-status: approved
+status: executed
 spec: .lore/specs/v1-core-loop.md
 tags: [plan, v1, core-loop, implementation]
 ---
