@@ -1,7 +1,7 @@
 ---
 title: "Commission: Review: Phase 1B Journal Entry Storage"
 date: 2026-03-27
-status: pending
+status: blocked
 type: one-shot
 tags: [commission]
 worker: Thorne
@@ -15,6 +15,11 @@ activity_timeline:
   - timestamp: 2026-03-27T17:38:27.108Z
     event: created
     reason: "Commission created"
+  - timestamp: 2026-03-27T17:48:48.112Z
+    event: status_blocked
+    reason: "Dependencies not satisfied"
+    from: "pending"
+    to: "blocked"
 current_progress: ""
 projectName: ink-mirror
 ---

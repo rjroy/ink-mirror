@@ -1,7 +1,7 @@
 ---
 title: "Commission: Review: Phase 1A Project Scaffold"
 date: 2026-03-27
-status: pending
+status: dispatched
 type: one-shot
 tags: [commission]
 worker: Thorne
@@ -15,6 +15,11 @@ activity_timeline:
   - timestamp: 2026-03-27T17:37:50.535Z
     event: created
     reason: "Commission created"
+  - timestamp: 2026-03-27T17:48:48.114Z
+    event: status_dispatched
+    reason: "Dispatched to worker"
+    from: "pending"
+    to: "dispatched"
 current_progress: ""
 projectName: ink-mirror
 ---

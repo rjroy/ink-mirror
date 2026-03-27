@@ -1,7 +1,7 @@
 ---
 title: "Commission: Review: Phase 5 End-to-End"
 date: 2026-03-27
-status: pending
+status: blocked
 type: one-shot
 tags: [commission]
 worker: Thorne
@@ -16,6 +16,11 @@ activity_timeline:
   - timestamp: 2026-03-27T17:41:20.735Z
     event: created
     reason: "Commission created"
+  - timestamp: 2026-03-27T17:48:48.113Z
+    event: status_blocked
+    reason: "Dependencies not satisfied"
+    from: "pending"
+    to: "blocked"
 current_progress: ""
 projectName: ink-mirror
 ---

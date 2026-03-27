@@ -1,7 +1,7 @@
 ---
 title: "Commission: Phase 5B: Third Observation Dimension"
 date: 2026-03-27
-status: pending
+status: blocked
 type: one-shot
 tags: [commission]
 worker: Dalton
@@ -15,6 +15,11 @@ activity_timeline:
   - timestamp: 2026-03-27T17:41:07.108Z
     event: created
     reason: "Commission created"
+  - timestamp: 2026-03-27T17:48:48.113Z
+    event: status_blocked
+    reason: "Dependencies not satisfied"
+    from: "pending"
+    to: "blocked"
 current_progress: ""
 projectName: ink-mirror
 ---

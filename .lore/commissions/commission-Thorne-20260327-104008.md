@@ -1,7 +1,7 @@
 ---
 title: "Commission: Review: Phase 3A Curation"
 date: 2026-03-27
-status: pending
+status: blocked
 type: one-shot
 tags: [commission]
 worker: Thorne
@@ -15,6 +15,11 @@ activity_timeline:
   - timestamp: 2026-03-27T17:40:08.934Z
     event: created
     reason: "Commission created"
+  - timestamp: 2026-03-27T17:48:48.112Z
+    event: status_blocked
+    reason: "Dependencies not satisfied"
+    from: "pending"
+    to: "blocked"
 current_progress: ""
 projectName: ink-mirror
 ---
