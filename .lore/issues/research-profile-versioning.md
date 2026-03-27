@@ -1,7 +1,7 @@
 ---
 title: "Research: Style profile versioning over time"
 type: research
-status: open
+status: complete
 date: 2026-03-26
 origin: vision open question
 tags: [style-profile, research, versioning]
