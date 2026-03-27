@@ -1,7 +1,7 @@
 ---
 title: "Commission: Fix: Phase 2A review findings"
 date: 2026-03-27
-status: blocked
+status: dispatched
 type: one-shot
 tags: [commission]
 worker: Dalton
@@ -20,6 +20,16 @@ activity_timeline:
     reason: "Dependencies not satisfied"
     from: "pending"
     to: "blocked"
+  - timestamp: 2026-03-27T18:52:29.957Z
+    event: status_pending
+    reason: "Dependencies satisfied"
+    from: "blocked"
+    to: "pending"
+  - timestamp: 2026-03-27T18:52:29.959Z
+    event: status_dispatched
+    reason: "Dispatched to worker"
+    from: "pending"
+    to: "dispatched"
 current_progress: ""
 projectName: ink-mirror
 ---
