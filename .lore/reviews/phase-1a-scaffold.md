@@ -2,7 +2,7 @@
 title: "Review: Phase 1A Project Scaffold"
 date: 2026-03-27
 reviewer: Thorne
-status: findings-addressed
+status: resolved
 tags: [review, phase-1a]
 ---
 
