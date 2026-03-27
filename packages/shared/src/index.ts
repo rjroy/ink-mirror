@@ -59,3 +59,14 @@ export {
   type Contradiction,
   type CurationSession,
 } from "./observations.js";
+
+export {
+  ProfileRuleSchema,
+  ProfileSchema,
+  UpdateProfileRuleRequestSchema,
+  PutProfileRequestSchema,
+  type ProfileRule,
+  type Profile,
+  type UpdateProfileRuleRequest,
+  type PutProfileRequest,
+} from "./profile.js";

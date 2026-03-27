@@ -14,11 +14,20 @@ import { ObserverOutputSchema } from "@ink-mirror/shared";
 import type { SessionRunner } from "./session-runner.js";
 import type { ObservationStore } from "./observation-store.js";
 
+/** Returns the N most recent entry texts, newest first. */
+export type RecentEntriesFn = (limit: number) => Promise<Array<{ id: string; body: string }>>;
+/** Returns the total number of entries in the corpus. */
+export type CorpusSizeFn = () => Promise<number>;
+
 export interface ObserverDeps {
   sessionRunner: SessionRunner;
   observationStore: ObservationStore;
   computeMetrics: (text: string) => EntryMetrics;
   readStyleProfile?: () => Promise<string>;
+  /** Tier 2: supply recent entries for drift detection (REQ-V1-13) */
+  recentEntries?: RecentEntriesFn;
+  /** Tier 2: total corpus size to decide if Tier 2 activates */
+  corpusSize?: CorpusSizeFn;
 }
 
 export interface ObserveResult {
@@ -42,8 +51,18 @@ export async function observe(
     ? await deps.readStyleProfile()
     : "";
 
+  // Tier 2 context: include last 5 entries when corpus >= 5 (REQ-V1-13)
+  let recentEntryTexts: string[] = [];
+  if (deps.corpusSize && deps.recentEntries) {
+    const total = await deps.corpusSize();
+    if (total >= 5) {
+      const recent = await deps.recentEntries(5);
+      recentEntryTexts = recent.map((e) => e.body);
+    }
+  }
+
   const system = buildSystemPrompt();
-  const userMessage = buildUserMessage(entryText, metrics, styleProfile);
+  const userMessage = buildUserMessage(entryText, metrics, styleProfile, recentEntryTexts);
 
   const response = await sessionRunner.run({
     system,
@@ -115,10 +134,19 @@ export function buildUserMessage(
   entryText: string,
   metrics: EntryMetrics,
   styleProfile: string,
+  recentEntries: string[] = [],
 ): string {
-  // Prompt layout: style profile first (if present), then metrics, then entry text last
-  // for highest attention (REQ-V1-15)
+  // Prompt layout (REQ-V1-15): recent entries at start (second highest attention),
+  // current entry at the end (highest attention zone).
   const parts: string[] = [];
+
+  // Tier 2: recent entries at the start for drift detection
+  if (recentEntries.length > 0) {
+    const entrySections = recentEntries
+      .map((text, i) => `### Recent Entry ${i + 1}\n\n${text}`)
+      .join("\n\n");
+    parts.push(`## Recent Entries (for comparison against writer's own patterns)\n\n${entrySections}`);
+  }
 
   if (styleProfile.trim()) {
     parts.push(`## Writer's Style Profile\n\n${styleProfile}`);

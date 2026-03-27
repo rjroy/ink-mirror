@@ -4,6 +4,7 @@ import { resolveCommand, formatHelpTree } from "./discovery.js";
 import { executeOperation } from "./executor.js";
 import { writeEntry } from "./write.js";
 import { curateObservations } from "./curate.js";
+import { showProfile, editProfile } from "./profile.js";
 
 const SOCKET_PATH =
   process.env.INK_MIRROR_SOCKET ?? "/tmp/ink-mirror.sock";
@@ -21,6 +22,16 @@ async function main(): Promise<void> {
   // "curate" is interactive: presents observations one at a time
   if (args[0] === "curate") {
     await curateObservations(client);
+    return;
+  }
+
+  // "profile" displays the profile, "profile edit" opens in $EDITOR
+  if (args[0] === "profile") {
+    if (args[1] === "edit") {
+      await editProfile(client);
+    } else {
+      await showProfile(client);
+    }
     return;
   }
 

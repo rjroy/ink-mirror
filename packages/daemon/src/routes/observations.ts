@@ -11,9 +11,13 @@ import type { EntryStore } from "../entry-store.js";
 import type { RouteModule } from "../types.js";
 import { assembleCurationSession } from "../curation.js";
 
+/** Called when an observation is classified as "intentional" to update the profile. */
+export type OnIntentionalFn = (pattern: string, dimension: string) => Promise<void>;
+
 export interface ObservationsDeps {
   observationStore: ObservationStore;
   entryStore: EntryStore;
+  onIntentional?: OnIntentionalFn;
 }
 
 /**
@@ -25,7 +29,7 @@ export interface ObservationsDeps {
  */
 export function createObservationRoutes(deps: ObservationsDeps): RouteModule {
   const app = new Hono();
-  const { observationStore, entryStore } = deps;
+  const { observationStore, entryStore, onIntentional } = deps;
 
   // Curation session assembly (REQ-V1-17, REQ-V1-18, REQ-V1-19)
   app.get("/observations/pending", async (c) => {
@@ -84,6 +88,16 @@ export function createObservationRoutes(deps: ObservationsDeps): RouteModule {
     if (!updated) {
       return c.json({ error: "Observation not found during update" }, 404);
     }
+
+    // When classified as intentional, add/merge into the profile (REQ-V1-20)
+    if (newStatus === "intentional" && onIntentional) {
+      try {
+        await onIntentional(updated.pattern, updated.dimension);
+      } catch {
+        // Profile update failure doesn't block classification
+      }
+    }
+
     return c.json(updated);
   });
 
