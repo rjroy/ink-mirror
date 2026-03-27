@@ -69,7 +69,9 @@ export async function assembleCurationSession(
   allObservations: Observation[],
   getEntryText: EntryTextLookup,
 ): Promise<CurationSession> {
-  const pending = allObservations.filter((o) => o.status === "pending");
+  const pending = allObservations
+    .filter((o) => o.status === "pending")
+    .sort((a, b) => a.createdAt.localeCompare(b.createdAt));
   const undecided = allObservations
     .filter((o) => o.status === "undecided")
     .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
@@ -82,7 +84,7 @@ export async function assembleCurationSession(
   const entryTextCache = new Map<string, string>();
   const resolveText = async (entryId: string): Promise<string> => {
     if (entryTextCache.has(entryId)) return entryTextCache.get(entryId)!;
-    const text = (await getEntryText(entryId)) ?? "";
+    const text = (await getEntryText(entryId)) ?? "[source entry not found]";
     entryTextCache.set(entryId, text);
     return text;
   };

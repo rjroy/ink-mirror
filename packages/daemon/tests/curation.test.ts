@@ -95,6 +95,26 @@ describe("curation session assembly", () => {
     expect(session.observations[0].entryText).toBe("I stopped. I turned. I left.");
   });
 
+  test("shows placeholder when source entry is missing", async () => {
+    const obs = [makeObs({ id: "obs-001", status: "pending", entryId: "nonexistent-entry" })];
+    const missingLookup = async () => undefined;
+    const session = await assembleCurationSession(obs, missingLookup);
+    expect(session.observations[0].entryText).toBe("[source entry not found]");
+  });
+
+  test("sorts pending observations by creation time", async () => {
+    const obs = [
+      makeObs({ id: "obs-newer", status: "pending", entryId: "entry-2026-03-28-001", createdAt: "2026-03-28T10:00:00.000Z" }),
+      makeObs({ id: "obs-older", status: "pending", entryId: "entry-2026-03-27-001", createdAt: "2026-03-27T08:00:00.000Z" }),
+      makeObs({ id: "obs-middle", status: "pending", entryId: "entry-2026-03-28-002", createdAt: "2026-03-27T14:00:00.000Z" }),
+    ];
+
+    const session = await assembleCurationSession(obs, getEntryText);
+    expect(session.observations[0].id).toBe("obs-older");
+    expect(session.observations[1].id).toBe("obs-middle");
+    expect(session.observations[2].id).toBe("obs-newer");
+  });
+
   test("pending observations come before undecided", async () => {
     const obs = [
       makeObs({ id: "obs-undecided", status: "undecided", createdAt: "2026-03-27T09:00:00.000Z" }),

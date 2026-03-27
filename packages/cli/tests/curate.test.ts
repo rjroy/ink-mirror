@@ -200,6 +200,33 @@ describe("curate command", () => {
     expect(allCalls).toContain("sentence-rhythm");
   });
 
+  test("shows full entry text without truncation", async () => {
+    const longText = "A".repeat(500);
+    const session: CurationSession = {
+      observations: [
+        {
+          id: "obs-001",
+          entryId: "entry-001",
+          pattern: "Pattern",
+          evidence: "Evidence",
+          dimension: "sentence-rhythm",
+          status: "pending",
+          createdAt: "2026-03-27T10:00:00.000Z",
+          updatedAt: "2026-03-27T10:00:00.000Z",
+          entryText: longText,
+        },
+      ],
+      contradictions: [],
+    };
+
+    const client = mockClient(session);
+    await curateObservations(client, async () => "i");
+
+    const allCalls = logSpy.mock.calls.flat().join("\n");
+    expect(allCalls).toContain(longText);
+    expect(allCalls).not.toContain("...");
+  });
+
   test("reports summary at end", async () => {
     const session: CurationSession = {
       observations: [

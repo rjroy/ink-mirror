@@ -49,11 +49,7 @@ function formatObservation(obs: ObservationWithContext, index: number, total: nu
   lines.push(`Evidence: "${obs.evidence}"`);
   lines.push("");
   lines.push("Entry context:");
-  // Show a preview of the entry text (first 200 chars)
-  const preview = obs.entryText.length > 200
-    ? obs.entryText.slice(0, 200) + "..."
-    : obs.entryText;
-  lines.push(`  ${preview}`);
+  lines.push(`  ${obs.entryText}`);
   lines.push("");
   return lines.join("\n");
 }
