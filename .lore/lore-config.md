@@ -1,4 +1,5 @@
 ---
+status: approved
 custom_directories:
   commissions: [pending, active, completed, abandoned]
   meetings: [open, closed, deferred]
