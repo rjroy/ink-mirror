@@ -1,7 +1,7 @@
 ---
 title: "Commission: Explore: Critical review function for ink-mirror"
 date: 2026-03-28
-status: dispatched
+status: failed
 type: one-shot
 tags: [commission]
 worker: Celeste
@@ -19,6 +19,9 @@ activity_timeline:
     reason: "Dispatched to worker"
     from: "pending"
     to: "dispatched"
+  - timestamp: 2026-03-28T05:00:41.661Z
+    event: status_failed
+    reason: "Session error: Claude Code returned an error result: API Error: 500 {\"type\":\"error\",\"error\":{\"type\":\"api_error\",\"message\":\"Internal server error\"},\"request_id\":\"req_011CZUtQeM3MBG1riGrNSdRw\"}"
 current_progress: ""
 projectName: ink-mirror
 ---
