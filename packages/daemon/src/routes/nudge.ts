@@ -1,5 +1,5 @@
 import { Hono } from "hono";
-import { entryId, NudgeRequestSchema } from "@ink-mirror/shared";
+import { NudgeRequestSchema } from "@ink-mirror/shared";
 import type { EntryMetrics } from "@ink-mirror/shared";
 import type { SessionRunner } from "../session-runner.js";
 import type { RouteModule } from "../types.js";

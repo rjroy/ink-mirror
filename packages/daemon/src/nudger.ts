@@ -9,7 +9,7 @@
  * the nudge compares you to collective craft wisdom (REQ-CN-30).
  */
 
-import type { EntryMetrics, CraftNudge, NudgeResponse } from "@ink-mirror/shared";
+import type { EntryMetrics, CraftNudge } from "@ink-mirror/shared";
 import { NudgeOutputSchema } from "@ink-mirror/shared";
 import type { SessionRunner } from "./session-runner.js";
 import { isPassiveVoice } from "./metrics/index.js";

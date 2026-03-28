@@ -611,7 +611,7 @@ describe("observe (pipeline)", () => {
         observationStore,
         computeMetrics: computeEntryMetrics,
         corpusSize: async () => 3,
-        recentEntries: async (limit) => {
+        recentEntries: async (_limit) => {
           recentEntriesCalled = true;
           return [{ id: "e1", body: "Should not appear" }];
         },
