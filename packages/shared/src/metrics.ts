@@ -36,6 +36,8 @@ export type RhythmAnalysis = z.infer<typeof RhythmAnalysisSchema>;
 // --- Word frequency analysis ---
 
 export const WordFrequencyAnalysisSchema = z.object({
+  // Filtered: common English stop words (articles, prepositions, pronouns,
+  // auxiliaries, conjunctions) are excluded. Contains content words only.
   tokenFrequencies: z.record(z.string(), z.number().int().positive()),
   totalTokens: z.number().int().nonnegative(),
   uniqueTokens: z.number().int().nonnegative(),

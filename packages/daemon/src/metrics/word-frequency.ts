@@ -31,6 +31,58 @@ const INTENSIFIERS = new Set([
 ]);
 
 /**
+ * Common English function words filtered from tokenFrequencies (~162 entries
+ * including contracted forms). Larger than the plan's 40-60 guidance because
+ * contracted auxiliaries (44 forms) are necessary to prevent "don't", "I'm",
+ * etc. from dominating content word rankings. No content words included;
+ * hedging/intensifier detection uses unfiltered frequencies so stop word
+ * filtering does not affect those analyses.
+ */
+const STOP_WORDS = new Set([
+  // Articles and determiners
+  "a", "an", "the", "this", "that", "these", "those",
+  // Prepositions
+  "in", "on", "at", "to", "for", "of", "with", "by", "from",
+  "up", "about", "into", "through", "during", "before", "after",
+  "above", "below", "between", "out", "off", "over", "under",
+  // Pronouns
+  "i", "me", "my", "mine", "myself",
+  "you", "your", "yours", "yourself",
+  "he", "him", "his", "himself",
+  "she", "her", "hers", "herself",
+  "it", "its", "itself",
+  "we", "us", "our", "ours", "ourselves",
+  "they", "them", "their", "theirs", "themselves",
+  // Auxiliaries and copulas
+  "is", "am", "are", "was", "were", "be", "been", "being",
+  "have", "has", "had", "having",
+  "do", "does", "did",
+  "will", "would", "shall", "should",
+  "can", "could", "may", "might", "must",
+  // Conjunctions
+  "and", "but", "or", "nor", "so", "yet",
+  // Other common function words
+  "not", "no", "if", "then", "than", "too", "also",
+  "as", "when", "what", "which", "who", "whom", "how",
+  "all", "each", "every", "both", "few", "more", "most",
+  "other", "some", "any", "such",
+  // Contracted auxiliaries/pronouns
+  "i'm", "i've", "i'll", "i'd",
+  "you're", "you've", "you'll", "you'd",
+  "he's", "he'll", "he'd",
+  "she's", "she'll", "she'd",
+  "it's", "it'll",
+  "we're", "we've", "we'll", "we'd",
+  "they're", "they've", "they'll", "they'd",
+  "that's", "there's", "here's",
+  "don't", "doesn't", "didn't",
+  "won't", "wouldn't", "shan't", "shouldn't",
+  "can't", "couldn't", "mustn't",
+  "isn't", "aren't", "wasn't", "weren't",
+  "hasn't", "haven't", "hadn't",
+]);
+
+/**
  * Tokenize text into lowercase words, stripping punctuation.
  * Preserves hyphenated words as single tokens.
  */
@@ -140,15 +192,25 @@ function findHedgingWords(
  */
 export function analyzeWordFrequency(text: string): WordFrequencyAnalysis {
   const tokens = tokenize(text);
-  const tokenFrequencies = buildFrequencyMap(tokens);
+  const allFrequencies = buildFrequencyMap(tokens);
+
+  // Filter stop words so the LLM sees content words, not articles/prepositions.
+  // totalTokens stays unfiltered (describes entry volume).
+  // uniqueTokens reflects the filtered map (matches what the LLM sees).
+  const tokenFrequencies: Record<string, number> = {};
+  for (const [word, count] of Object.entries(allFrequencies)) {
+    if (!STOP_WORDS.has(word)) {
+      tokenFrequencies[word] = count;
+    }
+  }
   const uniqueTokens = Object.keys(tokenFrequencies).length;
 
   return {
     tokenFrequencies,
     totalTokens: tokens.length,
     uniqueTokens,
-    hedgingWords: findHedgingWords(tokenFrequencies, text),
-    intensifiers: filterBySet(tokenFrequencies, INTENSIFIERS),
+    hedgingWords: findHedgingWords(allFrequencies, text),
+    intensifiers: filterBySet(allFrequencies, INTENSIFIERS),
     repeatedPhrases: findRepeatedPhrases(text),
   };
 }

@@ -14,6 +14,7 @@ import { createEntryRoutes } from "./routes/entries.js";
 import { createObservationRoutes } from "./routes/observations.js";
 import { createProfileRoutes } from "./routes/profile.js";
 import { createEventsRoutes } from "./routes/events.js";
+import { createNudgeRoutes } from "./routes/nudge.js";
 
 const DATA_DIR = process.env.INK_MIRROR_DATA ?? join(process.env.HOME ?? ".", ".ink-mirror");
 const SOCKET_PATH = process.env.INK_MIRROR_SOCKET ?? join(DATA_DIR, "ink-mirror.sock");
@@ -88,9 +89,18 @@ const entryRoutes = createEntryRoutes({ entryStore, onEntryCreated, eventBus });
 const observationRoutes = createObservationRoutes({ observationStore, entryStore, onIntentional });
 const profileRoutes = createProfileRoutes({ profileStore });
 const eventsRoutes = createEventsRoutes({ eventBus });
+const nudgeRoutes = createNudgeRoutes({
+  sessionRunner,
+  computeMetrics: computeEntryMetrics,
+  readEntry: async (id) => {
+    const entry = await entryStore.get(entryId(id));
+    return entry?.body;
+  },
+  readStyleProfile: () => profileStore.toPromptMarkdown(),
+});
 
 const { hono } = createApp({
-  routeModules: [entryRoutes, observationRoutes, profileRoutes, eventsRoutes],
+  routeModules: [entryRoutes, observationRoutes, profileRoutes, eventsRoutes, nudgeRoutes],
   eventBus,
 });
 

@@ -81,12 +81,36 @@ describe("buildSystemPrompt", () => {
     expect(prompt).toContain("sentence-structure");
   });
 
-  test("specifies JSON output format", () => {
+  test("specifies JSON output format with worked examples", () => {
     const prompt = buildSystemPrompt();
     expect(prompt).toContain('"observations"');
     expect(prompt).toContain('"pattern"');
     expect(prompt).toContain('"evidence"');
     expect(prompt).toContain('"dimension"');
+    // Three separate example observations, one per dimension
+    expect(prompt).toContain('"dimension": "sentence-rhythm"');
+    expect(prompt).toContain('"dimension": "word-level-habits"');
+    expect(prompt).toContain('"dimension": "sentence-structure"');
+  });
+
+  test("includes context description section (REQ-V1-13)", () => {
+    const prompt = buildSystemPrompt();
+    expect(prompt).toContain("Context You Receive");
+    expect(prompt).toContain("Pre-computed metrics");
+    expect(prompt).toContain("Style Profile");
+    expect(prompt).toContain("Recent Entries");
+    expect(prompt).toContain("Current Entry");
+  });
+
+  test("includes evidence citation emphasis", () => {
+    const prompt = buildSystemPrompt();
+    expect(prompt).toContain("character for character");
+    expect(prompt).toContain("rejected by validation");
+  });
+
+  test("includes dimension diversity nudge", () => {
+    const prompt = buildSystemPrompt();
+    expect(prompt).toContain("different dimensions");
   });
 });
 
@@ -153,6 +177,43 @@ describe("buildUserMessage", () => {
     expect(message).toContain("Passive voice:");
     expect(message).toContain("Fragments:");
     expect(message).toContain("Paragraphs:");
+  });
+
+  test("Tier 2 assembly: recent entries + style profile in correct order", () => {
+    const metrics = computeEntryMetrics(SAMPLE_ENTRY);
+    const recentEntries = [
+      "Yesterday I wrote about rain.",
+      "The day before I wrote about sun.",
+    ];
+    const message = buildUserMessage(
+      SAMPLE_ENTRY,
+      metrics,
+      "Favors short declarative sentences.",
+      recentEntries,
+    );
+
+    // All four sections present
+    expect(message).toContain("## Recent Entries");
+    expect(message).toContain("## Writer's Style Profile");
+    expect(message).toContain("## Pre-computed Metrics");
+    expect(message).toContain("## Current Entry");
+
+    // Correct order: recent entries, style profile, metrics, current entry
+    const recentPos = message.indexOf("## Recent Entries");
+    const profilePos = message.indexOf("## Writer's Style Profile");
+    const metricsPos = message.indexOf("## Pre-computed Metrics");
+    const entryPos = message.indexOf("## Current Entry");
+
+    expect(recentPos).toBeLessThan(profilePos);
+    expect(profilePos).toBeLessThan(metricsPos);
+    expect(metricsPos).toBeLessThan(entryPos);
+
+    // Recent entry content is present
+    expect(message).toContain("Yesterday I wrote about rain.");
+    expect(message).toContain("The day before I wrote about sun.");
+
+    // Current entry is last
+    expect(message.endsWith(SAMPLE_ENTRY)).toBe(true);
   });
 });
 
@@ -469,5 +530,102 @@ describe("observe (pipeline)", () => {
 
     expect(capturedMessage).toContain("## Writer's Style Profile");
     expect(capturedMessage).toContain("Uses short declarative sentences");
+  });
+
+  test("Tier 2 pipeline: activates when corpus >= 5 and includes recent entries", async () => {
+    const fs = mockFs();
+    const observationStore = createObservationStore({
+      observationsDir: "/data/observations",
+      fs,
+      now: () => "2026-03-27T10:00:00.000Z",
+    });
+
+    let capturedMessage = "";
+    const sessionRunner = createSessionRunner({
+      queryFn: async (req) => {
+        capturedMessage = req.messages[0].content;
+        return { content: VALID_OBSERVER_JSON };
+      },
+    });
+
+    const recentTexts = [
+      "First recent entry about morning routines.",
+      "Second recent entry about evening walks.",
+      "Third recent entry about writing habits.",
+      "Fourth recent entry about reading lists.",
+      "Fifth recent entry about weekend plans.",
+    ];
+
+    const result = await observe(
+      {
+        sessionRunner,
+        observationStore,
+        computeMetrics: computeEntryMetrics,
+        corpusSize: async () => 7,
+        recentEntries: async (limit) => {
+          return recentTexts.slice(0, limit).map((body, i) => ({
+            id: `entry-recent-${i}`,
+            body,
+          }));
+        },
+      },
+      "entry-tier2-001",
+      SAMPLE_ENTRY,
+    );
+
+    // Tier 2 section present in the assembled prompt
+    expect(capturedMessage).toContain("## Recent Entries");
+    expect(capturedMessage).toContain("First recent entry about morning routines.");
+    expect(capturedMessage).toContain("Fifth recent entry about weekend plans.");
+
+    // Recent entries appear before current entry (REQ-V1-15 ordering)
+    const recentPos = capturedMessage.indexOf("## Recent Entries");
+    const entryPos = capturedMessage.indexOf("## Current Entry");
+    expect(recentPos).toBeLessThan(entryPos);
+
+    // Pipeline still completes: observations stored
+    expect(result.observations).toHaveLength(2);
+    expect(result.errors).toHaveLength(0);
+  });
+
+  test("Tier 2 pipeline: does NOT activate when corpus < 5", async () => {
+    const fs = mockFs();
+    const observationStore = createObservationStore({
+      observationsDir: "/data/observations",
+      fs,
+      now: () => "2026-03-27T10:00:00.000Z",
+    });
+
+    let capturedMessage = "";
+    const sessionRunner = createSessionRunner({
+      queryFn: async (req) => {
+        capturedMessage = req.messages[0].content;
+        return { content: VALID_OBSERVER_JSON };
+      },
+    });
+
+    let recentEntriesCalled = false;
+    const result = await observe(
+      {
+        sessionRunner,
+        observationStore,
+        computeMetrics: computeEntryMetrics,
+        corpusSize: async () => 3,
+        recentEntries: async (_limit) => {
+          recentEntriesCalled = true;
+          return [{ id: "e1", body: "Should not appear" }];
+        },
+      },
+      "entry-tier2-002",
+      SAMPLE_ENTRY,
+    );
+
+    // Tier 2 should not activate: corpus too small
+    expect(capturedMessage).not.toContain("## Recent Entries");
+    expect(recentEntriesCalled).toBe(false);
+
+    // Pipeline still works at Tier 1
+    expect(result.observations).toHaveLength(2);
+    expect(result.errors).toHaveLength(0);
   });
 });
