@@ -46,6 +46,8 @@ export async function observe(
 ): Promise<ObserveResult> {
   const { sessionRunner, observationStore, computeMetrics } = deps;
 
+  console.log(`[observer] starting for ${entryId} (${entryText.length} chars)`);
+
   const metrics = computeMetrics(entryText);
   const styleProfile = deps.readStyleProfile
     ? await deps.readStyleProfile()
@@ -58,20 +60,26 @@ export async function observe(
     if (total >= 5) {
       const recent = await deps.recentEntries(5);
       recentEntryTexts = recent.map((e) => e.body);
+      console.log(`[observer] tier 2 active: ${recentEntryTexts.length} recent entries, corpus size ${total}`);
     }
   }
 
   const system = buildSystemPrompt();
   const userMessage = buildUserMessage(entryText, metrics, styleProfile, recentEntryTexts);
 
+  console.log("[observer] calling LLM...");
+  const start = performance.now();
   const response = await sessionRunner.run({
     system,
     messages: [{ role: "user", content: userMessage }],
     maxTokens: 2048,
   });
+  const llmMs = (performance.now() - start).toFixed(0);
+  console.log(`[observer] LLM responded in ${llmMs}ms (${response.content.length} chars)`);
 
   const parsed = parseObserverOutput(response.content);
   if (!parsed.success) {
+    console.error(`[observer] parse failed: ${parsed.error}`);
     return { observations: [], errors: [parsed.error] };
   }
 
@@ -79,11 +87,16 @@ export async function observe(
   const stored: Observation[] = [];
   const errors: string[] = [...validated.errors];
 
+  if (validated.errors.length > 0) {
+    console.warn(`[observer] validation rejected ${validated.errors.length} observation(s): ${validated.errors.join("; ")}`);
+  }
+
   for (const raw of validated.valid) {
     const obs = await observationStore.save(entryId, raw);
     stored.push(obs);
   }
 
+  console.log(`[observer] done: ${stored.length} stored, ${errors.length} errors`);
   return { observations: stored, errors };
 }
 

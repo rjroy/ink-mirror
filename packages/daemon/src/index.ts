@@ -15,8 +15,8 @@ import { createObservationRoutes } from "./routes/observations.js";
 import { createProfileRoutes } from "./routes/profile.js";
 import { createEventsRoutes } from "./routes/events.js";
 
-const SOCKET_PATH = process.env.INK_MIRROR_SOCKET ?? "/tmp/ink-mirror.sock";
 const DATA_DIR = process.env.INK_MIRROR_DATA ?? join(process.env.HOME ?? ".", ".ink-mirror");
+const SOCKET_PATH = process.env.INK_MIRROR_SOCKET ?? join(DATA_DIR, "ink-mirror.sock");
 const ENTRIES_DIR = join(DATA_DIR, "entries");
 const OBSERVATIONS_DIR = join(DATA_DIR, "observations");
 const PROFILE_PATH = join(DATA_DIR, "profile.md");

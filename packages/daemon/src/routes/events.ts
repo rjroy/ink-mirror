@@ -28,9 +28,10 @@ export function createEventsRoutes(deps: EventsDeps): RouteModule {
         unsub();
       });
 
-      // Keep connection alive until client disconnects
+      // Heartbeat keeps Bun from killing the connection as idle
       while (true) {
-        await stream.sleep(30000);
+        await stream.writeSSE({ data: "", event: "keepalive" });
+        await stream.sleep(5000);
       }
     });
   });
