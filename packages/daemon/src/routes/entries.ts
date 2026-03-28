@@ -44,11 +44,14 @@ export function createEntryRoutes(deps: EntriesDeps): RouteModule {
     // Runs after storage so the entry is durable before we call the LLM.
     // Observation errors don't fail entry creation.
     let observeResult: ObserveResult | undefined;
+    let observeError: string | undefined;
     if (onEntryCreated) {
       try {
         observeResult = await onEntryCreated(entry.id, entry.body);
-      } catch {
-        // Observer failure doesn't block entry creation
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        console.error(`[daemon] observer failed for ${entry.id}: ${message}`);
+        observeError = message;
       }
     }
 
@@ -63,6 +66,7 @@ export function createEntryRoutes(deps: EntriesDeps): RouteModule {
       {
         ...entry,
         ...(observeResult ? { observations: observeResult.observations } : {}),
+        ...(observeError ? { observeError } : {}),
       },
       201,
     );
