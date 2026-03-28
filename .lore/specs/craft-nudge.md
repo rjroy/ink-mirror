@@ -1,7 +1,7 @@
 ---
 title: "Craft Nudge"
 date: 2026-03-27
-status: approved
+status: implemented 
 tags: [spec, craft-nudge, review, craft-knowledge]
 req-prefix: CN
 related:
