@@ -1,5 +1,6 @@
 {
   "name": "ink-mirror",
+  "type": "module",
   "private": true,
   "workspaces": ["packages/*"],
   "scripts": {
@@ -7,8 +8,8 @@
     "start": "trap 'kill 0' EXIT; bun run --filter '@ink-mirror/daemon' start & bun run --filter '@ink-mirror/web' start & wait",
     "build": "bun run --filter '@ink-mirror/web' build",
     "test": "bun test packages/shared packages/daemon/tests packages/cli/tests packages/web/tests",
-    "lint": "eslint .",
-    "typecheck": "tsc --build"
+    "lint": "eslint",
+    "typecheck": "tsc --build && tsc --noEmit -p packages/web"
   },
   "devDependencies": {
     "@eslint/js": "^9.0.0",

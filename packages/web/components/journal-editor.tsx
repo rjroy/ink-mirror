@@ -71,7 +71,7 @@ export function JournalEditor() {
         <span className={styles.wordCount}>{wordCount} words</span>
         <button
           className={styles.submitBtn}
-          onClick={handleSubmit}
+          onClick={() => void handleSubmit()}
           disabled={submitting || !body.trim()}
         >
           {submitting ? "Observing..." : "Observe \u2192"}

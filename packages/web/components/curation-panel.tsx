@@ -95,7 +95,7 @@ export function CurationPanel() {
         ))}
       </div>
 
-      <button onClick={loadSession} className={styles.refreshBtn}>
+      <button onClick={() => void loadSession()} className={styles.refreshBtn}>
         Refresh Session
       </button>
     </div>

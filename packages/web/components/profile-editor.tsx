@@ -84,7 +84,7 @@ export function ProfileEditor({ initialProfile }: ProfileEditorProps) {
             <button onClick={() => setMarkdownMode(false)} className={styles.subtleBtn}>
               Cancel
             </button>
-            <button onClick={handleSaveMarkdown} disabled={saving} className={styles.primaryBtn}>
+            <button onClick={() => void handleSaveMarkdown()} disabled={saving} className={styles.primaryBtn}>
               {saving ? "Saving..." : "Save"}
             </button>
           </div>
