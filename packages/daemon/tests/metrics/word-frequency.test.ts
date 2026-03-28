@@ -2,13 +2,15 @@ import { describe, expect, test } from "bun:test";
 import { analyzeWordFrequency } from "../../src/metrics/word-frequency.js";
 
 describe("analyzeWordFrequency", () => {
-  test("counts total and unique tokens", () => {
+  test("counts total tokens from all words, unique tokens from content words only", () => {
     const result = analyzeWordFrequency("the cat sat on the mat");
+    // totalTokens counts all words including stop words
     expect(result.totalTokens).toBe(6);
-    expect(result.uniqueTokens).toBe(5); // "the" appears twice
+    // uniqueTokens reflects filtered map: "the" and "on" are stop words
+    expect(result.uniqueTokens).toBe(3); // cat, sat, mat
   });
 
-  test("builds token frequency map", () => {
+  test("builds token frequency map excluding stop words", () => {
     const result = analyzeWordFrequency("go go go stop");
     expect(result.tokenFrequencies["go"]).toBe(3);
     expect(result.tokenFrequencies["stop"]).toBe(1);
@@ -32,6 +34,20 @@ describe("analyzeWordFrequency", () => {
     expect(result.totalTokens).toBe(0);
     expect(result.uniqueTokens).toBe(0);
     expect(result.tokenFrequencies).toEqual({});
+  });
+
+  test("stop words excluded from frequencies but included in totalTokens", () => {
+    const result = analyzeWordFrequency("I am the one who is walking");
+    // "i", "am", "the", "who", "is" are stop words; "one", "walking" are not
+    expect(result.totalTokens).toBe(7);
+    expect(result.tokenFrequencies["the"]).toBeUndefined();
+    expect(result.tokenFrequencies["i"]).toBeUndefined();
+    expect(result.tokenFrequencies["am"]).toBeUndefined();
+    expect(result.tokenFrequencies["is"]).toBeUndefined();
+    expect(result.tokenFrequencies["who"]).toBeUndefined();
+    expect(result.tokenFrequencies["one"]).toBe(1);
+    expect(result.tokenFrequencies["walking"]).toBe(1);
+    expect(result.uniqueTokens).toBe(2);
   });
 
   describe("hedging words", () => {

@@ -81,12 +81,36 @@ describe("buildSystemPrompt", () => {
     expect(prompt).toContain("sentence-structure");
   });
 
-  test("specifies JSON output format", () => {
+  test("specifies JSON output format with worked examples", () => {
     const prompt = buildSystemPrompt();
     expect(prompt).toContain('"observations"');
     expect(prompt).toContain('"pattern"');
     expect(prompt).toContain('"evidence"');
     expect(prompt).toContain('"dimension"');
+    // Three separate example observations, one per dimension
+    expect(prompt).toContain('"dimension": "sentence-rhythm"');
+    expect(prompt).toContain('"dimension": "word-level-habits"');
+    expect(prompt).toContain('"dimension": "sentence-structure"');
+  });
+
+  test("includes context description section (REQ-V1-13)", () => {
+    const prompt = buildSystemPrompt();
+    expect(prompt).toContain("Context You Receive");
+    expect(prompt).toContain("Pre-computed metrics");
+    expect(prompt).toContain("Style Profile");
+    expect(prompt).toContain("Recent Entries");
+    expect(prompt).toContain("Current Entry");
+  });
+
+  test("includes evidence citation emphasis", () => {
+    const prompt = buildSystemPrompt();
+    expect(prompt).toContain("character for character");
+    expect(prompt).toContain("rejected by validation");
+  });
+
+  test("includes dimension diversity nudge", () => {
+    const prompt = buildSystemPrompt();
+    expect(prompt).toContain("different dimensions");
   });
 });
 
@@ -153,6 +177,43 @@ describe("buildUserMessage", () => {
     expect(message).toContain("Passive voice:");
     expect(message).toContain("Fragments:");
     expect(message).toContain("Paragraphs:");
+  });
+
+  test("Tier 2 assembly: recent entries + style profile in correct order", () => {
+    const metrics = computeEntryMetrics(SAMPLE_ENTRY);
+    const recentEntries = [
+      "Yesterday I wrote about rain.",
+      "The day before I wrote about sun.",
+    ];
+    const message = buildUserMessage(
+      SAMPLE_ENTRY,
+      metrics,
+      "Favors short declarative sentences.",
+      recentEntries,
+    );
+
+    // All four sections present
+    expect(message).toContain("## Recent Entries");
+    expect(message).toContain("## Writer's Style Profile");
+    expect(message).toContain("## Pre-computed Metrics");
+    expect(message).toContain("## Current Entry");
+
+    // Correct order: recent entries, style profile, metrics, current entry
+    const recentPos = message.indexOf("## Recent Entries");
+    const profilePos = message.indexOf("## Writer's Style Profile");
+    const metricsPos = message.indexOf("## Pre-computed Metrics");
+    const entryPos = message.indexOf("## Current Entry");
+
+    expect(recentPos).toBeLessThan(profilePos);
+    expect(profilePos).toBeLessThan(metricsPos);
+    expect(metricsPos).toBeLessThan(entryPos);
+
+    // Recent entry content is present
+    expect(message).toContain("Yesterday I wrote about rain.");
+    expect(message).toContain("The day before I wrote about sun.");
+
+    // Current entry is last
+    expect(message.endsWith(SAMPLE_ENTRY)).toBe(true);
   });
 });
 
