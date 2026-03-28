@@ -1,0 +1,75 @@
+import type { OperationDefinition } from "@ink-mirror/shared";
+import type { DaemonClient } from "./client.js";
+
+/**
+ * Executes a resolved operation against the daemon.
+ * Builds the request from the operation definition and CLI args.
+ */
+export async function executeOperation(
+  client: DaemonClient,
+  operation: OperationDefinition,
+  args: string[],
+): Promise<void> {
+  const { method } = operation.invocation;
+  let { path } = operation.invocation;
+
+  // Build request body from positional args matched to parameters.
+  // For GET/DELETE, path params (e.g., :id) are substituted from args.
+  // For POST/PUT/PATCH, args become the JSON body.
+  let body: Record<string, string> | undefined;
+  const params = operation.parameters ?? [];
+  const argsCopy = [...args];
+
+  // Substitute path parameters (e.g., /entries/:id) from args
+  for (const param of params) {
+    const placeholder = `:${param.name}`;
+    if (path.includes(placeholder) && argsCopy.length > 0) {
+      path = path.replace(placeholder, encodeURIComponent(argsCopy.shift()!));
+    }
+  }
+
+  // Remaining args become body (for write methods) or query params (for read methods)
+  const remainingParams = params.filter(
+    (p) => !operation.invocation.path.includes(`:${p.name}`),
+  );
+
+  if (argsCopy.length > 0 && remainingParams.length > 0) {
+    if (method === "GET" || method === "DELETE") {
+      // For read methods, remaining args become query parameters
+      const query = new URLSearchParams();
+      for (let i = 0; i < remainingParams.length && i < argsCopy.length; i++) {
+        query.set(remainingParams[i].name, argsCopy[i]);
+      }
+      const qs = query.toString();
+      if (qs) path += `?${qs}`;
+    } else {
+      // For write methods, remaining args become the JSON body
+      body = {};
+      for (let i = 0; i < remainingParams.length && i < argsCopy.length; i++) {
+        body[remainingParams[i].name] = argsCopy[i];
+      }
+    }
+  }
+
+  const init: RequestInit = { method };
+  if (body && (method === "POST" || method === "PATCH" || method === "PUT")) {
+    init.headers = { "Content-Type": "application/json" };
+    init.body = JSON.stringify(body);
+  }
+
+  const response = await client.fetch(path, init);
+  const text = await response.text();
+
+  if (!response.ok) {
+    console.error(`Error (${response.status}): ${text}`);
+    process.exit(1);
+  }
+
+  // Try to pretty-print JSON, fall back to raw text
+  try {
+    const json: unknown = JSON.parse(text);
+    console.log(JSON.stringify(json, null, 2));
+  } catch {
+    if (text.trim()) console.log(text);
+  }
+}

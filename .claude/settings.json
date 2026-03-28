@@ -1,0 +1,23 @@
+{
+  "plansDirectory": ".lore/plans",
+  "sandbox": {
+    "excludedCommands": [
+      "bun test",
+      "bun test *"
+    ]
+  },
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bun install",
+            "timeout": 30
+          }
+        ]
+      }
+    ]
+  }
+}

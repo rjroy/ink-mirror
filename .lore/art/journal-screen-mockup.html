@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ink-mirror — journal entry</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #f5f0e8;
+    --surface: #faf8f4;
+    --ink: #1c1b18;
+    --ink-muted: #6b6760;
+    --ink-faint: #9e9a94;
+    --border: #e2dcd2;
+    --border-light: #ece8e0;
+    --observer-bg: #eee9df;
+    --observer-accent: #4a5c70;
+    --observer-border: #8fa0b4;
+    --observer-faint: #6b7f94;
+    --observer-evidence: #3d4f60;
+    --intent-bg: #f0f3ee;
+    --intent-border: #7a9070;
+    --accid-bg: #f5eeee;
+    --accid-border: #9a7070;
+    --undecided-bg: #f0eff5;
+    --undecided-border: #7a7a9a;
+  }
+
+  body {
+    font-family: -apple-system, 'Helvetica Neue', sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ── Header ── */
+  .app-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 48px;
+    height: 52px;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg);
+    flex-shrink: 0;
+  }
+
+  .wordmark {
+    font-family: Georgia, 'Times New Roman', serif;
+    font-size: 15px;
+    font-style: italic;
+    font-weight: 400;
+    color: var(--ink);
+    letter-spacing: 0.01em;
+  }
+
+  .wordmark span {
+    color: var(--ink-muted);
+  }
+
+  .header-actions {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+  }
+
+  .nav-item {
+    font-size: 12px;
+    color: var(--ink-faint);
+    cursor: pointer;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    transition: color 0.15s;
+  }
+
+  .nav-item.active {
+    color: var(--ink-muted);
+    border-bottom: 1px solid var(--ink-muted);
+    padding-bottom: 1px;
+  }
+
+  /* ── Main layout ── */
+  .app-body {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+  }
+
+  /* ── Editor pane ── */
+  .editor-pane {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    padding: 52px 72px 40px 80px;
+    border-right: 1px solid var(--border);
+    background: var(--surface);
+    overflow-y: auto;
+  }
+
+  .entry-meta {
+    margin-bottom: 28px;
+  }
+
+  .entry-date {
+    font-size: 12px;
+    color: var(--ink-faint);
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+  }
+
+  .entry-text {
+    font-family: Georgia, 'Times New Roman', serif;
+    font-size: 18px;
+    line-height: 1.85;
+    color: var(--ink);
+    flex: 1;
+    outline: none;
+    border: none;
+    background: transparent;
+    resize: none;
+    max-width: 640px;
+  }
+
+  .entry-text::selection {
+    background: rgba(74, 92, 112, 0.12);
+  }
+
+  /* cursor simulation */
+  .cursor {
+    display: inline-block;
+    width: 1.5px;
+    height: 1.1em;
+    background: var(--observer-accent);
+    vertical-align: text-bottom;
+    margin-left: 1px;
+    animation: blink 1.1s step-end infinite;
+  }
+
+  @keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0; }
+  }
+
+  .editor-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 40px;
+    max-width: 640px;
+  }
+
+  .word-count {
+    font-size: 11px;
+    color: var(--ink-faint);
+    letter-spacing: 0.04em;
+  }
+
+  .submit-btn {
+    font-size: 12px;
+    color: var(--ink-muted);
+    background: transparent;
+    border: 1px solid var(--border);
+    padding: 7px 18px;
+    border-radius: 3px;
+    cursor: pointer;
+    letter-spacing: 0.05em;
+    transition: all 0.15s;
+  }
+
+  .submit-btn:hover {
+    border-color: var(--ink-muted);
+    color: var(--ink);
+  }
+
+  /* ── Observation panel ── */
+  .observer-pane {
+    width: 340px;
+    flex-shrink: 0;
+    background: var(--observer-bg);
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+    border-left: 1px solid var(--border);
+  }
+
+  .observer-header {
+    padding: 20px 24px 14px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+  }
+
+  .observer-label {
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--observer-faint);
+  }
+
+  .observer-entry-ref {
+    font-size: 10px;
+    color: var(--ink-faint);
+    margin-left: auto;
+  }
+
+  .observations-list {
+    padding: 20px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  /* ── Observation card ── */
+  .obs-card {
+    background: var(--surface);
+    border-radius: 4px;
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--observer-border);
+    padding: 14px 16px 12px;
+  }
+
+  .obs-dimension {
+    font-size: 9px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--observer-faint);
+    margin-bottom: 6px;
+  }
+
+  .obs-text {
+    font-size: 13px;
+    line-height: 1.55;
+    color: var(--ink);
+    margin-bottom: 10px;
+  }
+
+  .obs-evidence {
+    background: rgba(74, 92, 112, 0.06);
+    border-left: 2px solid var(--observer-border);
+    border-radius: 2px;
+    padding: 7px 10px;
+    margin-bottom: 12px;
+  }
+
+  .obs-evidence-label {
+    font-size: 9px;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color: var(--observer-faint);
+    margin-bottom: 3px;
+  }
+
+  .obs-evidence-text {
+    font-family: Georgia, 'Times New Roman', serif;
+    font-size: 12px;
+    font-style: italic;
+    line-height: 1.5;
+    color: var(--observer-evidence);
+  }
+
+  .obs-classify {
+    display: flex;
+    gap: 6px;
+  }
+
+  .classify-btn {
+    font-size: 10px;
+    letter-spacing: 0.04em;
+    padding: 4px 9px;
+    border-radius: 3px;
+    border: 1px solid var(--border);
+    background: transparent;
+    cursor: pointer;
+    color: var(--ink-muted);
+    transition: all 0.15s;
+  }
+
+  .classify-btn:hover {
+    background: var(--bg);
+  }
+
+  .classify-btn.intentional {
+    border-color: var(--intent-border);
+    color: var(--intent-border);
+    background: var(--intent-bg);
+  }
+
+  /* observer footer note */
+  .observer-note {
+    padding: 16px 20px;
+    font-size: 11px;
+    color: var(--ink-faint);
+    line-height: 1.5;
+    border-top: 1px solid var(--border-light);
+    margin-top: auto;
+  }
+</style>
+</head>
+<body>
+
+<header class="app-header">
+  <div class="wordmark">ink<span>-</span>mirror</div>
+  <nav class="header-actions">
+    <span class="nav-item active">journal</span>
+    <span class="nav-item">review</span>
+    <span class="nav-item">profile</span>
+  </nav>
+</header>
+
+<main class="app-body">
+
+  <section class="editor-pane">
+    <div class="entry-meta">
+      <div class="entry-date">Friday, March 27, 2026</div>
+    </div>
+
+    <div class="entry-text">
+      The morning ran long. I had three things to do before nine and by eight forty I was still on the first one, which had split into four. There's a version of this that's just bad planning. There's another version where the thing genuinely had more surface area than it looked like from outside.
+
+      I keep noticing I reach for the second explanation when the first one is probably accurate. It's more comfortable to say the work was complex than to say I underestimated it. Both can be true at once and usually are, but the ratio matters and I'm not honest about it.
+
+      What I actually want: to be better at the initial surface read. Not to stop being surprised — surprises are fine — but to build a faster internal calibration. The gap between "this looks like two hours" and "this is actually a day" shouldn't take half the morning to discover.<span class="cursor"></span>
+    </div>
+
+    <div class="editor-footer">
+      <span class="word-count">152 words</span>
+      <button class="submit-btn">Observe →</button>
+    </div>
+  </section>
+
+  <aside class="observer-pane">
+    <div class="observer-header">
+      <span class="observer-label">Observations</span>
+      <span class="observer-entry-ref">Mar 27</span>
+    </div>
+
+    <div class="observations-list">
+
+      <!-- Observation 1 -->
+      <div class="obs-card">
+        <div class="obs-dimension">Sentence rhythm</div>
+        <div class="obs-text">
+          You opened with short declarative sentences that build pace, then slowed down with longer, more qualified ones as you moved into reflection. The rhythm enacts what the entry is about: rush, then pause.
+        </div>
+        <div class="obs-evidence">
+          <div class="obs-evidence-label">from your entry</div>
+          <div class="obs-evidence-text">"The morning ran long. I had three things to do before nine and by eight forty I was still on the first one, which had split into four."</div>
+        </div>
+        <div class="obs-classify">
+          <button class="classify-btn intentional">Intentional</button>
+          <button class="classify-btn">Accidental</button>
+          <button class="classify-btn">Undecided</button>
+        </div>
+      </div>
+
+      <!-- Observation 2 -->
+      <div class="obs-card">
+        <div class="obs-dimension">Word-level habits</div>
+        <div class="obs-text">
+          You returned to the word "version" three times in two paragraphs. It's doing structural work — holding two framings of the same event in parallel without resolving them. Whether that's deliberate rhetorical scaffolding or a habitual filler is worth noting.
+        </div>
+        <div class="obs-evidence">
+          <div class="obs-evidence-label">from your entry</div>
+          <div class="obs-evidence-text">"There's a version of this that's just bad planning. There's another version where the thing genuinely had more surface area…"</div>
+        </div>
+        <div class="obs-classify">
+          <button class="classify-btn">Intentional</button>
+          <button class="classify-btn">Accidental</button>
+          <button class="classify-btn">Undecided</button>
+        </div>
+      </div>
+
+      <!-- Observation 3 -->
+      <div class="obs-card">
+        <div class="obs-dimension">Sentence structure</div>
+        <div class="obs-text">
+          Your final paragraph is all active-voice directives addressed to yourself: "What I actually want… to be better… not to stop… to build." The shift to first-person imperative signals a gear change from analysis into intention.
+        </div>
+        <div class="obs-evidence">
+          <div class="obs-evidence-label">from your entry</div>
+          <div class="obs-evidence-text">"What I actually want: to be better at the initial surface read. Not to stop being surprised — surprises are fine — but to build a faster internal calibration."</div>
+        </div>
+        <div class="obs-classify">
+          <button class="classify-btn">Intentional</button>
+          <button class="classify-btn">Accidental</button>
+          <button class="classify-btn">Undecided</button>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="observer-note">
+      2 of 3 observations still need classification. Undecided items resurface next session.
+    </div>
+  </aside>
+
+</main>
+
+</body>
+</html>
