@@ -1,7 +1,7 @@
 ---
 title: "Plan: Observer Prompt Quality Fixes"
 date: 2026-03-27
-status: approved
+status: executed
 tags: [plan, observer, prompt, metrics, quality]
 modules: [daemon, shared]
 related:
