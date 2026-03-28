@@ -1,5 +1,6 @@
 ---
 status: approved
+date: 2026-03-27
 custom_directories:
   commissions: [pending, active, completed, abandoned]
   meetings: [open, closed, deferred]
