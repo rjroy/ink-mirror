@@ -7,7 +7,6 @@ modules: [daemon, shared]
 related:
   - .lore/specs/v1-core-loop.md
   - .lore/plans/v1-core-loop.md
-  - .lore/reviews/phase-2a-metrics.md
 ---
 
 # Plan: Observer Prompt Quality Fixes
