@@ -1,7 +1,7 @@
 ---
 title: "Craft Nudge"
 date: 2026-03-27
-status: draft
+status: approved
 tags: [spec, craft-nudge, review, craft-knowledge]
 req-prefix: CN
 related:
@@ -15,7 +15,7 @@ related:
 
 ## Overview
 
-The Craft Nudge is an on-demand function that surfaces where a writer's text collides with established craft principles. The writer pastes or selects text, asks for nudges, and receives Socratic questions grounded in specific passages. Each question traces back to a named craft principle from writing authorities (Williams, Zinsser, Pinker, King, Orwell, Strunk & White). The writer reads the question, looks at their text, and decides what to do. The nudge never answers for them.
+The Craft Nudge is an on-demand function that surfaces where a writer's text collides with established craft principles. The writer views an entry and asks for a review, or provides text directly, and receives Socratic questions grounded in specific passages. Each question traces back to a named craft principle from writing authorities (Williams, Zinsser, Pinker, King, Orwell, Strunk & White). The writer reads the question, looks at their text, and decides what to do. The nudge never answers for them.
 
 This is not the Observer. The Observer compares you to yourself. The nudge compares you to collective craft wisdom. They share infrastructure but draw from different baselines and should remain separate operations.
 
@@ -62,7 +62,7 @@ If the vision's "Not a writing course" anti-goal were written with the nudge in 
 
 - REQ-CN-1: The nudge runs only when the writer explicitly requests it. It never runs by default, never triggers automatically, and never attaches to the entry submission flow.
 - REQ-CN-2: The nudge does not require a style profile, entry history, or any prior use of ink-mirror. It works on text alone, because its baseline is craft knowledge, not personal history.
-- REQ-CN-3: The writer provides the text to analyze as the `text` field. The `entryId` field is metadata only (for client display and future nudge-tracking stubs); the route does not fetch entry text from storage. The nudge function does not care where the text came from.
+- REQ-CN-3: The writer can nudge an existing entry by ID or provide text directly. `entryId` and `text` are both optional, but at least one is required. When `entryId` is provided without `text`, the route reads the entry's text from storage. When `text` is provided, it's used directly regardless of `entryId`. The primary user path is reviewing entries they've already written ("review this entry"), not pasting into a separate field. The nudge function itself operates on text and does not care where it came from.
 
 ### Craft Principles
 
@@ -118,9 +118,11 @@ These require language model judgment and cannot be reliably detected by metrics
 - REQ-CN-24: Request schema:
   ```typescript
   {
-    text: string;       // The text to analyze (required, non-empty)
-    entryId?: string;   // If nudging a journal entry, the entry ID for reference
+    entryId?: string;   // Entry to nudge. Route reads the entry's text from storage.
+    text?: string;      // Text to analyze directly. Used as-is when provided.
     context?: string;   // Optional context about the text's purpose or audience
+    // At least one of entryId or text is required.
+    // When both are provided, text is used (entryId becomes metadata only).
   }
   ```
 - REQ-CN-25: Response schema:
@@ -136,7 +138,7 @@ These require language model judgment and cannot be reliably detected by metrics
   }
   ```
   The `metrics` field exposes the quantitative scaffolding so the writer can see what the system measured, not just what the LLM interpreted. Each field is derived from `computeEntryMetrics` output; the derivation is noted in the comments above.
-- REQ-CN-26: The route follows the existing factory pattern: `createNudgeRoutes(deps: NudgeDeps): RouteModule`. Dependencies are the session runner, the metrics pipeline (`computeEntryMetrics`), and optionally a profile reader (`readStyleProfile?: () => Promise<string>`, consistent with the Observer's dependency pattern) for calibration (see REQ-CN-28).
+- REQ-CN-26: The route follows the existing factory pattern: `createNudgeRoutes(deps: NudgeDeps): RouteModule`. Dependencies are the session runner, the metrics pipeline (`computeEntryMetrics`), an entry reader (`readEntry: (id: string) => Promise<string>`) for resolving `entryId` to text, and optionally a profile reader (`readStyleProfile?: () => Promise<string>`, consistent with the Observer's dependency pattern) for calibration (see REQ-CN-28).
 - REQ-CN-27: The route registers an operation in the help tree under `{ root: "nudge", feature: "analyze" }` for CLI discovery.
 
 ### Profile Calibration (Optional)
