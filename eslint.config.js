@@ -1,4 +1,6 @@
 import eslint from "@eslint/js";
+import nextPlugin from "@next/eslint-plugin-next";
+import reactHooksPlugin from "eslint-plugin-react-hooks";
 import tseslint from "typescript-eslint";
 
 export default tseslint.config(
@@ -16,6 +18,24 @@ export default tseslint.config(
         "error",
         { argsIgnorePattern: "^_", varsIgnorePattern: "^_" },
       ],
+    },
+  },
+  {
+    plugins: {
+      "@next/next": nextPlugin,
+      "react-hooks": reactHooksPlugin,
+    },
+    settings: {
+      next: {
+        rootDir: "packages/web/",
+      },
+    },
+  },
+  {
+    files: ["packages/web/**/*.{ts,tsx}"],
+    rules: {
+      ...nextPlugin.configs.recommended.rules,
+      ...reactHooksPlugin.configs.recommended.rules,
     },
   },
   {
@@ -51,7 +71,6 @@ export default tseslint.config(
       "**/*.d.ts",
       "packages/*/src/**/*.js",
       "packages/web/**/*.js",
-      "packages/web/tests/**",
     ],
   },
 );

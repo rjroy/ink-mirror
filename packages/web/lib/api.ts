@@ -10,6 +10,7 @@ import type {
   CurationSession,
   Profile,
   ProfileRule,
+  NudgeResponse,
 } from "@ink-mirror/shared";
 
 async function fetchApi<T>(
@@ -84,6 +85,17 @@ export async function replaceProfile(markdown: string): Promise<Profile> {
   return fetchApi<Profile>("/profile", {
     method: "PUT",
     body: JSON.stringify({ markdown }),
+  });
+}
+
+export async function requestNudge(params: {
+  text?: string;
+  entryId?: string;
+  context?: string;
+}): Promise<NudgeResponse> {
+  return fetchApi<NudgeResponse>("/nudge", {
+    method: "POST",
+    body: JSON.stringify(params),
   });
 }
 

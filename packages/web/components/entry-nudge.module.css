@@ -1,0 +1,26 @@
+.nudgeWrapper {
+  margin-top: 24px;
+  max-width: 640px;
+}
+
+.nudgeBtn {
+  font-size: 12px;
+  color: var(--ink-muted);
+  background: transparent;
+  border: 1px solid var(--border);
+  padding: 7px 18px;
+  border-radius: 3px;
+  cursor: pointer;
+  letter-spacing: 0.05em;
+  transition: all 0.15s;
+}
+
+.nudgeBtn:hover {
+  border-color: var(--ink-muted);
+  color: var(--ink);
+}
+
+.nudgeBtn:disabled {
+  cursor: default;
+  opacity: 0.5;
+}
