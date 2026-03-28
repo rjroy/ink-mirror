@@ -3,7 +3,7 @@ title: "Exploration: Review as Reflection"
 date: 2026-03-27
 status: draft
 author: Celeste
-tags: [exploration, review, vision-extension, style-profile]
+tags: [exploration, review, vision-extension, style-profile, nudge, craft-knowledge]
 related:
   - .lore/vision.md
   - .lore/specs/v1-core-loop.md
@@ -15,245 +15,313 @@ related:
 
 What if ink-mirror could read a piece of your writing and tell you what it notices, not what's wrong?
 
-The current system observes patterns in journal entries and accumulates them into a style profile. That profile describes what you do. This exploration asks: could the same profile become the baseline for on-demand review, where ink-mirror reads a piece of writing and reflects back how it compares to your established voice?
+The current system observes patterns in journal entries and accumulates them into a style profile. That profile describes what you do. This exploration asks two questions, each a different lens on the same text:
+
+1. **Profile reflection:** How does this piece compare to what you usually do? (You against yourself.)
+2. **Craft nudge:** Where does this piece collide with what experienced writers generally avoid? (You against collective wisdom, but framed as a question, not a grade.)
+
+The first lens was the starting point of this exploration. The second is the one that pushes against the vision's boundaries in interesting ways, and the one this document spends the most time on.
 
 This is not a feature spec. It's an exploration of what "review" could mean inside a system that refuses to correct.
 
 ---
 
-## The Shape Already Forming
+## Two Lenses, One Surface
 
-Three things already exist in the codebase that make this idea feel less like a proposal and more like something the system was reaching toward:
+The Observer watches what you do and names it. Profile reflection holds up what you usually do and asks whether this piece matches. The nudge function does something neither of those does: it holds up what craft wisdom says is worth questioning and asks whether you did it on purpose.
 
-**1. The style profile is already structured for comparison.** Each `ProfileRule` (`packages/shared/src/profile.ts`) carries a dimension, a pattern description, and a source count. The Observer already receives the profile as context and compares the current entry against it (REQ-V1-9, REQ-V1-13). The comparison infrastructure is built. It just runs automatically on journal entries rather than on-demand on arbitrary text.
+These are not the same operation. They share architecture (session runner, metrics pipeline, daemon endpoint) but they draw from different baselines:
 
-**2. The Observer already knows how to cite evidence and name patterns without judging.** The system prompt in `observer.ts:106-164` explicitly forbids corrections, rewrites, and external comparisons. It produces observations like "Three consecutive sentences under 8 words close the entry." That posture, observation without judgment, is exactly what makes ink-mirror's review different from every other tool.
+| | Observer | Profile Reflection | Craft Nudge |
+|---|---|---|---|
+| **Baseline** | The current entry | Your style profile | Established craft knowledge |
+| **Question** | "What patterns exist here?" | "Is this consistent with your voice?" | "Did you notice you did this? Was it intentional?" |
+| **Posture** | Descriptive statement | Deviation question | Craft question |
+| **Triggered by** | Entry submission (automatic) | User request (on-demand) | User request (on-demand) |
+| **Teaches?** | No | No | Arguably yes, but through questions, not lessons |
 
-**3. The session runner is a generic LLM entry point.** `SessionRunner` (`packages/daemon/src/session-runner.ts`) takes a system prompt and messages, handles retries, returns content. Nothing about it is specific to observation. A review session would use the same runner with a different system prompt.
-
-The machinery for review exists. What's missing is the intent, the second way to use it.
+The rest of this exploration focuses on the nudge function, because that's where the tension lives. Profile reflection is architecturally straightforward (the original exploration covers it thoroughly above). The nudge is the idea that needs sharpening.
 
 ---
 
-## What "Review" Means Here
+## The Nudge Function
 
 ### What it is
 
-Review in ink-mirror is **reflection against your own baseline**. You bring a piece of writing (not necessarily a journal entry) and ask: "What do you notice?" The system reads the text, compares it against your style profile, and produces observations about how this piece relates to what you usually do.
+A nudge surfaces where your writing collides with patterns that experienced writers generally treat as worth examining. Not errors. Not rules. Patterns that craft wisdom says deserve a second look.
 
-The key move: every observation is framed as deviation-or-consistency, not as problem-or-success. "Your profile says you use short declarative closers. This piece ends with a 47-word compound sentence. Is that intentional for this context?" That's a mirror held up to a specific piece of work, calibrated by your own history.
+The critical difference from every other writing tool: the nudge asks a question. It does not deliver a verdict.
 
-### What it is not
+"In paragraph 3, you used passive voice four times in a row. Was that a deliberate choice for this section, or did it drift there?"
 
-**Not Grammarly.** Grammarly flags errors against a universal standard. ink-mirror reflects patterns against your personal standard. Grammarly says "this is wrong." ink-mirror says "this is different from what you usually do."
+That's it. The writer reads the question. The writer looks at paragraph 3. The writer decides. Maybe the passive was intentional (a report that deliberately distances the narrator from the action). Maybe it drifted in because the writer was tired. The nudge doesn't know which. It doesn't need to. The act of looking is the value.
 
-**Not ProWritingAid.** ProWritingAid produces reports about readability, overused words, and pacing scored against generic benchmarks. ink-mirror doesn't score. It compares you to you.
+### What it draws from
 
-**Not an editor.** The review never produces rewrites, alternatives, or "try this instead." It names what it sees and asks whether the deviation was a choice. The generation effect matters here: writers retain more when they identify the fix themselves than when they're handed one.
+The nudge function is grounded in established writing craft knowledge. Not style preferences, not genre conventions, not "rules" that are actually opinions. The kind of patterns that show up across Strunk & White, Zinsser, King, Pinker, and every college writing workshop:
 
-**Not automatic.** The Observer runs on every journal entry because that's the write-observe-curate loop. Review is different. The user brings a specific text and asks for reflection. It's on-demand, explicit, and scoped to that text.
+- **Passive voice overuse.** Not "never use passive" (that's a myth). But four consecutive passive sentences in a paragraph that isn't deliberately using distance? Worth asking about.
+- **Buried leads.** The key information appears in sentence 7 of a paragraph. The first six sentences are setup. Did you mean to build to it, or did the point get lost?
+- **Redundancy.** The same idea appears three times in different words across a page. Emphasis or accident?
+- **Unclear antecedents.** "They said it was important, but they disagreed." Who are "they" in each case? The writer knows. Will the reader?
+- **Hedging accumulation.** "I think it might possibly be somewhat relevant." One hedging word is a voice choice. Four in a sentence is usually unconscious.
+- **Nominalizations.** "The implementation of the process" instead of "implementing the process." Once is fine. A pattern of them buries the action.
+- **Sentence monotony.** Twelve sentences in a row at 18-22 words each. The rhythm flatlines. Was that the intent?
+- **Dangling modifiers.** "Walking down the street, the trees were beautiful." The trees aren't walking. These are invisible to the writer and obvious to readers.
 
-### The philosophical distinction
+These aren't obscure craft concerns. They're the patterns that writing workshop instructors have circled in margins for decades. The nudge function takes that circling and turns it into a question.
 
-Conventional writing tools answer: "Is this good writing?"
+### What it does not draw from
 
-ink-mirror review answers: "Is this your writing?"
+- **Genre conventions.** "Academic writing requires..." or "business emails should..." That's external standard enforcement, not craft awareness.
+- **Grammar rules.** Comma placement, subject-verb agreement, spelling. Grammarly's territory.
+- **Taste preferences.** "This metaphor is cliched" or "this word is overused in contemporary prose." That's editorial judgment.
+- **The writer's own profile.** That's what profile reflection does. The nudge has a different baseline.
 
-That's not a softer version of the same question. It's a fundamentally different question. A piece can deviate from your profile in every dimension and still be exactly what you intended, because you're writing in a different register for a different audience. The review surfaces the deviation. You decide whether it's a problem.
+### The generation effect
+
+This design choice is load-bearing, not decorative. Cognitive science research on the generation effect shows that people retain information better when they produce the answer themselves rather than reading it. A nudge that says "you have four passive sentences in paragraph 3, consider changing them" teaches less than a nudge that says "you have four passive sentences in paragraph 3, was that intentional?" because the second version makes the writer do the work of evaluating their own choice.
+
+The writer who looks at paragraph 3 and thinks "no, that drifted, let me fix it" has practiced the skill of noticing passive voice. The writer who gets a correction has practiced the skill of accepting corrections. Those are different muscles. ink-mirror cares about the first one.
 
 ---
 
-## How It Could Work
+## What a Nudge Interaction Looks Like
 
-### The review request
+Concrete examples matter more than abstractions here. Imagine a writer submits a blog post draft to the nudge function.
 
-The user brings text to the daemon and asks for review. This could be:
+### Example 1: Passive voice clustering
 
-- A journal entry they want a second look at
-- An email draft
-- A document section
-- Any text they wrote
+The text contains:
 
-The request includes the text and optionally a context note ("this is a work email" or "this is for my blog"). The context note lets the reviewer calibrate expectations without changing the comparison baseline.
+> The project was started in January. The requirements were gathered over two weeks. The design was approved by the committee. Implementation was begun immediately.
 
-### Architecture fit
+Nudge output:
 
-The daemon already handles the pattern: receive text via REST, assemble context, call the session runner, return structured output. A review endpoint would follow the same shape as entry creation (`POST /entries` in `packages/daemon/src/routes/entries.ts`), but with a different system prompt and no automatic storage.
-
-```
-POST /review
-  body: { text: string, context?: string }
-  response: { reflections: Reflection[] }
-```
-
-The review route factory would receive the same deps pattern: `createReviewRoutes({ sessionRunner, profileStore, computeMetrics })`. The profile store provides the baseline. The metrics pipeline provides the quantitative scaffolding. The session runner calls the LLM.
-
-The review prompt would share the Observer's stance (no corrections, no rewrites, no external comparisons) but shift the framing from "what patterns exist in this entry" to "how does this text relate to the writer's established patterns."
-
-### What a reflection looks like
-
-A reflection is structurally similar to an observation, but the shape has two sides: what the profile says and what this text does.
-
-```
+```json
 {
-  "dimension": "sentence-rhythm",
-  "profilePattern": "Uses short declarative closers for emphasis",
-  "thisText": "Ends with a 47-word compound sentence spanning three clauses",
-  "evidence": "The final sentence of the document...",
-  "question": "Your closers are usually clipped. This one runs long. Intentional for this context?"
+  "craft_pattern": "passive-voice-clustering",
+  "evidence": "The project was started in January. The requirements were gathered over two weeks. The design was approved by the committee. Implementation was begun immediately.",
+  "observation": "Four consecutive sentences use passive voice, removing the actors from the action.",
+  "question": "Who started the project? Who gathered requirements? Who approved the design? If those actors matter to the reader, they're currently invisible. Was the distancing intentional here?"
 }
 ```
 
-The `question` field is the key differentiator. Observations in the current system are statements ("You did X"). Reflections are comparisons that end with a question ("You usually do X. Here you did Y. Was that the plan?"). The question invites the writer to think, not to accept or reject.
+Notice what this doesn't say: "Change to active voice." It asks who the actors are and whether their absence was a choice. If the writer is deliberately writing in a distanced, institutional register (a project status report, say), the answer is "yes, that's the register." If they're writing a blog post where they want credit for the work, the answer is "oh, I should name people." The nudge doesn't know which. It just asks.
 
-### What happens with the answer
+### Example 2: Buried lead
 
-This is an open question with real tension. Two paths:
+The text contains:
 
-**Path A: Reflections are ephemeral.** The review produces observations, the writer reads them, and nothing is stored. The review is a conversation, not a data pipeline. This is simpler and avoids polluting the style profile with one-off analysis of non-journal text.
+> I spent the morning reviewing the quarterly reports. The numbers were mostly in line with projections. Marketing had a slight overspend but nothing dramatic. The customer acquisition data looked normal. Then I noticed that churn had doubled since last quarter.
 
-**Path B: Reflections can optionally feed back.** If the writer marks a deviation as intentional ("yes, I write differently in work emails"), that's a signal that the profile should acknowledge contextual variation. The profile could grow from "I write like this" to "I write like this, except when I'm doing X."
+Nudge output:
 
-Path A preserves simplicity. Path B adds real value (contextual profiles) but significantly increases complexity. The right first step is probably A, with the review architecture designed so B is possible later without rework.
+```json
+{
+  "craft_pattern": "buried-lead",
+  "evidence": "Then I noticed that churn had doubled since last quarter.",
+  "observation": "The most consequential information in this paragraph appears in the final sentence, after four sentences of routine context.",
+  "question": "Churn doubling is the sharpest detail here. It arrives last, after the reader has been told everything is normal. Was the delayed reveal deliberate (building to a surprise) or did the paragraph follow the order you experienced it rather than the order the reader needs it?"
+}
+```
 
----
+This nudge names a specific craft pattern (lead burial), cites the evidence, and then offers two possible readings: deliberate suspense vs. accidental chronological ordering. The writer decides which one happened.
 
-## Review Dimensions
+### Example 3: Hedging accumulation
 
-Not every kind of review fits ink-mirror's identity. The filter: does this dimension produce observations the writer can act on through their own awareness, without needing the tool to fix anything?
+The text contains:
 
-### Strong fit
+> I think the new approach might possibly work better than what we currently have, though I'm not entirely sure it would be appropriate for every situation.
 
-**Voice consistency.** "Your profile describes direct, declarative prose. This draft hedges in the opening three paragraphs before becoming direct in the body." This is ink-mirror's core territory, comparing the writer to themselves.
+Nudge output:
 
-**Rhythm and pacing.** "Your journal entries average 14 words per sentence with rhythmic variation. This piece holds steady at 22 words per sentence throughout." The existing metrics pipeline (`packages/daemon/src/metrics/`) already computes everything needed. Rhythm analysis is the dimension where ink-mirror has the most infrastructure ready.
+```json
+{
+  "craft_pattern": "hedging-accumulation",
+  "evidence": "I think the new approach might possibly work better than what we currently have, though I'm not entirely sure it would be appropriate for every situation.",
+  "observation": "This sentence contains five hedging markers: 'I think', 'might', 'possibly', 'not entirely sure', 'every situation'. Each one reduces the sentence's commitment.",
+  "question": "One or two hedges can signal appropriate uncertainty. Five in a single sentence can read as the writer not trusting their own point. Was the tentativeness calibrated, or did it accumulate?"
+}
+```
 
-**Word-level habits.** "Your profile notes deliberate use of 'just' as a softener. This piece uses 'just' 11 times in 400 words, which is 3x your journal baseline." The word frequency metrics are already computed (`packages/daemon/src/metrics/word-frequency.ts`). The review would reuse the same pipeline with a comparison overlay.
+### Example 4: Sentence monotony
 
-**Structural patterns.** "Your journal entries follow a claim-evidence pattern. This piece is all evidence with no framing claims." Paragraph-level structure is already flagged as a deferred dimension in the v1 spec (REQ-V1-12). Review might be where it first becomes useful, because review text is likely to be longer and more structured than journal entries.
+The metrics pipeline computes: `lengthSequence: [19, 21, 18, 20, 22, 19, 21, 20, 18, 22]`.
 
-### Weaker fit, but worth exploring
+Nudge output:
 
-**Redundancy.** "The same point appears in paragraphs 2, 5, and 8 with different phrasing." This isn't a voice consistency question, it's a clarity question. But it's still observation-shaped ("here's what I notice") rather than correction-shaped ("remove this"). The writer decides whether repetition is emphasis or accident.
+```json
+{
+  "craft_pattern": "sentence-monotony",
+  "evidence": "Ten consecutive sentences range from 18-22 words with no variation.",
+  "observation": "The rhythm holds steady for the entire section. No short punches, no long flowing sentences. The pace is even throughout.",
+  "question": "Consistent sentence length creates a metronomic rhythm that can lull the reader. The content may have sharp turns, but the sentences don't reflect them. Was the evenness a conscious choice for this section's tone?"
+}
+```
 
-**Argument flow.** "The third paragraph introduces a claim that the fourth paragraph doesn't support or develop." This is further from ink-mirror's core, closer to structural editing. But phrased as an observation ("here's the shape of the argument as I see it"), it fits the posture. The tension: does this require the kind of evaluative judgment the vision explicitly forbids?
+### Example 5: Intentional use (no correction needed)
 
-### Poor fit
+The text is a formal report with deliberate passive voice throughout. The nudge still asks:
 
-**Grammar and mechanics.** This is Grammarly's job. ink-mirror reviewing grammar would be ink-mirror becoming a different tool.
+```json
+{
+  "craft_pattern": "passive-voice-clustering",
+  "evidence": "Results were analyzed using standard deviation...",
+  "observation": "Passive voice is consistent throughout this section.",
+  "question": "The passive voice here reads as deliberate institutional register, standard for formal reports. If that's the intent, this is doing exactly what it should."
+}
+```
 
-**Tone polishing.** "This sounds too casual for a professional email." That's a judgment against an external standard (professional norms). ink-mirror only compares you to you. If the writer's profile says they write casually, that's their voice, not a problem.
-
-**Rewriting suggestions.** "Try phrasing this as..." violates the core constraint. The review names what it sees. The writer decides what to change.
-
----
-
-## Tensions and Open Questions
-
-### 1. Does review violate "Practice Should Be Frictionless" (Principle 3)?
-
-The vision says: "Writing is the only action the user must take. Everything else happens without being asked."
-
-Review is explicitly an action the user takes. They bring text and request reflection. This is a different interaction model than the observe-curate loop, which is automatic.
-
-**Resolution:** Principle 3 applies to the core loop (write, observe, curate, apply). Review is a separate workflow triggered by a separate intent. The user already takes explicit action in curation (classifying observations). Review is another explicit action, not a violation of frictionlessness but an expansion of the tool's surface area.
-
-The important constraint: review must never trigger automatically. No "I noticed your email draft could use review." The user asks. ink-mirror answers.
-
-### 2. Does the profile have enough signal to be useful as a review baseline?
-
-A style profile built from journal entries may not describe how the writer writes in other contexts. Journal prose tends toward introspection, first-person, informal register. Work emails, technical docs, and blog posts are structurally different.
-
-**Resolution (partial):** The profile already captures dimension-specific patterns (sentence rhythm, word habits, sentence structure). Some of these transfer across contexts (word-level habits, hedging patterns). Others may not (paragraph structure, register). The review should be transparent about what it can and can't compare: "I can compare your rhythm and word patterns to your profile. I don't have enough data about your technical writing to compare structure."
-
-This tension points toward a longer-term question: should the profile eventually support multiple contexts? "My journal voice," "my work email voice," "my blog voice." That's a significant extension, but the current `ProfileRule` schema (`packages/shared/src/profile.ts`) doesn't preclude it. A `context` field on rules would do it.
-
-### 3. What text formats should review accept?
-
-Journal entries are plain text. Review targets might be markdown, rich text, emails with quoted reply chains, documents with headers and structure. Does the review pipeline need to handle formatting, or does it operate on raw text?
-
-**Resolution (pragmatic):** Start with plain text and markdown only. The metrics pipeline (`packages/daemon/src/metrics/`) already handles these. If the user pastes formatted text, strip the formatting. The review is about writing patterns, not document structure. Email quoted-reply chains should probably be stripped too (the user didn't write the quoted parts).
-
-### 4. Should review create observations that enter the curation pipeline?
-
-If I review a work email and the reviewer notices I'm hedging more than my profile predicts, should that become a pending observation?
-
-**Argument for:** The insight is real and could refine the profile. "I hedge in work emails" is a pattern worth naming.
-
-**Argument against:** The curation pipeline is designed for journal entries. Injecting observations from arbitrary text muddies the data. The profile is "how I write in my journal," not "how I write everywhere." Mixing sources makes the profile less coherent.
-
-**Resolution:** Keep review observations out of the curation pipeline by default. The writer can manually add a profile rule if the review surfaces something worth capturing. This preserves the profile's coherence while giving the writer full control.
-
-### 5. How does this affect the "What It Is Not" section of the vision?
-
-The vision explicitly says: "Not an editor. ink-mirror does not suggest rewrites, reorganizations, or structural improvements. The Observer names patterns. It does not propose alternatives."
-
-Review-as-reflection stays within this boundary if it strictly observes. But the gravitational pull toward "helpful suggestions" is strong. Every LLM wants to be helpful. The review prompt would need the same strict constraints as the Observer prompt, possibly stricter, because the user is explicitly asking for feedback on a piece they might want to improve.
-
-**Resolution:** The review system prompt must be as disciplined as the Observer's. Observations, evidence, questions. Never alternatives. The `question` field in reflections is the release valve: by asking "was this intentional?", the system invites the writer to think without telling them what to think.
-
-### 6. Cost implications
-
-The Observer runs on Sonnet with a Tier 1+2 context window designed to stay under $1.50/month at daily journaling frequency (spec constraint). Review adds on-demand LLM calls. If a writer reviews three drafts per week, that roughly doubles the LLM cost.
-
-The session runner already handles model selection and token budgets. The review route could use the same model and context strategy. The question is whether the cost envelope in the spec needs revision, or whether review is priced separately from the core loop.
+A good nudge acknowledges when a pattern appears intentional. Not every question implies a problem. Some questions confirm a choice.
 
 ---
 
-## Vision Alignment
+## The Vision Tension: "Not a Writing Course"
 
-Running the four-step analysis against the approved vision (`.lore/vision.md`).
+The vision says:
 
-### Anti-goal check
+> "Not a writing course. ink-mirror does not teach writing principles, suggest exercises, or grade your work. It shows you what you do. Whether that's good or bad is your call, and ink-mirror will never make it for you."
 
-The vision lists five anti-goals. Review-as-reflection:
+The nudge function pushes against this. Let's be honest about that instead of finding a clever way to claim it doesn't.
 
-- **"Not a grammar checker"**: Review does not flag errors. It compares patterns. Clear.
-- **"Not a ghostwriter"**: Review does not generate text. It reflects. Clear.
-- **"Not a writing course"**: Review does not teach or grade. It observes. Clear.
-- **"Not a social platform"**: Review is single-user. Clear.
-- **"Not an editor"**: This is the closest tension. Review names patterns and asks questions. It does not suggest alternatives or reorganizations. It stays within bounds as long as the prompt discipline holds. **Flagged but passable.**
+### Where it pushes
 
-### Principle alignment
+The nudge function draws from craft knowledge. "Passive voice clustering is worth examining" is a writing principle. "Buried leads reduce impact" is a writing principle. The function's knowledge base is, unavoidably, a curated set of things that writing craft says matter. That's teaching, encoded in which patterns the system decides to surface.
 
-- **P1 "Writing Takes Practice"**: Review does not generate text. The user writes, then asks for reflection. The writing is theirs. **Aligned.**
-- **P2 "Feedback Accelerates Skill"**: Review extends the feedback surface from journal entries to any text. The feedback remains descriptive, not prescriptive. The question format ("was this intentional?") preserves the curation dynamic where the writer's judgment builds awareness. **Strongly aligned.** This is arguably the principle that most supports the extension.
-- **P3 "Practice Should Be Frictionless"**: Review is on-demand, not automatic. It adds an interaction the user initiates. This is new friction, but chosen friction: the user asks for it. **Aligned with caveat** that review must never be unsolicited.
-- **P4 "Clients are Views"**: Review would be accessible from both CLI and web via the daemon API. Same data, same endpoint, different glass. **Aligned.**
+A pure mirror reflects only what's there. The moment you choose what to reflect based on external knowledge of what matters, you've introduced a lens. The lens has an opinion, even if it expresses that opinion as a question.
 
-### Tension resolution
+### Where it doesn't
 
-The primary tension is between the "Not an editor" anti-goal and the review function's proximity to editorial feedback. The resolution: review produces observations and questions, never suggestions or alternatives. The LLM prompt must enforce this boundary with the same rigor as the Observer prompt.
+The nudge function does not:
 
-A secondary tension: the profile is built from journal entries but review applies it to arbitrary text. The resolution: the review is transparent about what it can compare ("I can compare rhythm and word patterns") and what it can't ("I don't have data about your technical writing register").
+- **Tell the writer what's right.** It asks whether a pattern was intentional. The writer evaluates.
+- **Suggest exercises.** There's no "try rewriting this paragraph in active voice." There's just the question.
+- **Grade.** No scores, no ratings, no "your writing improved 15% this week."
+- **Prescribe.** "Four passive sentences in a row" is a measurement. "Was that deliberate?" is a question. Neither is a rule.
 
-### Constraint check
+### The actual boundary
 
-- **Single-user**: Review is single-user. No constraint violated.
-- **File-based state**: If review reflections are ephemeral (Path A), no new state storage needed. If they persist (Path B), they'd be markdown files. Either way, the constraint holds.
-- **Agent SDK only**: Review uses the same session runner, same SDK path. No new LLM integration.
-- **Daemon-first**: Review is a daemon endpoint. Clients render results. Architecture unchanged.
+The anti-goal "Not a writing course" protects against ink-mirror becoming a system that tells writers what good writing is. The nudge function doesn't tell the writer what good writing is. It tells them what experienced writers generally examine, and then asks whether they meant to do what they did.
+
+The distinction is between a teacher who says "passive voice is wrong, fix it" and a teacher who says "did you notice you used passive voice four times here? Was that what you wanted?" The first teaches a rule. The second teaches attention. ink-mirror's vision is about building awareness through practice. The nudge builds awareness through directed questions.
+
+There's a more precise way to draw this boundary: **ink-mirror never evaluates.** It can observe ("you did this"), compare ("you usually do this, here you did that"), and ask ("did you notice you did this?"). What it cannot do is score ("this is bad"), prescribe ("do this instead"), or correct ("here's a better version"). The nudge function asks. It never answers.
+
+If the vision's anti-goals were written with the nudge function in mind, "Not a writing course" might read: "ink-mirror does not teach writing principles, suggest exercises, grade your work, or tell you what to fix. It may surface patterns that craft wisdom says are worth examining, but the examination is yours."
+
+Whether that's a refinement of the existing boundary or a revision of it is a judgment call for the vision's author.
 
 ---
 
-## What This Is Not (Yet)
+## Architecture Fit
 
-This exploration does not propose:
+### How the nudge relates to what's built
 
-- A review spec with requirements and acceptance criteria
-- A timeline or implementation plan
-- Changes to the existing Observer or curation pipeline
-- New observation dimensions (though review may motivate adding some)
-- Multi-context profiles (though the tension around profile applicability points there)
+The nudge function would use the same infrastructure as the Observer and profile reflection, with one key difference in its knowledge source.
 
-It proposes that the shape exists, that the architecture supports it, that the philosophy permits it, and that the interesting questions are worth investigating.
+**Same:**
+- `SessionRunner` (`packages/daemon/src/session-runner.ts`) handles the LLM call
+- `computeMetrics` (`packages/daemon/src/metrics/index.ts`) provides quantitative scaffolding. The sentence-structure analysis at `packages/daemon/src/metrics/sentence-structure.ts` already detects passive voice (`isPassiveVoice`), fragments (`isFragment`), and paragraph openers (`classifyOpener`). The rhythm metrics already compute `lengthSequence`, `maxConsecutiveShort/Long`, and `paceChanges`. Hedging words and intensifiers are already extracted by word-frequency analysis. The metrics pipeline is already doing half the nudge's job. It just doesn't ask questions about what it finds.
+- Route factory pattern: `createNudgeRoutes({ sessionRunner, computeMetrics })`
+- Daemon endpoint, clients render results
+
+**Different:**
+- The nudge prompt draws from a craft knowledge base, not the writer's style profile. The profile is optional context ("the writer already uses passive voice frequently, so this clustering may be their normal register") but not the primary baseline.
+- The output is question-shaped, not observation-shaped. Each nudge has an evidence citation, a named craft pattern, and a question that asks whether the pattern was intentional.
+- The nudge may reference the profile for calibration but doesn't require it. A writer with no profile at all can still receive nudges. This means the nudge function can be useful immediately, before the write-observe-curate loop has built any history.
+
+### Endpoint shape
+
+```
+POST /nudge
+  body: { text: string, context?: string }
+  response: { nudges: CraftNudge[] }
+```
+
+```typescript
+interface CraftNudge {
+  craftPattern: string;       // e.g. "passive-voice-clustering"
+  evidence: string;           // cited text from the input
+  observation: string;        // what the pattern looks like in this text
+  question: string;           // the Socratic question
+}
+```
+
+### Prompt structure
+
+The nudge system prompt would be a sibling of the Observer's `buildSystemPrompt()` at `observer.ts:105`, sharing the same constraints (no corrections, no rewrites, no alternatives) but adding:
+
+- A craft knowledge section defining the patterns the nudge can surface
+- An instruction to formulate every finding as a question
+- A constraint that the question must offer at least one reading where the pattern is intentional
+- Access to pre-computed metrics as evidence (same as the Observer receives)
+- Optionally, the style profile for calibration ("the writer's baseline passive voice usage is 12%, this section is 80%")
+
+### What the nudge doesn't need
+
+- No new storage. Nudges are ephemeral. The writer reads them and acts (or doesn't). Nothing enters the curation pipeline.
+- No new metrics. The existing metrics pipeline already detects passive voice, hedging words, sentence rhythm, and structural patterns. The nudge reuses that computation.
+- No profile dependency. The nudge works with or without a style profile. This is important: it means the feature is useful from day one, not just after the write-observe-curate loop has matured.
+
+---
+
+## The Nudge and the Observer: Two Different Lenses
+
+A natural question: why not fold the nudge into the Observer?
+
+The Observer's system prompt at `observer.ts:106-164` explicitly forbids comparison to external norms: "All comparisons must be within the entry itself or against the writer's own style profile. NEVER compare to external standards." (Line 123.) This is a core constraint, not an incidental one. The Observer compares you to you. The nudge compares you to collective craft wisdom. They use different baselines and they should remain separate operations.
+
+Folding them together would muddy both. The Observer would start surfacing craft-based observations ("you used passive voice four times" with an implied "and that's usually worth questioning"), which violates its posture. The nudge would start comparing against the profile ("you use passive voice more than you usually do"), which dilutes its craft focus.
+
+Two lenses. One surface. The user chooses which lens to apply.
+
+That said, the profile can serve as calibration for the nudge. If the writer's profile says "uses passive voice deliberately for distance in reflective sections," the nudge should acknowledge that when it encounters passive voice. "Your profile notes deliberate passive voice in reflective sections. This section uses passive voice throughout. If this is that same deliberate distance, carry on." The profile doesn't change what the nudge looks for. It changes how the nudge frames the question.
+
+---
+
+## Open Questions
+
+### 1. How many craft patterns should the nudge know about?
+
+Too few and the nudge is trivial (just a passive voice detector). Too many and the output becomes a wall of questions that overwhelm rather than focus attention. The Observer surfaces 2-3 observations per entry. The nudge should probably surface 3-5 nudges per text, selected for distinctiveness and relevance. A 500-word blog post doesn't need 12 craft questions.
+
+The initial set should be the patterns where the existing metrics pipeline already provides evidence: passive voice (sentence-structure.ts), hedging accumulation (word-frequency.ts hedging detection), sentence monotony (rhythm.ts lengthSequence), and structural patterns (sentence-structure.ts paragraph openers). These four are ready today. Patterns like buried leads, redundancy, and unclear antecedents require LLM interpretation of the text, not just metrics, so the LLM does that work in the prompt rather than the metrics pipeline.
+
+### 2. Should the nudge explain why a craft pattern matters?
+
+"You used passive voice four times in a row" is an observation. "Passive voice removes the actor from the sentence, which can weaken clarity when the reader needs to know who did what" is an explanation. The explanation teaches. Does the nudge include it?
+
+The answer might be: include it, but briefly and in service of the question. "Four consecutive passive sentences remove the actors from the action. Who started the project? Who gathered requirements?" The explanation isn't a lesson. It's the reason the question exists. Without it, the writer might not understand why four passive sentences is worth a question. With it, they have enough context to evaluate their own choice.
+
+This is the narrowest channel through "not a writing course." Not a principle. Not a rule. Just enough context to make the question meaningful.
+
+### 3. Does the nudge need the style profile to be useful?
+
+No. And this might be its most interesting property. Profile reflection requires a built-up profile to have anything to compare against. The nudge function works on text alone, because its baseline is craft knowledge, not personal history. A writer who has never used ink-mirror before can paste a draft and get useful nudges immediately.
+
+This changes the onboarding story. The current v1 loop requires several journal entries before the Observer and profile have enough data to be interesting. The nudge function could be the first thing a new user tries: "Paste something you wrote. Here are the things we noticed worth asking about." That's a meaningful first experience with no ramp-up.
+
+### 4. What if the writer always ignores the nudges?
+
+Then the nudges served their purpose anyway. The act of seeing the question and deciding "no, I meant to do that" is awareness. The nudge doesn't need to change the text to have value. It needs to make the writer look. Even a dismissed nudge is a moment of attention.
+
+### 5. How does this interact with the review-as-profile-reflection lens?
+
+They could be offered separately (the user asks for one or the other) or combined (the user asks for review and gets both lenses). The combined approach is richer but risks overwhelming the writer with too many observations. The separate approach is cleaner but requires the user to understand the distinction between "compare me to myself" and "ask me about craft patterns."
+
+A reasonable default: one endpoint that produces both, with the output clearly grouped by lens. The user sees "Voice Consistency" reflections (profile-based) and "Craft Questions" (nudge-based) in separate sections. They can ignore either.
 
 ---
 
 ## Summary
 
-ink-mirror already observes patterns and reflects them back. Review extends that reflection from "what do you do?" to "what are you doing here, and is it what you usually do?" The machinery is built (session runner, metrics pipeline, profile store). The posture is established (observation, not correction). The architecture fits (new route, same deps pattern).
+The original exploration proposed review-as-reflection: comparing the writer's text to their own style profile. That idea is architecturally sound and philosophically aligned with the vision. This revision adds a second lens: the craft nudge, which compares the writer's text to established craft wisdom and asks questions about what it finds.
 
-The core insight: a style profile that only describes is half a mirror. A mirror you can hold up to specific work, on your terms, when you want it, completes the reflection. The profile stops being a static document and becomes a living baseline against which any piece of writing can be understood.
+The nudge pushes against the "Not a writing course" anti-goal. It doesn't break it, but it leans on the boundary. The resolution: the nudge asks questions, it never answers them. It surfaces patterns worth examining, it never prescribes fixes. The writer does the evaluation. That's the same muscle the curation step exercises, just pointed at a different set of patterns.
 
-The risk is gravity. Every review system wants to become an editor. The discipline required to observe without suggesting, to question without correcting, to compare without scoring, is the same discipline the Observer already practices. Review just applies it to a wider surface.
+The architecture supports it today. The metrics pipeline at `packages/daemon/src/metrics/` already detects the quantitative signatures of most craft patterns the nudge would surface. The session runner handles the LLM call. A new endpoint, a new system prompt, and a new output schema are all that's needed. No new storage, no new dependencies, no changes to the existing Observer or curation pipeline.
+
+The nudge function's most interesting property is that it doesn't require a style profile. It works on day one, on any text, with no history. For a tool that currently requires several journal entries before it becomes interesting, that's a different kind of entry point. You don't start with "write in your journal and wait." You start with "paste something you wrote and see what we ask about."
+
+The risk remains gravity. The nudge that asks "was this intentional?" is one prompt engineering slip from becoming the nudge that says "try this instead." The discipline of the question is the entire feature. Lose the question, and you've built Grammarly with a philosophy degree.
