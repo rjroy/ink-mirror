@@ -45,13 +45,19 @@ export function createSessionRunner(deps: SessionRunnerDeps): SessionRunner {
 
       for (let attempt = 0; attempt <= maxRetries; attempt++) {
         try {
+          if (attempt > 0) {
+            console.log(`[session] retry ${attempt}/${maxRetries}`);
+          }
           return await queryFn(request);
         } catch (err) {
           lastError = err;
+          const message = err instanceof Error ? err.message : String(err);
           // Retry on transient errors, bail on everything else
           if (isTransient(err) && attempt < maxRetries) {
+            console.warn(`[session] transient error (attempt ${attempt + 1}/${maxRetries + 1}): ${message}`);
             continue;
           }
+          console.error(`[session] fatal error: ${message}`);
           throw err;
         }
       }

@@ -29,6 +29,17 @@ export function createApp(deps: AppDeps = {}): App {
   const registry = createOperationsRegistry();
   const eventBus = deps.eventBus ?? createEventBus();
 
+  // Request logging middleware
+  hono.use("*", async (c, next) => {
+    const start = performance.now();
+    const method = c.req.method;
+    const path = c.req.path;
+    console.log(`${method} ${path}`);
+    await next();
+    const ms = (performance.now() - start).toFixed(0);
+    console.log(`${method} ${path} ${c.res.status} ${ms}ms`);
+  });
+
   // Register any provided route modules
   const routeModules = deps.routeModules ?? [];
   for (const mod of routeModules) {

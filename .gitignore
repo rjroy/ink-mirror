@@ -24,6 +24,14 @@ Thumbs.db
 
 # TypeScript
 *.tsbuildinfo
+*.d.ts.map
+
+# Prevent tsc emit artifacts in source dirs (Next.js uses noEmit)
+packages/web/**/*.js
+!packages/web/*.config.js
+!packages/web/*.config.mjs
+packages/web/**/*.d.ts
+!packages/web/next-env.d.ts
 
 # Unix socket (daemon runtime)
 *.sock

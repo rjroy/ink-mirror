@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { createEntry, subscribeObservations } from "@/lib/api";
 import type { Observation } from "@ink-mirror/shared";
@@ -28,19 +28,17 @@ export function JournalEditor() {
     return trimmed.split(/\s+/).length;
   }, [body]);
 
-  useEffect(() => {
-    const cleanup = subscribeObservations((obs) => {
-      setStreamedObservations((prev) => [...prev, obs]);
-    });
-    return cleanup;
-  }, []);
-
   const handleSubmit = useCallback(async () => {
     if (!body.trim()) return;
 
     setSubmitting(true);
     setError(null);
     setStreamedObservations([]);
+
+    // Open SSE only during submission, close when done
+    const cleanup = subscribeObservations((obs) => {
+      setStreamedObservations((prev) => [...prev, obs]);
+    });
 
     try {
       const entry = await createEntry(body);
@@ -49,6 +47,7 @@ export function JournalEditor() {
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to create entry");
     } finally {
+      cleanup();
       setSubmitting(false);
     }
   }, [body, router]);

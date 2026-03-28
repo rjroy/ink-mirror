@@ -16,7 +16,7 @@ bun install
 bun run dev        # starts daemon + web dev server
 ```
 
-The web UI is at http://localhost:3000. The daemon listens on a Unix socket at `/tmp/ink-mirror.sock`.
+The web UI is at http://localhost:3000. The daemon listens on a Unix socket at `~/.ink-mirror/ink-mirror.sock`.
 
 ## CLI
 
@@ -39,7 +39,7 @@ The CLI connects to the daemon via Unix socket. If the daemon isn't running, the
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `INK_MIRROR_SOCKET` | `/tmp/ink-mirror.sock` | Unix socket path for daemon |
+| `INK_MIRROR_SOCKET` | `~/.ink-mirror/ink-mirror.sock` | Unix socket path for daemon |
 | `INK_MIRROR_DATA` | `~/.ink-mirror` | Data directory for entries and observations |
 | `ANTHROPIC_API_KEY` | (required) | API key for observation generation |
 

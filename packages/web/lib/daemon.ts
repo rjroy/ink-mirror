@@ -11,7 +11,10 @@
 
 import http from "node:http";
 
-const SOCKET_PATH = process.env.INK_MIRROR_SOCKET ?? "/tmp/ink-mirror.sock";
+import { join } from "node:path";
+
+const DATA_DIR = process.env.INK_MIRROR_DATA ?? join(process.env.HOME ?? ".", ".ink-mirror");
+const SOCKET_PATH = process.env.INK_MIRROR_SOCKET ?? join(DATA_DIR, "ink-mirror.sock");
 
 export interface DaemonFetchOptions {
   method?: string;

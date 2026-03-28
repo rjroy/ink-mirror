@@ -1,4 +1,5 @@
 #!/usr/bin/env bun
+import { join } from "node:path";
 import { createDaemonClient } from "./client.js";
 import { resolveCommand, formatHelpTree } from "./discovery.js";
 import { executeOperation } from "./executor.js";
@@ -6,8 +7,8 @@ import { writeEntry } from "./write.js";
 import { curateObservations } from "./curate.js";
 import { showProfile, editProfile } from "./profile.js";
 
-const SOCKET_PATH =
-  process.env.INK_MIRROR_SOCKET ?? "/tmp/ink-mirror.sock";
+const DATA_DIR = process.env.INK_MIRROR_DATA ?? join(process.env.HOME ?? ".", ".ink-mirror");
+const SOCKET_PATH = process.env.INK_MIRROR_SOCKET ?? join(DATA_DIR, "ink-mirror.sock");
 
 async function main(): Promise<void> {
   const client = createDaemonClient(SOCKET_PATH);
