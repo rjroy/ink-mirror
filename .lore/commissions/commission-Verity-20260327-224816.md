@@ -1,7 +1,7 @@
 ---
 title: "Commission: Research: What makes writing good? Craft principles for ink-mirror's nudge function"
 date: 2026-03-28
-status: pending
+status: abandoned
 type: one-shot
 tags: [commission]
 worker: Verity
@@ -17,6 +17,11 @@ activity_timeline:
   - timestamp: 2026-03-28T05:48:16.073Z
     event: created
     reason: "Commission created"
+  - timestamp: 2026-03-28T05:55:10.851Z
+    event: status_abandoned
+    reason: "Duplicate. Original dispatch failed due to invalid model override. Successfully re-dispatched as commission-Verity-20260327-224822, which completed."
+    from: "pending"
+    to: "abandoned"
 current_progress: ""
 projectName: ink-mirror
 ---
