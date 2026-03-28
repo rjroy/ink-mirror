@@ -2,7 +2,8 @@
 title: "Research: Observation Granularity"
 status: complete
 date: 2026-03-26
-addresses: .lore/issues/research-observation-granularity.md
+related:
+  - .lore/issues/research-observation-granularity.md
 tags: [observer, research, observation-model]
 ---
 

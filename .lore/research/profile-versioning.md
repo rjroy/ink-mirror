@@ -2,7 +2,8 @@
 title: "Research: Style Profile Versioning Over Time"
 status: complete
 date: 2026-03-26
-issue: .lore/issues/research-profile-versioning.md
+related:
+  - .lore/issues/research-profile-versioning.md
 tags: [style-profile, versioning, research, voice-evolution]
 ---
 

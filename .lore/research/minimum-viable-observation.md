@@ -2,8 +2,9 @@
 title: "Research: Minimum Viable Observation Set"
 status: complete
 date: 2026-03-26
-addresses: .lore/issues/research-minimum-viable-observation.md
-depends_on: .lore/research/observation-granularity.md
+related:
+  - .lore/issues/research-minimum-viable-observation.md
+  - .lore/research/observation-granularity.md
 tags: [observer, research, observation-model, mvp]
 ---
 

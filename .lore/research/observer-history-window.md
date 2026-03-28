@@ -2,7 +2,8 @@
 title: "Research: Observer History Window Strategy"
 status: complete
 date: 2026-03-26
-resolves: .lore/issues/research-observer-history-window.md
+related:
+  - .lore/issues/research-observer-history-window.md
 tags: [observer, research, performance, cost, rag]
 ---
 

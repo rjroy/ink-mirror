@@ -3,6 +3,7 @@ title: "Phase 5 End-to-End Review"
 date: 2026-03-27
 reviewer: Thorne (Guild Warden)
 status: resolved
+tags: [review, phase-5, end-to-end, v1]
 ---
 
 # Phase 5 End-to-End Review

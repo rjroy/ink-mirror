@@ -3,6 +3,7 @@ title: "Phase 3A Review: Curation API and CLI"
 date: 2026-03-27
 reviewer: Thorne
 status: resolved
+tags: [review, phase-3a, curation]
 ---
 
 ## Findings
