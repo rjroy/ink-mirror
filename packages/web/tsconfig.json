@@ -7,20 +7,48 @@
     "esModuleInterop": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
-    "declaration": true,
-    "declarationMap": true,
-    "composite": true,
     "rootDir": ".",
     "outDir": "dist",
     "jsx": "preserve",
     "incremental": true,
     "noEmit": true,
-    "plugins": [{ "name": "next" }],
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ],
     "paths": {
-      "@/*": ["./*"]
-    }
+      "@/*": [
+        "./*"
+      ]
+    },
+    "lib": [
+      "dom",
+      "dom.iterable",
+      "esnext"
+    ],
+    "allowJs": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true
   },
-  "include": ["next-env.d.ts", "next.config.ts", "app/**/*.ts", "app/**/*.tsx", "lib/**/*.ts", "components/**/*.tsx"],
-  "exclude": ["node_modules", "dist", ".next", "tests"],
-  "references": [{ "path": "../shared" }]
+  "include": [
+    "app/**/*.ts",
+    "app/**/*.tsx",
+    "components/**/*.tsx",
+    "lib/**/*.ts",
+    "next-env.d.ts",
+    "next.config.ts",
+    ".next/types/**/*.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist",
+    ".next",
+    "tests"
+  ],
+  "references": [
+    {
+      "path": "../shared"
+    }
+  ]
 }

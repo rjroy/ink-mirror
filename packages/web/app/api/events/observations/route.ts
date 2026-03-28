@@ -1,4 +1,4 @@
-import { daemonFetch } from "@/lib/daemon";
+import { daemonFetchStream } from "@/lib/daemon";
 
 /**
  * SSE proxy: subscribes to daemon observation events and streams them to the browser.
@@ -6,7 +6,7 @@ import { daemonFetch } from "@/lib/daemon";
  */
 export async function GET() {
   try {
-    const daemonResponse = await daemonFetch("/events/observations");
+    const daemonResponse = await daemonFetchStream("/events/observations");
 
     if (!daemonResponse.body) {
       return new Response("No stream available", { status: 502 });
