@@ -156,7 +156,7 @@ Respond with valid JSON only. No markdown fencing, no explanation outside the JS
       "dimension": "word-level-habits"
     },
     {
-      "pattern": "Five of six sentences begin with 'I', creating a confessional cadence",
+      "pattern": "Three consecutive sentences open with 'I', creating a first-person cascade",
       "evidence": "I stopped. I turned. I left.",
       "dimension": "sentence-structure"
     }

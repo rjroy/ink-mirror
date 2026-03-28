@@ -531,4 +531,101 @@ describe("observe (pipeline)", () => {
     expect(capturedMessage).toContain("## Writer's Style Profile");
     expect(capturedMessage).toContain("Uses short declarative sentences");
   });
+
+  test("Tier 2 pipeline: activates when corpus >= 5 and includes recent entries", async () => {
+    const fs = mockFs();
+    const observationStore = createObservationStore({
+      observationsDir: "/data/observations",
+      fs,
+      now: () => "2026-03-27T10:00:00.000Z",
+    });
+
+    let capturedMessage = "";
+    const sessionRunner = createSessionRunner({
+      queryFn: async (req) => {
+        capturedMessage = req.messages[0].content;
+        return { content: VALID_OBSERVER_JSON };
+      },
+    });
+
+    const recentTexts = [
+      "First recent entry about morning routines.",
+      "Second recent entry about evening walks.",
+      "Third recent entry about writing habits.",
+      "Fourth recent entry about reading lists.",
+      "Fifth recent entry about weekend plans.",
+    ];
+
+    const result = await observe(
+      {
+        sessionRunner,
+        observationStore,
+        computeMetrics: computeEntryMetrics,
+        corpusSize: async () => 7,
+        recentEntries: async (limit) => {
+          return recentTexts.slice(0, limit).map((body, i) => ({
+            id: `entry-recent-${i}`,
+            body,
+          }));
+        },
+      },
+      "entry-tier2-001",
+      SAMPLE_ENTRY,
+    );
+
+    // Tier 2 section present in the assembled prompt
+    expect(capturedMessage).toContain("## Recent Entries");
+    expect(capturedMessage).toContain("First recent entry about morning routines.");
+    expect(capturedMessage).toContain("Fifth recent entry about weekend plans.");
+
+    // Recent entries appear before current entry (REQ-V1-15 ordering)
+    const recentPos = capturedMessage.indexOf("## Recent Entries");
+    const entryPos = capturedMessage.indexOf("## Current Entry");
+    expect(recentPos).toBeLessThan(entryPos);
+
+    // Pipeline still completes: observations stored
+    expect(result.observations).toHaveLength(2);
+    expect(result.errors).toHaveLength(0);
+  });
+
+  test("Tier 2 pipeline: does NOT activate when corpus < 5", async () => {
+    const fs = mockFs();
+    const observationStore = createObservationStore({
+      observationsDir: "/data/observations",
+      fs,
+      now: () => "2026-03-27T10:00:00.000Z",
+    });
+
+    let capturedMessage = "";
+    const sessionRunner = createSessionRunner({
+      queryFn: async (req) => {
+        capturedMessage = req.messages[0].content;
+        return { content: VALID_OBSERVER_JSON };
+      },
+    });
+
+    let recentEntriesCalled = false;
+    const result = await observe(
+      {
+        sessionRunner,
+        observationStore,
+        computeMetrics: computeEntryMetrics,
+        corpusSize: async () => 3,
+        recentEntries: async (limit) => {
+          recentEntriesCalled = true;
+          return [{ id: "e1", body: "Should not appear" }];
+        },
+      },
+      "entry-tier2-002",
+      SAMPLE_ENTRY,
+    );
+
+    // Tier 2 should not activate: corpus too small
+    expect(capturedMessage).not.toContain("## Recent Entries");
+    expect(recentEntriesCalled).toBe(false);
+
+    // Pipeline still works at Tier 1
+    expect(result.observations).toHaveLength(2);
+    expect(result.errors).toHaveLength(0);
+  });
 });

@@ -31,10 +31,12 @@ const INTENSIFIERS = new Set([
 ]);
 
 /**
- * Common English function words filtered from tokenFrequencies.
- * Removing these surfaces content words (the patterns worth observing)
- * instead of burying them under articles and prepositions.
- * Includes contracted forms since the tokenizer preserves apostrophes.
+ * Common English function words filtered from tokenFrequencies (~162 entries
+ * including contracted forms). Larger than the plan's 40-60 guidance because
+ * contracted auxiliaries (44 forms) are necessary to prevent "don't", "I'm",
+ * etc. from dominating content word rankings. No content words included;
+ * hedging/intensifier detection uses unfiltered frequencies so stop word
+ * filtering does not affect those analyses.
  */
 const STOP_WORDS = new Set([
   // Articles and determiners
