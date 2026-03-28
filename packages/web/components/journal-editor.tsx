@@ -2,8 +2,9 @@
 
 import { useState, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import { createEntry, subscribeObservations } from "@/lib/api";
-import type { Observation } from "@ink-mirror/shared";
+import { createEntry, requestNudge, subscribeObservations } from "@/lib/api";
+import type { Observation, CraftNudge } from "@ink-mirror/shared";
+import { NudgeResults } from "./nudge-results";
 import styles from "./journal-editor.module.css";
 
 function formatDate(): string {
@@ -21,6 +22,9 @@ export function JournalEditor() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [streamedObservations, setStreamedObservations] = useState<Observation[]>([]);
+  const [nudging, setNudging] = useState(false);
+  const [nudges, setNudges] = useState<CraftNudge[]>([]);
+  const [nudgeError, setNudgeError] = useState<string | null>(null);
 
   const wordCount = useMemo(() => {
     const trimmed = body.trim();
@@ -52,6 +56,26 @@ export function JournalEditor() {
     }
   }, [body, router]);
 
+  const handleNudge = useCallback(async () => {
+    if (!body.trim()) return;
+
+    setNudging(true);
+    setNudgeError(null);
+    setNudges([]);
+
+    try {
+      const response = await requestNudge({ text: body });
+      setNudges(response.nudges);
+      if (response.error) {
+        setNudgeError(response.error);
+      }
+    } catch (err) {
+      setNudgeError(err instanceof Error ? err.message : "Failed to get nudges");
+    } finally {
+      setNudging(false);
+    }
+  }, [body]);
+
   return (
     <div className={styles.editorPane}>
       <div className={styles.entryDate}>{formatDate()}</div>
@@ -68,14 +92,25 @@ export function JournalEditor() {
 
       <div className={styles.footer}>
         <span className={styles.wordCount}>{wordCount} words</span>
-        <button
-          className={styles.submitBtn}
-          onClick={() => void handleSubmit()}
-          disabled={submitting || !body.trim()}
-        >
-          {submitting ? "Observing..." : "Observe \u2192"}
-        </button>
+        <div className={styles.footerActions}>
+          <button
+            className={styles.nudgeBtn}
+            onClick={() => void handleNudge()}
+            disabled={nudging || !body.trim()}
+          >
+            {nudging ? "Nudging..." : "Nudge"}
+          </button>
+          <button
+            className={styles.submitBtn}
+            onClick={() => void handleSubmit()}
+            disabled={submitting || !body.trim()}
+          >
+            {submitting ? "Observing..." : "Observe \u2192"}
+          </button>
+        </div>
       </div>
+
+      <NudgeResults nudges={nudges} error={nudgeError ?? undefined} />
 
       {streamedObservations.length > 0 && (
         <div className={styles.streamSection}>

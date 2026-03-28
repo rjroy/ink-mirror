@@ -8,7 +8,7 @@ A writing self-awareness tool. Daemon-first architecture: the daemon is the appl
 - **Daemon:** Hono on Unix socket via `Bun.serve()`
 - **CLI:** Plain bun scripts, discovers operations from daemon at runtime
 - **Shared:** Zod schemas, TypeScript types, branded IDs
-- **Web (future):** Next.js App Router
+- **Web:** Next.js App Router
 
 ## Project Structure
 
@@ -17,6 +17,7 @@ packages/
   shared/   - Zod schemas, branded IDs, API contracts
   daemon/   - Hono routes, DI factories, operations registry, EventBus
   cli/      - Runtime discovery from daemon /help, command execution
+  web/      - Next.js App Router frontend
 ```
 
 ## Testing

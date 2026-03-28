@@ -7,7 +7,7 @@ A writing self-awareness tool. Write journal entries, receive observations about
 ### Prerequisites
 
 - [Bun](https://bun.sh) v1.2+
-- An Anthropic API key (set `ANTHROPIC_API_KEY` in your environment)
+- Claude authentication (the daemon uses the [Claude Agent SDK](https://github.com/anthropics/claude-agent-sdk), which supports API keys, OAuth, and other auth methods)
 
 ### Development
 
@@ -41,7 +41,6 @@ The CLI connects to the daemon via Unix socket. If the daemon isn't running, the
 |----------|---------|-------------|
 | `INK_MIRROR_SOCKET` | `~/.ink-mirror/ink-mirror.sock` | Unix socket path for daemon |
 | `INK_MIRROR_DATA` | `~/.ink-mirror` | Data directory for entries and observations |
-| `ANTHROPIC_API_KEY` | (required) | API key for observation generation |
 
 ## Scripts
 

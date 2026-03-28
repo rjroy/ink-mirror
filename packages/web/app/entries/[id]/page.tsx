@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { daemonJson } from "@/lib/daemon";
 import type { Entry, Observation } from "@ink-mirror/shared";
+import { EntryNudge } from "@/components/entry-nudge";
 import styles from "./page.module.css";
 
 export const dynamic = "force-dynamic";
@@ -40,6 +41,8 @@ export default async function EntryDetailPage({
         <div className={styles.entryDate}>{entry.date}</div>
         {entry.title && <h1 className={styles.entryTitle}>{entry.title}</h1>}
         <div className={styles.entryBody}>{entry.body}</div>
+
+        <EntryNudge entryId={id} />
       </section>
 
       {hasObservations && (
