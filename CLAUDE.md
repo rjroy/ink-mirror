@@ -36,6 +36,11 @@ packages/
 - All durable state is in human-readable files (markdown, YAML)
 - Single-user tool, no auth
 
+## Critical Lessons
+
+- SSE connections should be scoped to when they're needed (e.g., open on submission, close on completion). Opening on mount and holding forever wastes resources and hits Bun's idle timeout.
+- Bun.serve() has a 10-second default idle timeout. Any long-lived connection (SSE, WebSocket) needs a heartbeat to stay alive. A keepalive event every 5 seconds prevents Bun from killing the connection and also keeps intermediary proxies alive.
+
 ## Commands
 
 ```bash
