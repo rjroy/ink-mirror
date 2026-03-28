@@ -1,7 +1,7 @@
 ---
 title: "Exploration: Review as Reflection"
 date: 2026-03-27
-status: draft
+status: approved
 author: Celeste
 tags: [exploration, review, vision-extension, style-profile, nudge, craft-knowledge]
 related:
