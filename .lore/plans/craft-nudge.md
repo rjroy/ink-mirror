@@ -1,7 +1,7 @@
 ---
 title: "Plan: Craft Nudge"
 date: 2026-03-27
-status: approved
+status: executed 
 tags: [plan, craft-nudge, review, craft-knowledge]
 modules: [daemon, shared]
 related:
