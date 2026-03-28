@@ -326,6 +326,25 @@ describe("nudge (pipeline)", () => {
     expect(capturedMessage).toContain("Uses passive voice deliberately for distance.");
   });
 
+  test("survives readStyleProfile failure without throwing", async () => {
+    const sessionRunner = createSessionRunner({
+      queryFn: async () => ({ content: VALID_NUDGE_JSON }),
+    });
+
+    const result = await nudge(
+      {
+        sessionRunner,
+        computeMetrics: computeEntryMetrics,
+        readStyleProfile: async () => { throw new Error("disk on fire"); },
+      },
+      SAMPLE_TEXT,
+    );
+
+    // Should succeed with nudges, not propagate the error
+    expect(result.nudges).toHaveLength(2);
+    expect(result.error).toBeUndefined();
+  });
+
   test("passes context through to user message", async () => {
     let capturedMessage = "";
     const sessionRunner = createSessionRunner({

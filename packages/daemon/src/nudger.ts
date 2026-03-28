@@ -43,9 +43,15 @@ export async function nudge(
   const { sessionRunner, computeMetrics } = deps;
 
   const metrics = computeMetrics(text);
-  const styleProfile = deps.readStyleProfile
-    ? await deps.readStyleProfile()
-    : "";
+  let styleProfile = "";
+  if (deps.readStyleProfile) {
+    try {
+      styleProfile = await deps.readStyleProfile();
+    } catch {
+      // Profile is optional calibration (REQ-CN-15). A read failure
+      // should not take down the nudge endpoint.
+    }
+  }
 
   const system = buildNudgeSystemPrompt();
   const userMessage = buildNudgeUserMessage(text, metrics, styleProfile, context);
@@ -138,7 +144,7 @@ Respond with valid JSON only. No markdown fencing, no explanation outside the JS
       "craftPrinciple": "passive-voice-clustering",
       "evidence": "The project was started in January. The requirements were gathered over two weeks.",
       "observation": "Two consecutive passive sentences remove the actors from the narrative.",
-      "question": "The passive voice here reads as institutional report register. Was that your intent, or did specific people start the project and gather requirements?"
+      "question": "The passive voice here reads as institutional report register. Was that your intent?"
     }
   ]
 }
