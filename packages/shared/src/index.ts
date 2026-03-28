@@ -63,6 +63,19 @@ export {
 } from "./observations.js";
 
 export {
+  CraftPrincipleSchema,
+  CraftNudgeSchema,
+  NudgeOutputSchema,
+  NudgeRequestSchema,
+  NudgeResponseSchema,
+  type CraftPrinciple,
+  type CraftNudge,
+  type NudgeOutput,
+  type NudgeRequest,
+  type NudgeResponse,
+} from "./nudge.js";
+
+export {
   ProfileRuleSchema,
   ProfileSchema,
   UpdateProfileRuleRequestSchema,
