@@ -1,7 +1,7 @@
 ---
 title: ink-mirror Visual Direction
 date: 2026-03-27
-status: approved
+status: active
 tags: [visual, design, art-direction]
 ---
 
