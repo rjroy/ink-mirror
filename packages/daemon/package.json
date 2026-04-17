@@ -10,7 +10,7 @@
     "test": "bun test"
   },
   "dependencies": {
-    "@anthropic-ai/claude-agent-sdk": "^0.2.85",
+    "@anthropic-ai/claude-agent-sdk": "^0.2.112",
     "@ink-mirror/shared": "workspace:*",
     "hono": "^4.0.0"
   }
