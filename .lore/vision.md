@@ -1,6 +1,6 @@
 ---
 title: ink-mirror Vision
-status: approved
+status: active
 date: 2026-03-26
 reviewed_by: Ronald Roy
 reviewed_date: 2026-03-26
