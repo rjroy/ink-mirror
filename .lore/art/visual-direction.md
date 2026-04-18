@@ -58,7 +58,7 @@ The central metaphor is the mirror: seeing yourself clearly, without judgment. T
 
 ## Layout: Journal Entry Screen
 
-See `journal-screen-mockup.html` for the precise HTML/CSS implementation and `mockup-journal-screen.png` for a rendered approximation.
+See `journal-screen-mockup.html` for the precise HTML/CSS implementation and `mockup-journal-screen.webp` for a rendered approximation.
 
 **Desktop (1440px):**
 
@@ -98,7 +98,7 @@ See `journal-screen-mockup.html` for the precise HTML/CSS implementation and `mo
 
 ## App Icon
 
-See `icon.png` (FLUX Pro final) and `icon-exploration.png` (earlier draft).
+See `icon.webp` (FLUX Pro final).
 
 **Concept:** A circle containing a dark ink brushstroke in the upper half, with its faded mirror reflection in the lower half. A thin horizontal line at the midpoint is the mirror surface. The circle is the frame; the reflection is the concept.
 
@@ -116,10 +116,10 @@ See `icon.png` (FLUX Pro final) and `icon-exploration.png` (earlier draft).
 
 Four reference images establish the atmosphere:
 
-- `style-reference.png` — Hero image (FLUX Pro). Journal open on warm wood desk, afternoon window light, ink bottle, fountain pen, hand mirror. This is the scene ink-mirror lives in.
-- `mood-journal-texture.png` — Close-up of handwritten journal, warm amber light. Tactile quality.
-- `mood-evening-desk.png` — Writing desk at night, lamp, open journal. Contemplative atmosphere.
-- `mood-ink-reflection.png` — Ink dropping into still surface with perfect vertical reflection. The conceptual anchor for the mirror metaphor.
+- `style-reference.webp` — Hero image (FLUX Pro). Journal open on warm wood desk, afternoon window light, ink bottle, fountain pen, hand mirror. This is the scene ink-mirror lives in.
+- `mood-journal-texture.webp` — Close-up of handwritten journal, warm amber light. Tactile quality.
+- `mood-evening-desk.webp` — Writing desk at night, lamp, open journal. Contemplative atmosphere.
+- `mood-ink-reflection.webp` — Ink dropping into still surface with perfect vertical reflection. The conceptual anchor for the mirror metaphor.
 
 ---
 

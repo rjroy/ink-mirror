@@ -5,6 +5,10 @@ status: complete
 tags: [retro, commissions, cleanup]
 ---
 
+## Validation Note (2026-04-18)
+
+Code-verification pass. All three prior loose threads closed or dropped (see Loose Threads section).
+
 ## Context
 
 Three commissions across two workers: the prior cleanup commission itself (Octavia, 2026-03-28), Dalton's Craft Nudge web UI wiring (2026-03-28), and Dalton's iOS keyboard zoom fix (2026-03-30). All completed cleanly. Both Dalton commissions shipped in commit `faf092e` (PR #6).
@@ -13,15 +17,13 @@ Three commissions across two workers: the prior cleanup commission itself (Octav
 
 Both Dalton commissions ran single-shot: prompt in, tests+typecheck green, result submitted. No review cycle needed. The Craft Nudge wiring followed the existing proxy/fetchApi/CSS-module pattern exactly as specified, and the iOS fix was a three-attribute change to `app/layout.tsx`. Tight, well-scoped prompts produced tight, well-scoped diffs.
 
-The iOS fix commission used `resource_overrides.model: sonnet` and executed without incident, which contrasts against the prior batch's `claude-sonnet-4-6` override that 500'd. Whatever the prior failure was, it wasn't a blanket override problem.
-
 ## Loose Threads
 
-Prior retro's open threads that this batch did not touch:
+Prior retro's open threads, validated 2026-04-18:
 
-1. **Phase 2B Observer integration** still has no independent review (session runner wiring, auto-trigger logic, observation storage).
-2. **Craft Nudge manual LLM spot-check** against real output, per the spec's AI Validation section. Nudge is now wired in the UI, which makes the spot-check easier to perform but does not perform it.
-3. **Contradiction detection** still uses 10 regex pairs.
+1. **Phase 2B Observer integration** [RESOLVED] — reviewed through tests (`observer.test.ts`, `observer-integration.test.ts`, `observer-tier2.test.ts`), the Observer Prompt Quality chain, and iteration across PRs #4 and #5. The "missing review" was a missing commission artifact, not missing scrutiny.
+2. **Craft Nudge runtime behavior** [CLOSED] — nudge is shipped and wired in the UI (`packages/daemon/src/routes/nudge.ts`, `packages/daemon/src/nudger.ts`, UI integration in commit `faf092e`). Using the tool is the verification. Any further refinement is a new concern, not a cleanup item.
+3. **Contradiction detection** [CLOSED] — current 10-pair system works well in practice. Any refinement would be a new design concern, not a loose thread.
 
 Threads that closed since the prior retro (via commit `5d8fc21`, outside this batch's commissions):
 

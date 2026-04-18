@@ -4,7 +4,6 @@ date: 2026-03-27
 custom_directories:
   commissions: [pending, active, completed, abandoned]
   meetings: [open, closed, deferred]
-  reviews: [open, resolved]
   art: [draft, approved]
   generated: []
 
@@ -17,7 +16,6 @@ filename_exemptions:
 custom_fields:
   commissions: [worker, workerDisplayTitle, prompt, dependencies, linked_artifacts, activity_timeline, current_progress, projectName, type]
   meetings: [worker, workerDisplayTitle, agenda, deferred_until, linked_artifacts, meeting_log]
-  reviews: [reviewer, resolver]
   issues: [type, origin]
   research: [addresses, resolves, issue]
 ---
@@ -30,7 +28,6 @@ This file tells `/tend` what's intentional about this project's `.lore/` structu
 
 - **commissions/** - Guild Hall async work items. Machine-generated filenames with timestamps.
 - **meetings/** - Guild Hall audience records. Machine-generated filenames with timestamps.
-- **reviews/** - Code review artifacts from implementation phases.
 - **art/** - Visual direction documents and reference images.
 - **generated/** - AI-generated image assets (not lore documents, no frontmatter expected).
 
