@@ -34,3 +34,9 @@ Workers can also add entries to this file during their sessions.
 - Sections: 9 numbered se...
 
 - 08:51 commission-Octavia-20260421-084511 completed
+- 09:11 commission-Dalton-20260421-090020 result: Implemented `.lore/specs/observer-paragraph-structure.md` end-to-end.
+
+**Files changed:**
+- `packages/shared/src/observations.ts` — added `"paragraph-structure"` to `ObservationDimensionSchema` enum.
+...
+- 09:11 commission-Dalton-20260421-090020 completed
