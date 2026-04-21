@@ -165,8 +165,8 @@ Respond with valid JSON only. No markdown fencing, no explanation outside the JS
       "dimension": "sentence-structure"
     },
     {
-      "pattern": "Alternates short and long paragraphs, with a single-sentence paragraph isolating the turn",
-      "evidence": "I stopped. I turned. I left.",
+      "pattern": "Closes with a single-sentence paragraph after several longer paragraphs, using isolation to mark the turn",
+      "evidence": "That was the last time I looked back.",
       "dimension": "paragraph-structure"
     }
   ]
