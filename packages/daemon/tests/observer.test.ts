@@ -74,11 +74,22 @@ describe("buildSystemPrompt", () => {
     expect(prompt).toContain("other writers");
   });
 
-  test("includes all three active dimensions", () => {
+  test("includes all four active dimensions", () => {
     const prompt = buildSystemPrompt();
     expect(prompt).toContain("sentence-rhythm");
     expect(prompt).toContain("word-level-habits");
     expect(prompt).toContain("sentence-structure");
+    expect(prompt).toContain("paragraph-structure");
+  });
+
+  test("includes paragraph-structure definition and not-this boundary", () => {
+    const prompt = buildSystemPrompt();
+    // Definition paragraph is present and references paragraph-level shape
+    expect(prompt).toContain("**paragraph-structure**");
+    expect(prompt).toContain("Paragraph-length distribution");
+    // Explicit boundary against sentence-structure
+    expect(prompt).toMatch(/sentence-structure[\s\S]*paragraph-structure/);
+    expect(prompt).toContain("Not this");
   });
 
   test("specifies JSON output format with worked examples", () => {
@@ -87,10 +98,11 @@ describe("buildSystemPrompt", () => {
     expect(prompt).toContain('"pattern"');
     expect(prompt).toContain('"evidence"');
     expect(prompt).toContain('"dimension"');
-    // Three separate example observations, one per dimension
+    // Separate example observations, one per dimension
     expect(prompt).toContain('"dimension": "sentence-rhythm"');
     expect(prompt).toContain('"dimension": "word-level-habits"');
     expect(prompt).toContain('"dimension": "sentence-structure"');
+    expect(prompt).toContain('"dimension": "paragraph-structure"');
   });
 
   test("includes context description section (REQ-V1-13)", () => {
@@ -177,6 +189,27 @@ describe("buildUserMessage", () => {
     expect(message).toContain("Passive voice:");
     expect(message).toContain("Fragments:");
     expect(message).toContain("Paragraphs:");
+  });
+
+  test("renders paragraph-structure metrics on a multi-paragraph entry", () => {
+    const multiParagraph = [
+      "I stopped.",
+      "",
+      "I walked outside. The air was cold. I saw nothing. Then I kept going.",
+      "",
+      "The road was empty. Cars passed slowly. Headlights blurred.",
+      "",
+      "Nothing moved.",
+    ].join("\n");
+    const metrics = computeEntryMetrics(multiParagraph);
+    const message = buildUserMessage(multiParagraph, metrics, "");
+
+    expect(message).toContain("### Paragraph Structure");
+    expect(message).toContain("Paragraph sentence counts:");
+    expect(message).toContain("Length distribution:");
+    expect(message).toContain("Single-sentence paragraphs:");
+    // Non-trivial distribution should render the actual counts.
+    expect(message).toMatch(/Single-sentence paragraphs:\s*2/);
   });
 
   test("Tier 2 assembly: recent entries + style profile in correct order", () => {
@@ -364,6 +397,36 @@ describe("validateObservations", () => {
     expect(result.valid).toHaveLength(1);
   });
 
+  test("accepts paragraph-structure observation with evidence found in entry", () => {
+    const observations: RawObservation[] = [
+      {
+        pattern: "Three single-sentence paragraphs isolate each action",
+        evidence: "I stopped. I turned. I left.",
+        dimension: "paragraph-structure",
+      },
+    ];
+
+    const result = validateObservations(observations, SAMPLE_ENTRY);
+    expect(result.valid).toHaveLength(1);
+    expect(result.valid[0].dimension).toBe("paragraph-structure");
+    expect(result.errors).toHaveLength(0);
+  });
+
+  test("rejects paragraph-structure observation with fabricated evidence", () => {
+    const observations: RawObservation[] = [
+      {
+        pattern: "Long lead paragraph followed by shorter body",
+        evidence: "This evidence text does not appear in the entry",
+        dimension: "paragraph-structure",
+      },
+    ];
+
+    const result = validateObservations(observations, SAMPLE_ENTRY);
+    expect(result.valid).toHaveLength(0);
+    expect(result.errors).toHaveLength(1);
+    expect(result.errors[0]).toContain("not found in entry text");
+  });
+
   test("keeps valid observations and reports invalid ones separately", () => {
     const observations: RawObservation[] = [
       {
@@ -429,6 +492,43 @@ describe("observe (pipeline)", () => {
     // Verify files were written
     expect(fs.files["/data/observations/obs-2026-03-27-001.yaml"]).toBeDefined();
     expect(fs.files["/data/observations/obs-2026-03-27-002.yaml"]).toBeDefined();
+  });
+
+  test("stores a paragraph-structure observation from the LLM", async () => {
+    const fs = mockFs();
+    const observationStore = createObservationStore({
+      observationsDir: "/data/observations",
+      fs,
+      now: () => "2026-04-21T10:00:00.000Z",
+    });
+
+    const output = JSON.stringify({
+      observations: [
+        {
+          pattern: "Three single-sentence paragraphs isolate each action",
+          evidence: "I stopped. I turned. I left.",
+          dimension: "paragraph-structure",
+        },
+      ],
+    });
+
+    const sessionRunner = createSessionRunner({
+      queryFn: async () => ({ content: output }),
+    });
+
+    const result = await observe(
+      {
+        sessionRunner,
+        observationStore,
+        computeMetrics: computeEntryMetrics,
+      },
+      "entry-2026-04-21-001",
+      SAMPLE_ENTRY,
+    );
+
+    expect(result.errors).toHaveLength(0);
+    expect(result.observations).toHaveLength(1);
+    expect(result.observations[0].dimension).toBe("paragraph-structure");
   });
 
   test("returns errors when LLM output has invalid evidence", async () => {

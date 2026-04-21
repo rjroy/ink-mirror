@@ -41,6 +41,7 @@ export async function showProfile(client: DaemonClient): Promise<void> {
     "sentence-rhythm": "Sentence Rhythm",
     "word-level-habits": "Word-Level Habits",
     "sentence-structure": "Sentence Structure",
+    "paragraph-structure": "Paragraph Structure",
   };
 
   for (const [dimension, rules] of byDimension) {
@@ -148,6 +149,7 @@ function buildProfileMarkdown(profile: ProfileResponse): string {
     "sentence-rhythm": "Sentence Rhythm",
     "word-level-habits": "Word-Level Habits",
     "sentence-structure": "Sentence Structure",
+    "paragraph-structure": "Paragraph Structure",
   };
 
   if (byDimension.size === 0) {

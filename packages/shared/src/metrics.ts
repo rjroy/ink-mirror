@@ -70,6 +70,16 @@ export const SentenceStructureAnalysisSchema = z.object({
   fragmentCount: z.number().int().nonnegative(),
   /** Total sentences analyzed (denominator for ratios). */
   totalSentences: z.number().int().nonnegative(),
+  /** Sentence count per paragraph, in document order. Length equals paragraphCount. */
+  paragraphLengths: z.array(z.number().int().nonnegative()),
+  /** Bucketed paragraph counts: short (1-2), medium (3-5), long (6+). */
+  paragraphLengthDistribution: z.object({
+    short: z.number().int().nonnegative(),
+    medium: z.number().int().nonnegative(),
+    long: z.number().int().nonnegative(),
+  }),
+  /** Count of paragraphs whose sentence count is exactly 1 (subset of short). */
+  singleSentenceParagraphCount: z.number().int().nonnegative(),
 });
 
 export type SentenceStructureAnalysis = z.infer<typeof SentenceStructureAnalysisSchema>;

@@ -30,6 +30,9 @@ const stubMetrics: EntryMetrics = {
     paragraphCount: 1,
     fragmentCount: 0,
     totalSentences: 1,
+    paragraphLengths: [1],
+    paragraphLengthDistribution: { short: 1, medium: 0, long: 0 },
+    singleSentenceParagraphCount: 1,
   },
 };
 

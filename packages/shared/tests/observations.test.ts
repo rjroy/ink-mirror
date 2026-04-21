@@ -12,6 +12,7 @@ describe("ObservationDimensionSchema", () => {
     expect(ObservationDimensionSchema.parse("sentence-rhythm")).toBe("sentence-rhythm");
     expect(ObservationDimensionSchema.parse("word-level-habits")).toBe("word-level-habits");
     expect(ObservationDimensionSchema.parse("sentence-structure")).toBe("sentence-structure");
+    expect(ObservationDimensionSchema.parse("paragraph-structure")).toBe("paragraph-structure");
   });
 
   test("rejects invalid dimensions", () => {

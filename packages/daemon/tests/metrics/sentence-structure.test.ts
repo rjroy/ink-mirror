@@ -232,6 +232,9 @@ describe("analyzeSentenceStructure", () => {
     expect(result.paragraphOpeners).toEqual([]);
     expect(result.paragraphCount).toBe(0);
     expect(result.fragmentCount).toBe(0);
+    expect(result.paragraphLengths).toEqual([]);
+    expect(result.paragraphLengthDistribution).toEqual({ short: 0, medium: 0, long: 0 });
+    expect(result.singleSentenceParagraphCount).toBe(0);
   });
 
   test("passive ratio is 0 when all sentences are fragments", () => {
@@ -239,6 +242,46 @@ describe("analyzeSentenceStructure", () => {
     const result = analyzeSentenceStructure(sentences, sentences.join(" "));
     expect(result.passiveRatio).toBe(0);
     expect(result.fragmentCount).toBe(2);
+  });
+
+  test("computes paragraph-length distribution and single-sentence count on mixed fixture", () => {
+    // 6 paragraphs with sentence counts: [1, 4, 3, 1, 7, 2]
+    const paragraphs = [
+      "I stopped.",
+      "I walked outside. The air was cold. I saw nothing. Then I kept going.",
+      "The road was empty. Cars passed slowly. Headlights blurred.",
+      "Nothing moved.",
+      "I thought about calling her. I thought about texting. I thought about turning around. None of it mattered. The choice was already made. The door was closed. I kept walking.",
+      "Time passed. I went home.",
+    ];
+    const prose = paragraphs.join("\n\n");
+    const sentences = paragraphs.flatMap((p) =>
+      p.split(/(?<=[.!?])\s+/).filter((s) => s.trim().length > 0),
+    );
+
+    const result = analyzeSentenceStructure(sentences, prose);
+
+    expect(result.paragraphCount).toBe(6);
+    expect(result.paragraphLengths).toEqual([1, 4, 3, 1, 7, 2]);
+    expect(result.paragraphLengthDistribution).toEqual({ short: 3, medium: 2, long: 1 });
+    expect(result.singleSentenceParagraphCount).toBe(2);
+
+    // Regression guard (Acceptance Criterion 3): existing fields still produced on this fixture.
+    expect(result.totalSentences).toBe(sentences.length);
+    expect(result.activeCount + result.passiveCount + result.fragmentCount).toBe(sentences.length);
+    const iOpener = result.paragraphOpeners.find((o) => o.pattern === "I + verb");
+    expect(iOpener?.count).toBeGreaterThan(0);
+  });
+
+  test("single-paragraph fixture buckets correctly", () => {
+    const prose = "I stopped. I turned. I left.";
+    const sentences = ["I stopped.", "I turned.", "I left."];
+    const result = analyzeSentenceStructure(sentences, prose);
+
+    expect(result.paragraphCount).toBe(1);
+    expect(result.paragraphLengths).toEqual([3]);
+    expect(result.paragraphLengthDistribution).toEqual({ short: 0, medium: 1, long: 0 });
+    expect(result.singleSentenceParagraphCount).toBe(0);
   });
 
   test("openers sorted by frequency descending", () => {
