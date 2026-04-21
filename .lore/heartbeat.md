@@ -42,3 +42,9 @@ Workers can also add entries to this file during their sessions.
 - 09:11 commission-Dalton-20260421-090020 completed
 - 09:14 commission-Thorne-20260421-090037 result: Implementation conforms to spec. All tests, typecheck, and lint pass. Three nit-level findings, no blockers. Recommend merge.
 - 09:15 commission-Thorne-20260421-090037 completed
+- 09:16 commission-Dalton-20260421-090047 result: Addressed Thorne's sole nit-level finding on the paragraph-structure worked example.
+
+- 09:16 commission-Dalton-20260421-090047 completed
+## Per-finding disposition
+
+**Finding (nit): Worked example at observer.ts:167-170 did not demonstrate paragraph-l...
