@@ -1,7 +1,7 @@
 ---
 title: "Run vision re-review — trigger has fired"
 date: 2026-04-21
-status: open
+status: resolved
 priority: medium
 type: vision
 origin: .lore/brainstorm/observer-dimension-extension-20260420.md
