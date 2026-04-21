@@ -26,8 +26,3 @@ Workers can also add entries to this file during their sessions.
 ## Context Notes
 
 ## Recent Activity
-- 06:59 commission-Octavia-20260421-065231 result: 
-Cleanup pass completed on `.lore/brainstorm/observer-dimension-extension-20260420.md`. Added an Editor's note at the top (dated 2026-04-20) summarizing the pass.
-
-- 06:59 commission-Octavia-20260421-065231 completed
-## Pass 1 — Dimensions removed (not ...
