@@ -3,7 +3,7 @@ title: ink-mirror Vision
 status: active
 date: 2026-03-26
 reviewed_by: Ronald Roy
-reviewed_date: 2026-03-26
+reviewed_date: 2026-04-20
 review_trigger: "After first working prototype delivers the write-observe-curate loop"
 tags: [vision, project-identity]
 ---
