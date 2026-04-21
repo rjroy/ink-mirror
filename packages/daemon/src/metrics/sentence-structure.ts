@@ -1,4 +1,10 @@
 import type { SentenceStructureAnalysis } from "@ink-mirror/shared";
+import { splitProse } from "./sentences.js";
+
+/** Upper bound (inclusive) for the "short" paragraph bucket, in sentences. */
+const SHORT_PARAGRAPH_MAX = 2;
+/** Upper bound (inclusive) for the "medium" paragraph bucket, in sentences. */
+const MEDIUM_PARAGRAPH_MAX = 5;
 
 /**
  * Auxiliary verbs that appear before a past participle in passive constructions.
@@ -286,6 +292,9 @@ export function analyzeSentenceStructure(
       paragraphCount: 0,
       fragmentCount: 0,
       totalSentences: 0,
+      paragraphLengths: [],
+      paragraphLengthDistribution: { short: 0, medium: 0, long: 0 },
+      singleSentenceParagraphCount: 0,
     };
   }
 
@@ -307,12 +316,15 @@ export function analyzeSentenceStructure(
     ? Math.round((passiveCount / nonFragments) * 100) / 100
     : 0;
 
-  // Paragraph opener analysis
+  // Paragraph-level analysis: openers, lengths, and length distribution.
   const paragraphs = splitParagraphs(proseText);
   const openerCounts: Partial<Record<OpenerPattern, number>> = {};
+  const paragraphLengths: number[] = [];
+  const distribution = { short: 0, medium: 0, long: 0 };
+  let singleSentenceParagraphCount = 0;
 
   for (const para of paragraphs) {
-    // The first sentence of each paragraph determines the opener pattern
+    // The first sentence of each paragraph determines the opener pattern.
     const firstSentenceEnd = para.search(/[.!?]/);
     const firstSentence = firstSentenceEnd >= 0
       ? para.slice(0, firstSentenceEnd + 1)
@@ -320,6 +332,17 @@ export function analyzeSentenceStructure(
 
     const pattern = classifyOpener(firstSentence);
     openerCounts[pattern] = (openerCounts[pattern] ?? 0) + 1;
+
+    const paraSentenceCount = splitProse(para).length;
+    paragraphLengths.push(paraSentenceCount);
+    if (paraSentenceCount === 1) singleSentenceParagraphCount++;
+    if (paraSentenceCount <= SHORT_PARAGRAPH_MAX) {
+      distribution.short++;
+    } else if (paraSentenceCount <= MEDIUM_PARAGRAPH_MAX) {
+      distribution.medium++;
+    } else {
+      distribution.long++;
+    }
   }
 
   const paragraphOpeners = Object.entries(openerCounts)
@@ -334,5 +357,8 @@ export function analyzeSentenceStructure(
     paragraphCount: paragraphs.length,
     fragmentCount,
     totalSentences: sentences.length,
+    paragraphLengths,
+    paragraphLengthDistribution: distribution,
+    singleSentenceParagraphCount,
   };
 }

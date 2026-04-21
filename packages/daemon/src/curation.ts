@@ -23,6 +23,9 @@ const OPPOSING_SIGNALS: Array<[RegExp, RegExp]> = [
   [/\bavoids?\b/i, /\brelies on\b|uses? heavily\b/i],
   [/\bactive\b/i, /\bpassive\b/i],
   [/\bdeclarative\b/i, /\bcompound\b/i],
+  [/\bshort\s+paragraphs?\b/i, /\blong\s+paragraphs?\b/i],
+  [/\buniform\b/i, /\bvaried\b/i],
+  [/\btransitions?\b/i, /\bjuxtaposition\b|\babrupt\b/i],
 ];
 
 /**

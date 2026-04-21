@@ -31,6 +31,11 @@ describe("computeEntryMetrics", () => {
     expect(typeof metrics.sentenceStructure.fragmentCount).toBe("number");
     expect(typeof metrics.sentenceStructure.paragraphCount).toBe("number");
     expect(Array.isArray(metrics.sentenceStructure.paragraphOpeners)).toBe(true);
+    expect(Array.isArray(metrics.sentenceStructure.paragraphLengths)).toBe(true);
+    expect(typeof metrics.sentenceStructure.paragraphLengthDistribution.short).toBe("number");
+    expect(typeof metrics.sentenceStructure.paragraphLengthDistribution.medium).toBe("number");
+    expect(typeof metrics.sentenceStructure.paragraphLengthDistribution.long).toBe("number");
+    expect(typeof metrics.sentenceStructure.singleSentenceParagraphCount).toBe("number");
   });
 
   test("output is JSON-serializable and round-trips cleanly", () => {

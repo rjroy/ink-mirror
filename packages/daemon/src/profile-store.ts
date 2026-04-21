@@ -46,6 +46,7 @@ const DIMENSION_LABELS: Record<string, string> = {
   "sentence-rhythm": "Sentence Rhythm",
   "word-level-habits": "Word-Level Habits",
   "sentence-structure": "Sentence Structure",
+  "paragraph-structure": "Paragraph Structure",
 };
 
 /**

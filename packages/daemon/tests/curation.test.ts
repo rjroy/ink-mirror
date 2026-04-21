@@ -203,10 +203,91 @@ describe("contradiction detection", () => {
     expect(detectContradiction(a, b)).toBe(true);
   });
 
+  test("detects opposing paragraph-structure patterns (short vs long paragraphs)", () => {
+    const a = makeObs({
+      id: "a",
+      dimension: "paragraph-structure",
+      pattern: "Uses short paragraphs throughout",
+    });
+    const b = makeObs({
+      id: "b",
+      dimension: "paragraph-structure",
+      pattern: "Uses long paragraphs throughout",
+    });
+    expect(detectContradiction(a, b)).toBe(true);
+  });
+
+  test("detects opposing paragraph-structure patterns (uniform vs varied)", () => {
+    const a = makeObs({
+      id: "a",
+      dimension: "paragraph-structure",
+      pattern: "Favors uniform paragraph lengths across the entry",
+    });
+    const b = makeObs({
+      id: "b",
+      dimension: "paragraph-structure",
+      pattern: "Paragraph lengths are varied across the entry",
+    });
+    expect(detectContradiction(a, b)).toBe(true);
+  });
+
+  test("detects opposing paragraph-structure patterns (transitions vs juxtaposition)", () => {
+    const a = makeObs({
+      id: "a",
+      dimension: "paragraph-structure",
+      pattern: "Connects paragraphs with explicit transitions",
+    });
+    const b = makeObs({
+      id: "b",
+      dimension: "paragraph-structure",
+      pattern: "Relies on juxtaposition between paragraphs",
+    });
+    expect(detectContradiction(a, b)).toBe(true);
+  });
+
+  test("does not flag paragraph-structure pattern against a sentence-rhythm pattern", () => {
+    const a = makeObs({
+      id: "a",
+      dimension: "paragraph-structure",
+      pattern: "Uses short paragraphs throughout",
+    });
+    const b = makeObs({
+      id: "b",
+      dimension: "sentence-rhythm",
+      pattern: "Uses long sentences throughout",
+    });
+    expect(detectContradiction(a, b)).toBe(false);
+  });
+
   test("detects rare vs frequent", () => {
     const a = makeObs({ id: "a", dimension: "word-level-habits", pattern: "Rarely uses intensifiers" });
     const b = makeObs({ id: "b", dimension: "word-level-habits", pattern: "Frequently uses intensifiers" });
     expect(detectContradiction(a, b)).toBe(true);
+  });
+
+  test("paragraph-structure contradiction surfaces in curation session", async () => {
+    const obs = [
+      makeObs({
+        id: "obs-new",
+        status: "pending",
+        dimension: "paragraph-structure",
+        pattern: "Uses short paragraphs throughout",
+        entryId: "entry-2026-03-27-001",
+      }),
+      makeObs({
+        id: "obs-confirmed",
+        status: "intentional",
+        dimension: "paragraph-structure",
+        pattern: "Uses long paragraphs throughout",
+        entryId: "entry-2026-03-27-002",
+      }),
+    ];
+
+    const session = await assembleCurationSession(obs, getEntryText);
+    expect(session.contradictions).toHaveLength(1);
+    expect(session.contradictions[0].newObservation.id).toBe("obs-new");
+    expect(session.contradictions[0].confirmedObservation.id).toBe("obs-confirmed");
+    expect(session.contradictions[0].dimension).toBe("paragraph-structure");
   });
 
   test("contradiction surfaces in curation session", async () => {

@@ -135,6 +135,33 @@ describe("profileToMarkdown / profileFromMarkdown", () => {
     expect(md).toContain("## Word-Level Habits");
   });
 
+  test("renders paragraph-structure rule under 'Paragraph Structure' heading", () => {
+    const profile: Profile = {
+      version: 1,
+      updatedAt: FIXED_TIME,
+      rules: [
+        {
+          id: "rule-paragraph-structure-001",
+          pattern: "Alternates short and long paragraphs across the entry",
+          dimension: "paragraph-structure",
+          sourceCount: 1,
+          sourceSummary: "Confirmed across 1 entry",
+          createdAt: FIXED_TIME,
+          updatedAt: FIXED_TIME,
+        },
+      ],
+    };
+    const md = profileToMarkdown(profile);
+    expect(md).toContain("## Paragraph Structure");
+    // No raw-key fallback
+    expect(md).not.toContain("## paragraph-structure");
+
+    const parsed = profileFromMarkdown(md);
+    expect(parsed).toBeDefined();
+    expect(parsed!.rules).toHaveLength(1);
+    expect(parsed!.rules[0].dimension).toBe("paragraph-structure");
+  });
+
   test("includes rule patterns and source summaries", () => {
     const md = profileToMarkdown(sampleProfile);
     expect(md).toContain("**Uses staccato rhythm for emphasis at paragraph endings**");

@@ -119,7 +119,7 @@ You observe. You cite evidence. You name patterns.
 2. Each observation must pass the curation test: the writer can meaningfully answer "is this intentional?" If not, the observation is at the wrong grain.
 3. Every observation must cite specific text from the entry as evidence. Copy the text exactly as it appears in the entry, character for character. Even minor changes (adding words, trimming punctuation, paraphrasing) will cause the observation to be rejected by validation. A count is supporting data; the cited text is the observation.
 4. Name a specific pattern, not a broad category. "Uses three consecutive short sentences for emphasis at paragraph endings" not "varies sentence length."
-5. Categorize each observation by dimension: "sentence-rhythm", "word-level-habits", or "sentence-structure".
+5. Categorize each observation by dimension: "sentence-rhythm", "word-level-habits", "sentence-structure", or "paragraph-structure".
 6. All comparisons must be within the entry itself or against the writer's own style profile. NEVER compare to external standards.
 
 ## Dimensions
@@ -128,7 +128,11 @@ You observe. You cite evidence. You name patterns.
 
 **word-level-habits**: Repeated words or phrases, hedging language ("just", "actually", "probably", "I think"), intensifiers, filler patterns.
 
-**sentence-structure**: Active vs. passive voice patterns, paragraph opener tendencies (e.g., most paragraphs start with "I"), sentence fragments used for effect.
+**sentence-structure**: Active vs. passive voice patterns, paragraph opener tendencies (e.g., most paragraphs start with "I"), sentence fragments used for effect. The unit of observation is the sentence, even when the sentence sits at a paragraph boundary.
+
+**paragraph-structure**: Paragraph-level patterns. Paragraph-length distribution (uniform blocks vs. mixed lengths), opening-vs-closing asymmetry, whether paragraphs lead with a topic sentence or arrive at the topic after detail, transition-vs-juxtaposition between paragraphs, and single-sentence paragraphs used for emphasis. The unit of observation is the paragraph — its shape, position, role, and relationship to neighbors.
+
+**Not this (boundary between sentence-structure and paragraph-structure)**: If the unit is a sentence, the observation belongs in sentence-structure. Paragraph-opener word classes (e.g., "most paragraphs start with 'I'") stay in sentence-structure because the unit is the opening sentence. Paragraph-opener topic-sentence behavior (does the first sentence announce the paragraph's subject?) goes in paragraph-structure because the unit is the paragraph's shape. Do not manufacture a paragraph-structure observation on a 1-2 paragraph entry to satisfy coverage; the entry must support the pattern.
 
 ## Context You Receive
 
@@ -159,6 +163,11 @@ Respond with valid JSON only. No markdown fencing, no explanation outside the JS
       "pattern": "Three consecutive sentences open with 'I', creating a first-person cascade",
       "evidence": "I stopped. I turned. I left.",
       "dimension": "sentence-structure"
+    },
+    {
+      "pattern": "Alternates short and long paragraphs, with a single-sentence paragraph isolating the turn",
+      "evidence": "I stopped. I turned. I left.",
+      "dimension": "paragraph-structure"
     }
   ]
 }`;
@@ -251,6 +260,13 @@ function formatMetrics(metrics: EntryMetrics): string {
   if (ss.paragraphOpeners.length > 0) {
     lines.push("- Paragraph opener patterns: " + ss.paragraphOpeners.map((o) => `"${o.pattern}" (${o.count}x)`).join(", "));
   }
+
+  // Paragraph-structure summary (companion to sentence structure, different dimension)
+  lines.push("\n### Paragraph Structure");
+  lines.push(`- Paragraph sentence counts: [${ss.paragraphLengths.join(", ")}]`);
+  const d = ss.paragraphLengthDistribution;
+  lines.push(`- Length distribution: short (1-2 sentences): ${d.short}, medium (3-5): ${d.medium}, long (6+): ${d.long}`);
+  lines.push(`- Single-sentence paragraphs: ${ss.singleSentenceParagraphCount}`);
 
   return lines.join("\n");
 }
