@@ -1,7 +1,7 @@
 ---
 title: "Commission: Review paragraph-structure implementation"
 date: 2026-04-21
-status: dispatched
+status: completed
 tags: [commission]
 worker: Thorne
 workerDisplayTitle: "Guild Warden"
@@ -29,6 +29,37 @@ activity_timeline:
     reason: "Dispatched to worker"
     from: "pending"
     to: "dispatched"
-current_progress: ""
+  - timestamp: 2026-04-21T16:11:30.229Z
+    event: status_in_progress
+    reason: "Execution started"
+    from: "dispatched"
+    to: "in_progress"
+  - timestamp: 2026-04-21T16:12:52.201Z
+    event: progress_report
+    reason: "Reviewed spec, diff, ran tests/typecheck/lint. All pass. Building findings."
+  - timestamp: 2026-04-21T16:14:53.610Z
+    event: result_submitted
+    reason: "Implementation conforms to spec. All tests, typecheck, and lint pass. Three nit-level findings, no blockers. Recommend merge."
+  - timestamp: 2026-04-21T16:15:00.003Z
+    event: status_completed
+    reason: "Execution completed"
+    from: "in_progress"
+    to: "completed"
+current_progress: "Reviewed spec, diff, ran tests/typecheck/lint. All pass. Building findings."
 projectName: ink-mirror
 ---
+Implementation conforms to spec. All tests, typecheck, and lint pass. Three nit-level findings, no blockers. Recommend merge.
+
+## Decisions
+
+**Does the implementation conform to all acceptance criteria in the spec?**
+Yes. All 11 acceptance criteria are satisfied by the code and tests. bun test (554 pass), bun run typecheck, and bun run lint all pass.
+*Reasoning: Verified each criterion against the diff: schema enum extended, analyzer returns the three new fields with correct bucketing, prompt contains dimension name, definition, not-this boundary, and worked example, validator accepts/rejects paragraph-structure observations consistently, all three label maps updated, contradiction detection works on the new dimension, cap unchanged at 3.*
+
+**Did any out-of-scope changes leak in?**
+No. The diff is confined to the seven files named in Touch Points plus their tests. No label-map consolidation, no cap change, no vocabulary-register or tonal-markers content, no vision re-review. Cap stays at max(3) in observations.ts:54.
+*Reasoning: git diff master --stat on packages/ shows exactly: cli/profile.ts (+2), daemon/curation.ts (+3), daemon/metrics/sentence-structure.ts (+30), daemon/observer.ts (+20), daemon/profile-store.ts (+1), shared/metrics.ts (+10), shared/observations.ts (+1), plus test files. No other source edits.*
+
+**Is the worked example for paragraph-structure in the system prompt a good teaching example?**
+Nit-level concern. The example at observer.ts:166-170 uses evidence "I stopped. I turned. I left." — three one-sentence sentences concatenated, not three one-sentence paragraphs. The pattern text claims "Alternates short and long paragraphs, with a single-sentence paragraph isolating the turn," but the cited evidence does not visibly show paragraph structure (no blank lines, same evidence already used for sentence-rhythm example).
+*Reasoning: Observer open question #1 explicitly warns: "If during review the example reads as evaluative or unsupported, revise toward descriptive." The current example is descriptive enough but the evidence/pattern pairing is weak — the evidence can't demonstrate paragraph-level shape in a single quoted line. This is the exact kind of confusion the "not this" boundary is meant to prevent.*
