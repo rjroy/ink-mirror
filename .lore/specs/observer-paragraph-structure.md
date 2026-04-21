@@ -1,7 +1,7 @@
 ---
 title: "Observer Dimension: paragraph-structure"
 date: 2026-04-21
-status: draft
+status: approved
 tags: [spec, observer, observation-dimension, paragraph-structure]
 req-prefix: OPS
 related:
