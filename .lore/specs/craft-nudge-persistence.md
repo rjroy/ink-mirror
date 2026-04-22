@@ -1,7 +1,7 @@
 ---
 title: "Craft Nudge Persistence"
 date: 2026-04-21
-status: draft
+status: approved
 tags: [spec, craft-nudge, persistence, caching]
 req-prefix: CNP
 related:
