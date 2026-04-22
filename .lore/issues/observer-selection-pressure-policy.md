@@ -1,7 +1,7 @@
 ---
 title: "Decide selection-pressure policy for Observer dimension set >= 5"
 date: 2026-04-21
-status: open
+status: parked
 priority: low-until-triggered
 type: design-decision
 origin: .lore/brainstorm/observer-dimension-extension-20260420.md
