@@ -1,7 +1,7 @@
 ---
 title: "Plan: Craft Nudge Persistence"
 date: 2026-04-22
-status: proposed
+status: approved
 tags: [plan, craft-nudge, persistence, caching]
 modules: [shared, daemon, cli, web]
 related:
