@@ -34,3 +34,7 @@ Workers can also add entries to this file during their sessions.
 
 **Verdict: APPROVED.** All checklist items from the plan are satisfied. No must-fix findings. Three nice-to-have observations noted belo...
 - 16:54 commission-Thorne-20260422-165014 completed
+- 16:58 commission-Dalton-20260422-165021 result: Phase 2A complete: NudgeStore built and verified.
+
+**Thorne 1B review handling**: No must-fix findings. Two nice-to-haves (discriminated union enforcing REQ-CNP-14 at schema level; sha256: regex on co...
+- 16:58 commission-Dalton-20260422-165021 completed
