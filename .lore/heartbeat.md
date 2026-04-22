@@ -26,8 +26,3 @@ Workers can also add entries to this file during their sessions.
 ## Context Notes
 
 ## Recent Activity
-- 16:32 commission-Octavia-20260422-162828 result: Spec and plan corrected. The mount-fetch thread is removed; the button-click flow is the only flow, with cache vs. fresh as a daemon-side optimization.
-
-**Spec changes (`.lore/specs/craft-nudge-persis...
-
-- 16:32 commission-Octavia-20260422-162828 completed
