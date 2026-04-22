@@ -1,7 +1,7 @@
 ---
 title: "No golden corpus for observation quality — name the gap, outline minimal infra"
 date: 2026-04-21
-status: open
+status: parked
 priority: low
 type: research
 origin: .lore/brainstorm/observer-dimension-extension-20260420.md
