@@ -1,7 +1,7 @@
 ---
 title: "Plan: Observer Dimension Label Map Consolidation"
 date: 2026-04-21
-status: ready
+status: executed
 issue: .lore/issues/observer-label-map-consolidation.md
 tags: [plan, refactor, observer, shared-package, label-map]
 modules: [shared, daemon, cli]
