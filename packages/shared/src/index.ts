@@ -68,12 +68,16 @@ export {
   CraftNudgeSchema,
   NudgeOutputSchema,
   NudgeRequestSchema,
+  NudgeMetricsSchema,
   NudgeResponseSchema,
+  SavedNudgeSchema,
   type CraftPrinciple,
   type CraftNudge,
   type NudgeOutput,
   type NudgeRequest,
+  type NudgeMetrics,
   type NudgeResponse,
+  type SavedNudge,
 } from "./nudge.js";
 
 export {
