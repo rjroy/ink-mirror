@@ -79,7 +79,7 @@ No history. The fresh nudge overwrites the previous saved nudge. Single-user too
 
 **CLI.** The CLI discovers operations from the help tree. Adding a `refresh` parameter of `type: "boolean"` to the operation definition makes it available as a positional arg on `nudge analyze`. The executor maps positional args to parameter order, so the call shape is `ink-mirror nudge analyze <entryId> "" "" true` to force a refresh. This is awkward. The existing executor does not support named flags. Rather than expand the executor's contract for one operation, the spec lands on: CLI users who want refresh invoke it via a direct daemon call (`curl --unix-socket ... -X POST /nudge -d '{"entryId":"...","refresh":true}'`) until a broader CLI flag system exists. Exit point: named-flag support in the CLI executor.
 
-**Web.** When a saved nudge is shown, the `Nudge` button is replaced by two controls: a passive label "Saved <timestamp>, <stale|current>" and a "Regenerate" button. Clicking "Regenerate" posts with `refresh: true`. When no saved nudge exists, the current single "Nudge" button behavior is preserved. The regenerate affordance also appears when the nudge is stale (the common prompt to update).
+**Web.** The user always initiates with the "Nudge" button — there is no auto-fetch. The first click POSTs and the daemon decides between cache and fresh internally. Once a result is rendered (whether `source: "fresh"` or `source: "cache"`), the "Nudge" button is replaced by a "Saved <timestamp>" label (with " — entry edited since" appended when `stale: true`) and a "Regenerate" button. Clicking "Regenerate" POSTs with `refresh: true`. Cache vs. fresh is a daemon-side optimization, not a UI concept.
 
 ### Response Shape (Open Question 4)
 
@@ -157,8 +157,12 @@ This is safe because:
 
 - REQ-CNP-19: The operation definition for `nudge.analyze` gains a `refresh` parameter of `type: "boolean"`. CLI discovery picks this up automatically. A dedicated CLI flag UX is out of scope (see Exit Points).
 - REQ-CNP-20: `web/lib/api.ts` `requestNudge` accepts an optional `refresh?: boolean` and passes it through.
-- REQ-CNP-21: `web/components/entry-nudge.tsx` renders different states: no saved nudge (show "Nudge" button, today's behavior), saved and current (show the saved nudges with a `Saved <timestamp>` label and a "Regenerate" button), saved and stale (show the saved nudges with a `Saved <timestamp> — entry edited since` label and a "Regenerate" button). Regenerate posts with `refresh: true`.
-- REQ-CNP-22: The client fetches the saved nudge on mount for the entry view, so the stored result renders without a user click. This is a pure GET-equivalent (POST with `refresh: false`) — no LLM call, no token cost. The existing "Nudge" interaction is preserved for the no-saved-nudge state.
+- REQ-CNP-21: `web/components/entry-nudge.tsx` is driven by a single user-initiated click; there is no mount-time fetch. Render states:
+  - Before any click: show the "Nudge" button only.
+  - After a click that returned `source: "fresh"`: render nudges, then replace the "Nudge" button with a `Saved <timestamp>` label and a "Regenerate" button.
+  - After a click that returned `source: "cache"` with `stale: false`: render nudges with a `Saved <timestamp>` label and a "Regenerate" button.
+  - After a click that returned `source: "cache"` with `stale: true`: render nudges with a `Saved <timestamp> — entry edited since` label and a "Regenerate" button.
+  - Clicking "Regenerate" POSTs with `refresh: true` and re-renders from the new response.
 
 ## API Contract
 
@@ -263,16 +267,18 @@ Unit tests with mocked dependencies, following the project's testing conventions
 
 **Web component (`entry-nudge.test.tsx` additions):**
 
-- Mount with no saved nudge: renders "Nudge" button, no auto-fetch network call to LLM (but auto-fetch with `refresh: false` may return cache-miss empty; component decides by `source`).
-- Mount with saved nudge, `stale: false`: renders nudges, "Saved <time>" label, "Regenerate" button.
-- Mount with saved nudge, `stale: true`: renders nudges, "Saved <time> — entry edited since" label, "Regenerate" button.
-- Click "Regenerate": posts with `refresh: true`, re-renders with `source: "fresh"`.
+- Initial render (no clicks): "Nudge" button is present, no nudges, no Saved label, no Regenerate button.
+- First click on an entry with no saved nudge: POSTs without `refresh`, renders fresh result, then shows "Saved <time>" label and "Regenerate" button.
+- First click on an entry with an existing saved nudge: POSTs without `refresh`, daemon returns `source: "cache"`, renders nudges with "Saved <time>" label and "Regenerate" button.
+- First click on an entry with a stale saved nudge: POSTs without `refresh`, daemon returns `source: "cache"` + `stale: true`, renders nudges with "Saved <time> — entry edited since" label and "Regenerate" button.
+- Click "Regenerate": POSTs with `refresh: true`, renders fresh result, Saved label updates to the new `generatedAt`.
+- Component unmount during in-flight POST does not call `setState`.
 
 **Integration (manual, per project conventions):**
 
 - Create an entry, press Nudge, observe `{DATA_DIR}/nudges/{id}.yaml` appears with the expected fields.
-- Navigate away, return to the entry, confirm saved nudges render without a network call to the LLM.
-- Edit the entry's body on disk, return to the web view, confirm `stale: true` rendering.
+- Navigate away, return to the entry, press Nudge again, confirm the daemon returns `source: "cache"` (no LLM call in logs).
+- Edit the entry's body on disk, return to the web view, press Nudge, confirm `source: "cache"` + `stale: true` rendering.
 - Click Regenerate, confirm the file is overwritten with new `contentHash` and `generatedAt`.
 
 ## Success Criteria
@@ -282,7 +288,7 @@ Unit tests with mocked dependencies, following the project's testing conventions
 - [ ] When the entry body changes, the saved nudge is returned with `stale: true`. LLM is not called.
 - [ ] A request with `refresh: true` overwrites the saved nudge and returns `source: "fresh"`.
 - [ ] Direct-text requests (`text` without `entryId`) never read or write the nudge store.
-- [ ] The web UI renders saved nudges on entry view load without a user click and exposes a Regenerate control.
+- [ ] The web UI serves saved nudges on click without calling the LLM; a "Regenerate" control is present after any result is rendered.
 - [ ] The nudge operation remains on-demand (no automatic trigger on entry creation, no background generation).
 - [ ] The response includes `source`, `generatedAt`, `contentHash` (when entry-scoped), and `stale` (only when cache-served and drifted).
 - [ ] Malformed LLM output is not persisted; the next call retries.

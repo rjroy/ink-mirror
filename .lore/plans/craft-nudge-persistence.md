@@ -22,7 +22,7 @@ Requirements addressed, per phase:
 - **Phase 2 (NudgeStore)**: REQ-CNP-1, REQ-CNP-2, REQ-CNP-15, REQ-CNP-16
 - **Phase 3 (route integration)**: REQ-CNP-3 through REQ-CNP-11, REQ-CNP-17, REQ-CNP-18
 - **Phase 4 (CLI surface)**: REQ-CNP-19
-- **Phase 5 (web surface)**: REQ-CNP-20, REQ-CNP-21, REQ-CNP-22
+- **Phase 5 (web surface)**: REQ-CNP-20, REQ-CNP-21
 
 ## Dependency Order
 
@@ -291,50 +291,28 @@ Independent of Phase 4. Can run in parallel with Phase 4A/4B once Phase 3 closes
 - **Files**:
   - `packages/web/lib/api.ts` (edit)
   - `packages/web/components/entry-nudge.tsx` (edit)
-  - `packages/web/components/entry-nudge.module.css` (edit — new styles for Saved/Stale label, Regenerate button)
+  - `packages/web/components/entry-nudge.module.css` (edit — new styles for Saved label, Regenerate button)
   - `packages/web/tests/entry-nudge.test.tsx` (edit or create)
 - **Scope**:
   1. **`requestNudge` signature** (`api.ts:91-100`):
      - Extend params with `refresh?: boolean`.
      - Pass it through to the daemon in the JSON body. No other changes.
   2. **`EntryNudge` component** (`entry-nudge.tsx`):
-     - On mount, call `requestNudge({ entryId })` (no `refresh`) once. Use `useEffect` with an abort-on-unmount guard so re-renders or navigation during fetch do not leak state updates.
-     - Consume the new response fields: store `source`, `stale`, `generatedAt` alongside `nudges`.
-     - Render state machine:
-       - **Loading (initial)**: brief "Loading…" state while the on-mount POST is in flight. (The POST is cheap — cache hit — but not instant.)
-       - **No saved nudge** (`source === "fresh"` and the mount was a first-fresh run): today's behavior preserved. Show the "Nudge" button. Wait — **correction**: a mount-time request with no saved nudge would trigger a fresh LLM run, which violates the on-demand contract (REQ-CN-1 plus REQ-CNP-22's "pure GET-equivalent" note).
-
-         **Resolution**: The mount-time POST must not trigger an LLM run when no cache exists. The daemon route as specified *will* run the LLM on a cache miss. So the web client cannot use the same endpoint for both "fetch saved" and "generate fresh" semantics.
-
-         **Interpretation of REQ-CNP-22**: The requirement assumes "cache-miss returns empty; component decides by `source`." The daemon route as designed in Phase 3 does not have a cache-miss-without-LLM mode. The spec's test plan line "no auto-fetch network call to LLM (but auto-fetch with `refresh: false` may return cache-miss empty; component decides by `source`)" is inconsistent with the daemon behavior spec'd in REQ-CNP-6 (no saved → run LLM → save → return fresh).
-
-         **Decision for this plan**: Treat REQ-CNP-22 literally — mount does a POST with `refresh: false`. On first-ever mount for an entry, the daemon will generate and persist. This diverges from REQ-CN-1's "on-demand" contract for the very first view. Two options:
-
-         - **Option A (spec literal)**: Mount-fetch runs the LLM on first view. Cost: one generation per entry that was not user-triggered. Still only once per entry.
-         - **Option B (conservative)**: Introduce a GET `/nudge/{entryId}` endpoint that reads the store only and returns 404 on miss. Component calls GET on mount; shows "Nudge" button on 404; POST-with-entry triggers generation. This preserves on-demand.
-
-         **This plan chooses Option B** and flags the divergence for curator review before Phase 5 begins. Rationale: REQ-CN-1 is load-bearing across the spec family ("never runs automatically"); REQ-CNP-22 is a UX convenience. Preserving the former wins. The cost is one daemon-side addition: a read-only GET. This is a small expansion; if the curator prefers Option A, the web component shape below still applies — only the mount fetch changes.
-
-         **If Option B is approved**, add to Phase 3 scope (before it ships):
-         - `GET /nudge/{entryId}` route that validates entry ID, calls `nudgeStore.get`, and returns either `{ nudges, metrics, source: "cache", stale, generatedAt, contentHash }` or 404. Stale detection still requires `readEntry`, so the GET also computes the current body hash and compares. Test cases parallel to the cache-hit/stale paths in 3A.
-
-         See **Open Question** at the bottom of this plan.
-
-         Assuming Option B for the remainder of Phase 5:
-     - Mount: call a new `getSavedNudge(entryId)` in `api.ts` that GETs the new endpoint. 404 → no saved state. 200 → render saved.
-     - **No saved nudge** state: show "Nudge" button (today's UX). Click → POST `requestNudge({ entryId })` → render result with `source: "fresh"`.
-     - **Saved, current** (`source: "cache"`, no `stale`): render nudges + "Saved {relativeTime(generatedAt)}" label + "Regenerate" button. Click Regenerate → POST `requestNudge({ entryId, refresh: true })`.
-     - **Saved, stale** (`source: "cache"`, `stale: true`): render nudges + "Saved {relativeTime(generatedAt)} — entry edited since" label + "Regenerate" button. Same click behavior.
-     - **Fresh after regenerate** (`source: "fresh"` after a regenerate click): treat as "saved, current" with `generatedAt` from the response. The next mount will read from store.
+     - There is one interaction: a button click. No `useEffect` mount fetch, no `getSavedNudge` helper, no GET endpoint.
+     - State is the last response received: `{ nudges, source, stale, generatedAt }` (plus `error` if present).
+     - Before any click: render the "Nudge" button only.
+     - On click: POST `requestNudge({ entryId })` (or `{ entryId, refresh: true }` for Regenerate). Use an abort-on-unmount guard so a navigation during the in-flight POST does not call `setState` on an unmounted component.
+     - After a click that produced a result (any `source`): render nudges + "Saved {relativeTime(generatedAt)}" label + "Regenerate" button. Append " — entry edited since" to the label when `stale: true`.
+     - Cache vs. fresh is invisible to the user — the UI shape is the same; only the label timestamp differs.
      - Preserve existing error handling for `response.error`.
-  3. **Styling**: Add classes for the label and regenerate button. Match existing `nudgeBtn` styling for the regenerate button.
+  3. **Styling**: Add classes for the Saved label and Regenerate button. Match existing `nudgeBtn` styling for the Regenerate button.
 - **Tests** (`entry-nudge.test.tsx`), using React Testing Library against a mocked `api` module (or via test-only prop injection — match the project's web test conventions):
-  - Mount with no saved nudge (GET 404): renders "Nudge" button, no nudges list.
-  - Mount with saved nudge, `stale: false`: renders nudges + "Saved …" label + "Regenerate" button; no "Nudge" button.
-  - Mount with saved nudge, `stale: true`: renders nudges + "Saved … — entry edited since" label + "Regenerate" button.
-  - Click "Nudge" (no-saved state): POSTs without `refresh`; renders fresh result.
-  - Click "Regenerate" (saved state): POSTs with `refresh: true`; renders updated result with the new `generatedAt`.
-  - Component unmount during in-flight fetch does not call `setState`.
+  - Initial render: "Nudge" button is present, no nudges, no Saved label, no Regenerate button. No network call has been made.
+  - First click on an entry with no saved nudge: POSTs without `refresh`, daemon returns `source: "fresh"`, component renders nudges + "Saved …" label + "Regenerate" button.
+  - First click on an entry with an existing saved nudge: POSTs without `refresh`, daemon returns `source: "cache"` + `stale: false`, component renders nudges + "Saved …" label + "Regenerate" button.
+  - First click on an entry with a stale saved nudge: POSTs without `refresh`, daemon returns `source: "cache"` + `stale: true`, component renders nudges + "Saved … — entry edited since" label + "Regenerate" button.
+  - Click "Regenerate": POSTs with `refresh: true`, renders the updated result, Saved label updates to the new `generatedAt`.
+  - Component unmount during in-flight POST does not call `setState`.
 - **Verification**:
   ```bash
   bun test packages/web
@@ -348,12 +326,13 @@ Independent of Phase 4. Can run in parallel with Phase 4A/4B once Phase 3 closes
 
 - **Worker**: Thorne
 - **Dependencies**: 5A
-- **Scope**: Review `entry-nudge.tsx` and `api.ts` against REQ-CNP-20, REQ-CNP-21, REQ-CNP-22 and the Test Plan's web component section. Confirm:
-  - Mount path does not trigger an LLM run (under Option B).
-  - Three render states (no-saved, saved-current, saved-stale) all render correctly.
-  - Regenerate click posts `refresh: true`.
-  - Unmount during fetch does not set state on an unmounted component.
-  - The client/daemon divergence watch — per Octavia's operational notes, client rendering paths are the most common bug class. Confirm every response field the daemon can emit is handled.
+- **Scope**: Review `entry-nudge.tsx` and `api.ts` against REQ-CNP-20, REQ-CNP-21 and the Test Plan's web component section. Confirm:
+  - No mount-time fetch and no GET helper. The component does nothing until the user clicks.
+  - Pre-click render shows only the "Nudge" button.
+  - Post-click render (for any `source`) shows nudges + Saved label + Regenerate button; the stale suffix appears only when `stale: true`.
+  - Regenerate click POSTs `refresh: true`.
+  - Unmount during fetch does not call `setState` on an unmounted component.
+  - Client/daemon divergence watch — per Octavia's operational notes, client rendering paths are the most common bug class. Confirm every response field the daemon can emit is handled.
 - **No bash execution needed**.
 
 ### Commission 5C — Fix: web client (conditional)
@@ -381,17 +360,7 @@ Drawn from the spec's Success Criteria. All must hold:
 - [ ] Body change yields `source: "cache"` + `stale: true`; no LLM call.
 - [ ] `refresh: true` overwrites the saved nudge and returns `source: "fresh"`.
 - [ ] Direct-text requests never touch the nudge store (even when `save` would throw).
-- [ ] Web UI renders saved nudges on entry view without a user click AND without triggering the LLM on a cache miss.
+- [ ] Web UI serves saved nudges on click without calling the LLM; a "Regenerate" control is present after any result is rendered.
 - [ ] Response shape includes `source`, `generatedAt`, `contentHash` (entry-scoped only), `stale` (cache-served drift only).
 - [ ] Malformed LLM output is not persisted.
 - [ ] All `bun test`, `bun run typecheck`, `bun run lint` pass.
-
-## Open Question for Curator Before Dispatch
-
-**REQ-CNP-22 vs. REQ-CN-1 conflict**: The spec's web-mount fetch (REQ-CNP-22) plus REQ-CNP-6's "no saved → generate" creates an automatic LLM run on first entry view. That violates REQ-CN-1's on-demand contract.
-
-This plan's Option B resolution adds a read-only `GET /nudge/{entryId}` endpoint to Phase 3. That is a small scope expansion on the route phase but closes the conflict cleanly. The alternative (Option A — accept auto-generation on first view) is spec-literal but drops REQ-CN-1 for the first-view case.
-
-**Ask the user to confirm Option B before dispatching Phase 3.** If Option A is preferred, Phase 3 stays as-specced and Phase 5's mount-state machine collapses to two states (saved vs. not-yet-generated, where "not-yet-generated" triggers on click only and the mount POST is suppressed until click — which is a different regression of REQ-CNP-22).
-
-Recommended path: Option B. Cheaper behaviorally, cleaner contract.
