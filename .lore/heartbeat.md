@@ -32,3 +32,5 @@ Workers can also add entries to this file during their sessions.
 - `packages/shared/src/observations.ts`: added `export const DIMENSION_LABELS: Record<ObservationDimension, string>` after the...
 
 - 21:30 commission-Dalton-20260421-212827 completed
+- 21:32 commission-Thorne-20260421-212836 result: Refactor lands clean. All six required checks pass. No must-fix findings; one minor consistency nit and one style note for the reader's call.
+- 21:32 commission-Thorne-20260421-212836 completed
