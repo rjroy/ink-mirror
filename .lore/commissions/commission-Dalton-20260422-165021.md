@@ -1,7 +1,7 @@
 ---
 title: "Commission: Phase 2A: Build NudgeStore (after 1B fixes)"
 date: 2026-04-22
-status: blocked
+status: dispatched
 tags: [commission]
 worker: Dalton
 workerDisplayTitle: "Guild Artificer"
@@ -19,6 +19,16 @@ activity_timeline:
     reason: "Dependencies not satisfied"
     from: "pending"
     to: "blocked"
+  - timestamp: 2026-04-22T23:54:03.064Z
+    event: status_pending
+    reason: "Dependencies satisfied"
+    from: "blocked"
+    to: "pending"
+  - timestamp: 2026-04-22T23:54:03.067Z
+    event: status_dispatched
+    reason: "Dispatched to worker"
+    from: "pending"
+    to: "dispatched"
 current_progress: ""
 projectName: ink-mirror
 ---
