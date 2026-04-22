@@ -1,5 +1,4 @@
-import type { Profile, ProfileRule, ObservationDimension } from "@ink-mirror/shared";
-import { DIMENSION_LABELS } from "@ink-mirror/shared";
+import { type Profile, type ProfileRule, type ObservationDimension, DIMENSION_LABELS } from "@ink-mirror/shared";
 import { readFile, writeFile, mkdir } from "node:fs/promises";
 import { dirname } from "node:path";
 
@@ -86,7 +85,7 @@ export function profileToMarkdown(profile: Profile): string {
   }
 
   for (const [dimension, rules] of byDimension) {
-    const label = DIMENSION_LABELS[dimension] ?? dimension;
+    const label = DIMENSION_LABELS[dimension];
     lines.push(`## ${label}`);
     lines.push("");
     for (const rule of rules) {
@@ -341,7 +340,7 @@ export function createProfileStore(deps: ProfileStoreDeps): ProfileStore {
       }
 
       for (const [dimension, rules] of byDimension) {
-        const label = DIMENSION_LABELS[dimension] ?? dimension;
+        const label = DIMENSION_LABELS[dimension];
         lines.push(`### ${label}`);
         for (const rule of rules) {
           lines.push(`- ${rule.pattern} (${rule.sourceSummary.toLowerCase()})`);

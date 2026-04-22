@@ -1,8 +1,7 @@
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { writeFileSync, readFileSync, unlinkSync } from "node:fs";
-import type { ObservationDimension } from "@ink-mirror/shared";
-import { DIMENSION_LABELS } from "@ink-mirror/shared";
+import { type ObservationDimension, DIMENSION_LABELS } from "@ink-mirror/shared";
 import type { DaemonClient } from "./client.js";
 
 interface ProfileResponse {
