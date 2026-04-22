@@ -1,4 +1,5 @@
 import type { Profile, ProfileRule, ObservationDimension } from "@ink-mirror/shared";
+import { DIMENSION_LABELS } from "@ink-mirror/shared";
 import { readFile, writeFile, mkdir } from "node:fs/promises";
 import { dirname } from "node:path";
 
@@ -41,14 +42,6 @@ function emptyProfile(now: string): Profile {
   return { version: 1, updatedAt: now, rules: [] };
 }
 
-/** Shared dimension-to-label map used by both human markdown and LLM prompt rendering. */
-const DIMENSION_LABELS: Record<string, string> = {
-  "sentence-rhythm": "Sentence Rhythm",
-  "word-level-habits": "Word-Level Habits",
-  "sentence-structure": "Sentence Structure",
-  "paragraph-structure": "Paragraph Structure",
-};
-
 /**
  * Generates a rule ID from the dimension and a sequence number.
  */
@@ -80,7 +73,7 @@ export function profileToMarkdown(profile: Profile): string {
   ];
 
   // Group rules by dimension
-  const byDimension = new Map<string, ProfileRule[]>();
+  const byDimension = new Map<ObservationDimension, ProfileRule[]>();
   for (const rule of profile.rules) {
     const existing = byDimension.get(rule.dimension) ?? [];
     existing.push(rule);
@@ -340,7 +333,7 @@ export function createProfileStore(deps: ProfileStoreDeps): ProfileStore {
       // Format for LLM consumption: structured, no HTML comments
       const lines: string[] = [];
 
-      const byDimension = new Map<string, ProfileRule[]>();
+      const byDimension = new Map<ObservationDimension, ProfileRule[]>();
       for (const rule of profile.rules) {
         const existing = byDimension.get(rule.dimension) ?? [];
         existing.push(rule);

@@ -45,6 +45,7 @@ export {
   ObservationSchema,
   RawObservationSchema,
   ObserverOutputSchema,
+  DIMENSION_LABELS,
   VALID_TRANSITIONS,
   isValidTransition,
   ClassifyObservationRequestSchema,

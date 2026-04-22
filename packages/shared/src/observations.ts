@@ -11,6 +11,13 @@ export const ObservationDimensionSchema = z.enum([
 
 export type ObservationDimension = z.infer<typeof ObservationDimensionSchema>;
 
+export const DIMENSION_LABELS: Record<ObservationDimension, string> = {
+  "sentence-rhythm": "Sentence Rhythm",
+  "word-level-habits": "Word-Level Habits",
+  "sentence-structure": "Sentence Structure",
+  "paragraph-structure": "Paragraph Structure",
+};
+
 // --- Curation status ---
 
 export const CurationStatusSchema = z.enum([
