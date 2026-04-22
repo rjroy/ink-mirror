@@ -26,3 +26,8 @@ Workers can also add entries to this file during their sessions.
 ## Context Notes
 
 ## Recent Activity
+- 06:25 commission-Dalton-20260422-062428 result: Done. Applied both cleanups:
+
+1. **Dead fallbacks removed.** `packages/daemon/src/profile-store.ts:89` and `:344` now use `DIMENSION_LABELS[dimension]` directly (no `?? dimension`). Matches the CLI si...
+
+- 06:25 commission-Dalton-20260422-062428 completed
