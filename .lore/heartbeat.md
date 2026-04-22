@@ -26,3 +26,9 @@ Workers can also add entries to this file during their sessions.
 ## Context Notes
 
 ## Recent Activity
+- 21:30 commission-Dalton-20260421-212827 result: Done. DIMENSION_LABELS consolidated into @ink-mirror/shared.
+
+**Changes**
+- `packages/shared/src/observations.ts`: added `export const DIMENSION_LABELS: Record<ObservationDimension, string>` after the...
+
+- 21:30 commission-Dalton-20260421-212827 completed
