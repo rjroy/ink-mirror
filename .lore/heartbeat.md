@@ -38,3 +38,8 @@ Workers can also add entries to this file during their sessions.
 
 **Thorne 1B review handling**: No must-fix findings. Two nice-to-haves (discriminated union enforcing REQ-CNP-14 at schema level; sha256: regex on co...
 - 16:58 commission-Dalton-20260422-165021 completed
+- 17:02 commission-Thorne-20260422-165027 result: 
+# Phase 2B Review — NudgeStore
+
+**Verdict: APPROVED.** All 2B checklist items pass. REQ-CNP-1, REQ-CNP-2, REQ-CNP-15 are cleanly satisfied. REQ-CNP-16 has a deliberate plan-driven drift (`now?` omitt...
+- 17:02 commission-Thorne-20260422-165027 completed
