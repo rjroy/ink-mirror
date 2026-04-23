@@ -1,7 +1,7 @@
 ---
 title: "Commission: Phase 5A: Build web client nudge persistence UX"
 date: 2026-04-22
-status: pending
+status: dispatched
 tags: [commission]
 worker: Dalton
 workerDisplayTitle: "Guild Artificer"
@@ -24,6 +24,11 @@ activity_timeline:
     reason: "Dependencies satisfied"
     from: "blocked"
     to: "pending"
+  - timestamp: 2026-04-23T00:14:19.159Z
+    event: status_dispatched
+    reason: "Dispatched to worker"
+    from: "pending"
+    to: "dispatched"
 current_progress: ""
 projectName: ink-mirror
 ---
