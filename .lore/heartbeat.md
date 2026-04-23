@@ -26,3 +26,10 @@ Workers can also add entries to this file during their sessions.
 ## Context Notes
 
 ## Recent Activity
+- 18:17 commission-Dalton-20260422-181456 result: Both bugs fixed.
+
+**Finding 1 — executor type coercion** (`packages/cli/src/executor.ts`):
+- Added `coerceArg()` that coerces raw positional args to the parameter's declared type.
+- `boolean`: accepts...
+
+- 18:17 commission-Dalton-20260422-181456 completed
