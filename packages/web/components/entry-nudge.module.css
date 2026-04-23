@@ -24,3 +24,17 @@
   cursor: default;
   opacity: 0.5;
 }
+
+.savedRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 16px;
+  flex-wrap: wrap;
+}
+
+.savedLabel {
+  font-size: 12px;
+  color: var(--ink-muted);
+  letter-spacing: 0.02em;
+}

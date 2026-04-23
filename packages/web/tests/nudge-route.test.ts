@@ -30,7 +30,15 @@ describe("nudge API route", () => {
     expect(result.success).toBe(true);
   });
 
-  test("NudgeResponseSchema validates well-formed response", () => {
+  test("NudgeRequestSchema accepts refresh flag", () => {
+    const result = NudgeRequestSchema.safeParse({
+      entryId: "entry-1",
+      refresh: true,
+    });
+    expect(result.success).toBe(true);
+  });
+
+  test("NudgeResponseSchema validates well-formed fresh response", () => {
     const result = NudgeResponseSchema.safeParse({
       nudges: [
         {
@@ -46,11 +54,14 @@ describe("nudge API route", () => {
         hedgingWordCount: 2,
         rhythmVariance: 0.5,
       },
+      source: "fresh",
+      generatedAt: "2026-04-22T12:00:00.000Z",
+      contentHash: "sha256:abcdef",
     });
     expect(result.success).toBe(true);
   });
 
-  test("NudgeResponseSchema accepts empty nudges array", () => {
+  test("NudgeResponseSchema validates cache+stale response", () => {
     const result = NudgeResponseSchema.safeParse({
       nudges: [],
       metrics: {
@@ -59,11 +70,15 @@ describe("nudge API route", () => {
         hedgingWordCount: 0,
         rhythmVariance: 0.8,
       },
+      source: "cache",
+      stale: true,
+      generatedAt: "2026-04-22T12:00:00.000Z",
+      contentHash: "sha256:abcdef",
     });
     expect(result.success).toBe(true);
   });
 
-  test("NudgeResponseSchema accepts optional error field", () => {
+  test("NudgeResponseSchema accepts optional error field on fresh response", () => {
     const result = NudgeResponseSchema.safeParse({
       nudges: [],
       metrics: {
@@ -72,6 +87,8 @@ describe("nudge API route", () => {
         hedgingWordCount: 0,
         rhythmVariance: 0,
       },
+      source: "fresh",
+      generatedAt: "2026-04-22T12:00:00.000Z",
       error: "Text too short for meaningful analysis",
     });
     expect(result.success).toBe(true);
