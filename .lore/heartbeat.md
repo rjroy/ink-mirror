@@ -72,6 +72,11 @@ Workers can also add entries to this file during their sessions.
 **Changes:**
 - `packages/web/lib/api.ts`: `r...
 - 17:20 commission-Dalton-20260422-165117 completed
+- 17:21 commission-Thorne-20260422-165106 result: 
+# Phase 4B Review — CLI surface for `refresh`
+
+Scope: confirm `refresh` renders in help output, CLI passes it through positionally, no executor changes. Reviewed commit f618aac (Dalton, Phase 4A) plu...
+- 17:21 commission-Thorne-20260422-165106 completed
 ## Verification
 
 - `bun test packages/daemon` → 416 pass, 0 fail (1009 expe...
