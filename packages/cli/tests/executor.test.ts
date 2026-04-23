@@ -218,6 +218,205 @@ describe("executeOperation", () => {
     expect(body).toEqual({ value: "updated" });
   });
 
+  // --- Parameter type coercion ---
+
+  test("coerces 'true' to boolean true in body", async () => {
+    let capturedBody: string | undefined;
+    const client: DaemonClient = {
+      async fetch(_path: string, init?: RequestInit) {
+        capturedBody = init?.body as string | undefined;
+        return new Response("{}");
+      },
+      async fetchJson<T>() { return {} as T; },
+      async getHelpTree() { throw new Error("unused"); },
+    };
+
+    const op = makeOp({
+      invocation: { method: "POST", path: "/nudge" },
+      parameters: [
+        { name: "refresh", description: "Refresh", required: false, type: "boolean" as const },
+      ],
+      idempotent: false,
+    });
+
+    await executeOperation(client, op, ["true"]);
+    const body = JSON.parse(capturedBody!);
+    expect(body).toEqual({ refresh: true });
+  });
+
+  test("coerces 'FALSE' (case-insensitive) to boolean false", async () => {
+    let capturedBody: string | undefined;
+    const client: DaemonClient = {
+      async fetch(_path: string, init?: RequestInit) {
+        capturedBody = init?.body as string | undefined;
+        return new Response("{}");
+      },
+      async fetchJson<T>() { return {} as T; },
+      async getHelpTree() { throw new Error("unused"); },
+    };
+
+    const op = makeOp({
+      invocation: { method: "POST", path: "/nudge" },
+      parameters: [
+        { name: "refresh", description: "Refresh", required: false, type: "boolean" as const },
+      ],
+      idempotent: false,
+    });
+
+    await executeOperation(client, op, ["FALSE"]);
+    const body = JSON.parse(capturedBody!);
+    expect(body).toEqual({ refresh: false });
+  });
+
+  test("coerces numeric string to number", async () => {
+    let capturedBody: string | undefined;
+    const client: DaemonClient = {
+      async fetch(_path: string, init?: RequestInit) {
+        capturedBody = init?.body as string | undefined;
+        return new Response("{}");
+      },
+      async fetchJson<T>() { return {} as T; },
+      async getHelpTree() { throw new Error("unused"); },
+    };
+
+    const op = makeOp({
+      invocation: { method: "POST", path: "/thing" },
+      parameters: [
+        { name: "count", description: "Count", required: true, type: "number" as const },
+      ],
+      idempotent: false,
+    });
+
+    await executeOperation(client, op, ["42"]);
+    const body = JSON.parse(capturedBody!);
+    expect(body).toEqual({ count: 42 });
+  });
+
+  test("rejects 'maybe' for a boolean parameter", async () => {
+    const client: DaemonClient = {
+      async fetch() { return new Response("{}"); },
+      async fetchJson<T>() { return {} as T; },
+      async getHelpTree() { throw new Error("unused"); },
+    };
+
+    const op = makeOp({
+      invocation: { method: "POST", path: "/nudge" },
+      parameters: [
+        { name: "refresh", description: "Refresh", required: false, type: "boolean" as const },
+      ],
+      idempotent: false,
+    });
+
+    await expect(
+      executeOperation(client, op, ["maybe"]),
+    ).rejects.toThrow("process.exit called");
+    expect(errorSpy).toHaveBeenCalledWith(
+      expect.stringContaining("refresh"),
+    );
+    expect(exitSpy).toHaveBeenCalledWith(1);
+  });
+
+  test("rejects 'abc' for a number parameter", async () => {
+    const client: DaemonClient = {
+      async fetch() { return new Response("{}"); },
+      async fetchJson<T>() { return {} as T; },
+      async getHelpTree() { throw new Error("unused"); },
+    };
+
+    const op = makeOp({
+      invocation: { method: "POST", path: "/thing" },
+      parameters: [
+        { name: "count", description: "Count", required: true, type: "number" as const },
+      ],
+      idempotent: false,
+    });
+
+    await expect(
+      executeOperation(client, op, ["abc"]),
+    ).rejects.toThrow("process.exit called");
+    expect(errorSpy).toHaveBeenCalledWith(
+      expect.stringContaining("count"),
+    );
+    expect(exitSpy).toHaveBeenCalledWith(1);
+  });
+
+  test("empty string for optional parameter omits it from body", async () => {
+    let capturedInit: RequestInit | undefined;
+    const client: DaemonClient = {
+      async fetch(_path: string, init?: RequestInit) {
+        capturedInit = init;
+        return new Response("{}");
+      },
+      async fetchJson<T>() { return {} as T; },
+      async getHelpTree() { throw new Error("unused"); },
+    };
+
+    const op = makeOp({
+      invocation: { method: "POST", path: "/nudge" },
+      parameters: [
+        { name: "entryId", description: "Entry id", required: false, type: "string" as const },
+        { name: "text", description: "Text", required: false, type: "string" as const },
+        { name: "context", description: "Context", required: false, type: "string" as const },
+        { name: "refresh", description: "Refresh", required: false, type: "boolean" as const },
+      ],
+      idempotent: false,
+    });
+
+    await executeOperation(client, op, ["entry-1", "", "", "true"]);
+    const body = JSON.parse(capturedInit?.body as string);
+    expect(body).toEqual({ entryId: "entry-1", refresh: true });
+    expect(body).not.toHaveProperty("text");
+    expect(body).not.toHaveProperty("context");
+  });
+
+  test("all-empty optional args produce no body", async () => {
+    let capturedInit: RequestInit | undefined;
+    const client: DaemonClient = {
+      async fetch(_path: string, init?: RequestInit) {
+        capturedInit = init;
+        return new Response("{}");
+      },
+      async fetchJson<T>() { return {} as T; },
+      async getHelpTree() { throw new Error("unused"); },
+    };
+
+    const op = makeOp({
+      invocation: { method: "POST", path: "/nudge" },
+      parameters: [
+        { name: "entryId", description: "Entry id", required: false, type: "string" as const },
+        { name: "text", description: "Text", required: false, type: "string" as const },
+      ],
+      idempotent: false,
+    });
+
+    await executeOperation(client, op, ["", ""]);
+    expect(capturedInit?.body).toBeUndefined();
+  });
+
+  test("string-typed parameter passes through unchanged", async () => {
+    let capturedBody: string | undefined;
+    const client: DaemonClient = {
+      async fetch(_path: string, init?: RequestInit) {
+        capturedBody = init?.body as string | undefined;
+        return new Response("{}");
+      },
+      async fetchJson<T>() { return {} as T; },
+      async getHelpTree() { throw new Error("unused"); },
+    };
+
+    const op = makeOp({
+      invocation: { method: "POST", path: "/entries" },
+      parameters: [
+        { name: "body", description: "Body", required: true, type: "string" as const },
+      ],
+      idempotent: false,
+    });
+
+    await executeOperation(client, op, ["true"]);
+    const body = JSON.parse(capturedBody!);
+    expect(body).toEqual({ body: "true" });
+  });
+
   test("PATCH request sends JSON body", async () => {
     let capturedInit: RequestInit | undefined;
     const client: DaemonClient = {

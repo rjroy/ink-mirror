@@ -19,6 +19,14 @@ export function formatHelpTree(node: HelpTreeNode, indent: number = 0): string {
       lines.push(
         `${prefix}  ${op.name}  ${op.description}  [${op.invocation.method} ${op.invocation.path}]`,
       );
+      if (op.parameters?.length) {
+        for (const param of op.parameters) {
+          const flag = param.required ? "required" : "optional";
+          lines.push(
+            `${prefix}    - ${param.name} (${param.type}, ${flag})  ${param.description}`,
+          );
+        }
+      }
     }
   }
 

@@ -80,6 +80,55 @@ describe("formatHelpTree", () => {
     expect(output).toContain("list");
     expect(output).toContain("GET /entries");
   });
+
+  test("renders operation parameters with name, type, and required flag", () => {
+    const output = formatHelpTree(sampleTree);
+    // `entries.create` has one required string parameter named `body`
+    expect(output).toContain("body");
+    expect(output).toContain("string");
+    expect(output).toContain("required");
+    expect(output).toContain("Entry body");
+  });
+
+  test("renders optional boolean parameters (e.g. nudge.analyze refresh)", () => {
+    const nudgeTree: HelpTreeNode = {
+      name: "ink-mirror",
+      children: {
+        nudge: {
+          name: "nudge",
+          children: {
+            analyze: {
+              name: "analyze",
+              operations: [
+                {
+                  operationId: "nudge.analyze",
+                  name: "analyze",
+                  description: "Get craft nudges",
+                  invocation: { method: "POST", path: "/nudge" },
+                  hierarchy: { root: "nudge", feature: "analyze" },
+                  parameters: [
+                    {
+                      name: "refresh",
+                      description: "Force fresh generation",
+                      required: false,
+                      type: "boolean" as const,
+                    },
+                  ],
+                  idempotent: true,
+                },
+              ],
+            },
+          },
+        },
+      },
+    };
+
+    const output = formatHelpTree(nudgeTree);
+    expect(output).toContain("refresh");
+    expect(output).toContain("boolean");
+    expect(output).toContain("optional");
+    expect(output).toContain("Force fresh generation");
+  });
 });
 
 describe("resolveCommand", () => {
