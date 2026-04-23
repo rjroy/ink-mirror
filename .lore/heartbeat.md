@@ -77,6 +77,10 @@ Workers can also add entries to this file during their sessions.
 
 Scope: confirm `refresh` renders in help output, CLI passes it through positionally, no executor changes. Reviewed commit f618aac (Dalton, Phase 4A) plu...
 - 17:21 commission-Thorne-20260422-165106 completed
+- 17:23 commission-Thorne-20260422-165123 result: # Phase 5A Web Client Review
+
+Scope: `packages/web/components/entry-nudge.tsx` and `packages/web/lib/api.ts` against REQ-CNP-20, REQ-CNP-21, spec Test Plan (web section), and plan Commission 5A scope....
+- 17:23 commission-Thorne-20260422-165123 completed
 ## Verification
 
 - `bun test packages/daemon` → 416 pass, 0 fail (1009 expe...
