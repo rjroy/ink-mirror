@@ -41,7 +41,9 @@ export function toResultState(response: NudgeResponse): ResultState {
   return {
     nudges: response.nudges,
     source: response.source,
-    stale: response.stale === true,
+    // Defensive: the stale suffix only has meaning for cache hits. A malformed
+    // fresh response claiming stale=true should not display "edited since".
+    stale: response.source === "cache" && response.stale === true,
     generatedAt: response.generatedAt,
   };
 }
@@ -110,7 +112,7 @@ export function EntryNudge({ entryId }: { entryId: string }) {
         nudges={result?.nudges ?? []}
         error={nudgeError ?? undefined}
       />
-      {result && (
+      {result && result.nudges.length > 0 && (
         <div className={styles.savedRow}>
           <span className={styles.savedLabel}>
             {formatSavedLabel(result.generatedAt, result.stale)}
@@ -124,7 +126,7 @@ export function EntryNudge({ entryId }: { entryId: string }) {
           </button>
         </div>
       )}
-      {!result && nudgeError && (
+      {nudgeError && (!result || result.nudges.length === 0) && (
         <div className={styles.savedRow}>
           <button
             className={styles.nudgeBtn}
