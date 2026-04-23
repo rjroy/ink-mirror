@@ -39,3 +39,7 @@ Dalton's fix is correct and complete for Phase 4B findings. All verification cri
 
 #...
 - 18:19 commission-Thorne-20260422-181524 completed
+- 18:21 commission-Dalton-20260422-181513 result: Added 7 new interactive tests for `packages/web/components/entry-nudge.tsx`, covering all five scenarios from Thorne Finding 1, plus both optional hardenings (Findings 2 and 3).
+
+**Test infrastructure...
+- 18:21 commission-Dalton-20260422-181513 completed
