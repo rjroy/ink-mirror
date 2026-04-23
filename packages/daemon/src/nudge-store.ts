@@ -102,11 +102,6 @@ function readScalar(content: string, key: string): string | undefined {
 }
 
 function readContext(content: string): string | undefined {
-  // Empty context is written as `context: ""`. The block regex requires
-  // at least one indented content line, so the empty case must be matched
-  // first by the quoted-scalar branch.
-  const emptyRe = /^context:\s*""\s*$/m;
-  if (emptyRe.test(content)) return "";
   return readStringField(content, "context", 2);
 }
 

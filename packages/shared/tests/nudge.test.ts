@@ -312,7 +312,8 @@ describe("SavedNudgeSchema", () => {
   test("round-trips a full record", () => {
     const record = {
       entryId: "entry-001",
-      contentHash: "sha256:1234567890abcdef",
+      contentHash:
+        "sha256:1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
       context: "Blog post for a technical audience",
       generatedAt: "2026-04-22T16:00:00.000Z",
       nudges: [
@@ -340,7 +341,8 @@ describe("SavedNudgeSchema", () => {
   test("accepts empty context", () => {
     const result = SavedNudgeSchema.safeParse({
       entryId: "entry-002",
-      contentHash: "sha256:abc",
+      contentHash:
+        "sha256:0000000000000000000000000000000000000000000000000000000000000000",
       context: "",
       generatedAt: "2026-04-22T16:00:00.000Z",
       nudges: [],

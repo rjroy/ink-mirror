@@ -82,7 +82,7 @@ export type NudgeResponse = z.infer<typeof NudgeResponseSchema>;
 
 export const SavedNudgeSchema = z.object({
   entryId: z.string(),
-  contentHash: z.string(),
+  contentHash: z.string().regex(/^sha256:[0-9a-f]{64}$/),
   context: z.string(),
   generatedAt: z.string(),
   nudges: z.array(CraftNudgeSchema),
