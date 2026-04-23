@@ -439,6 +439,55 @@ describe("POST /nudge persistence", () => {
     expect(saved.nudges[0].craftPrinciple).toBe("passive-voice-clustering");
   });
 
+  // Case 6b: refresh:true bypasses cache even when saved record's hash matches the current body.
+  // Guards the primary "Regenerate" gesture: user wants a new nudge from unchanged text.
+  test("6b: refresh:true with hash-matching saved record -> fresh, overwrites, bypasses cache", async () => {
+    const savedGeneratedAt = "2026-04-20T00:00:00.000Z";
+    const store = memoryStore();
+    store.records.set("entry-001", {
+      entryId: "entry-001",
+      contentHash: sha(SAMPLE_TEXT),
+      context: "",
+      generatedAt: savedGeneratedAt,
+      metrics: {
+        passiveRatio: 0,
+        totalSentences: 1,
+        hedgingWordCount: 0,
+        rhythmVariance: 0,
+      },
+      nudges: [
+        {
+          craftPrinciple: "dangling-modifier",
+          evidence: "old",
+          observation: "old",
+          question: "old?",
+        },
+      ],
+    });
+    const spy = spySessionRunner();
+    const app = makeApp({
+      sessionRunner: spy.runner,
+      readEntry: async () => SAMPLE_TEXT,
+      nudgeStore: store,
+    });
+
+    const res = await post(app, { entryId: "entry-001", refresh: true });
+    const json = await res.json();
+
+    expect(json.source).toBe("fresh");
+    expect(json.stale).toBeUndefined();
+    expect(json.contentHash).toBe(sha(SAMPLE_TEXT));
+    expect(json.generatedAt).toBe(FIXED_NOW);
+    expect(spy.calls).toBe(1);
+    expect(store.saveCalls).toBe(1);
+    expect(store.getCalls).toBe(0);
+
+    const saved = store.records.get("entry-001")!;
+    expect(saved.generatedAt).toBe(FIXED_NOW);
+    expect(saved.generatedAt).not.toBe(savedGeneratedAt);
+    expect(saved.nudges[0].craftPrinciple).toBe("passive-voice-clustering");
+  });
+
   // Case 7: Direct text (no entryId) → fresh, no contentHash, store untouched.
   test("7: direct text -> fresh, no contentHash, store.get/save untouched", async () => {
     const store = memoryStore();

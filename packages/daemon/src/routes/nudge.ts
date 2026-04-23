@@ -99,12 +99,8 @@ export function createNudgeRoutes(deps: NudgeDeps): RouteModule {
       });
     }
 
-    // Entry-scoped path. `isEntryScoped` implies entryId is defined;
-    // the `if (!entryId)` guard restates the invariant for the type checker.
-    const entryId = parsed.data.entryId;
-    if (!entryId) {
-      return c.json({ error: "At least one of entryId or text is required" }, 400);
-    }
+    // Entry-scoped path. `isEntryScoped` (text absent + entryId present) guarantees entryId.
+    const entryId = parsed.data.entryId!;
     const hash = hashFn(text);
     const requestContext = parsed.data.context ?? "";
 
