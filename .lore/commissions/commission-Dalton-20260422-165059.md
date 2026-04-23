@@ -1,7 +1,7 @@
 ---
 title: "Commission: Phase 4A: Confirm CLI discovery of refresh param"
 date: 2026-04-22
-status: blocked
+status: dispatched
 tags: [commission]
 worker: Dalton
 workerDisplayTitle: "Guild Artificer"
@@ -19,6 +19,16 @@ activity_timeline:
     reason: "Dependencies not satisfied"
     from: "pending"
     to: "blocked"
+  - timestamp: 2026-04-23T00:14:19.134Z
+    event: status_pending
+    reason: "Dependencies satisfied"
+    from: "blocked"
+    to: "pending"
+  - timestamp: 2026-04-23T00:14:19.137Z
+    event: status_dispatched
+    reason: "Dispatched to worker"
+    from: "pending"
+    to: "dispatched"
 current_progress: ""
 projectName: ink-mirror
 ---
