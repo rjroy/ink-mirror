@@ -62,6 +62,11 @@ Workers can also add entries to this file during their sessions.
 | # | Severity | Action taken |
 |---|----------|--------...
 - 17:14 commission-Dalton-20260422-165050 completed
+- 17:18 commission-Dalton-20260422-165059 result: Phase 4A complete. The `refresh: boolean` parameter on `nudge.analyze` (added in Phase 3 at `packages/daemon/src/routes/nudge.ts:209-213`) propagates through CLI discovery end-to-end.
+
+**Changes:**
+- ...
+- 17:18 commission-Dalton-20260422-165059 completed
 ## Verification
 
 - `bun test packages/daemon` → 416 pass, 0 fail (1009 expe...
