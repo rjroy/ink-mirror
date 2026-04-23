@@ -49,6 +49,10 @@ Workers can also add entries to this file during their sessions.
 **Status:** All Phase 3A verification passes. Thorne 2B findings addressed.
 
 - 17:09 commission-Dalton-20260422-165038 completed
+- 17:12 commission-Thorne-20260422-165045 result: # Phase 3A Review: Nudge Route Persistence
+
+**Verdict: PASS.** Phase 3A satisfies REQ-CNP-3 through REQ-CNP-11, REQ-CNP-17, and REQ-CNP-18. Fan-out to Phases 4 and 5 can proceed. No 3C fix commission ...
+- 17:12 commission-Thorne-20260422-165045 completed
 ## Verification
 
 - `bun test packages/daemon` → 416 pass, 0 fail (1009 expe...
