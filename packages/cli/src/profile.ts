@@ -1,6 +1,7 @@
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { writeFileSync, readFileSync, unlinkSync } from "node:fs";
+import { type ObservationDimension, DIMENSION_LABELS } from "@ink-mirror/shared";
 import type { DaemonClient } from "./client.js";
 
 interface ProfileResponse {
@@ -9,7 +10,7 @@ interface ProfileResponse {
   rules: Array<{
     id: string;
     pattern: string;
-    dimension: string;
+    dimension: ObservationDimension;
     sourceCount: number;
     sourceSummary: string;
   }>;
@@ -30,23 +31,17 @@ export async function showProfile(client: DaemonClient): Promise<void> {
   }
 
   // Group by dimension
-  const byDimension = new Map<string, typeof profile.rules>();
+  const byDimension = new Map<ObservationDimension, typeof profile.rules>();
   for (const rule of profile.rules) {
     const existing = byDimension.get(rule.dimension) ?? [];
     existing.push(rule);
     byDimension.set(rule.dimension, existing);
   }
 
-  const labels: Record<string, string> = {
-    "sentence-rhythm": "Sentence Rhythm",
-    "word-level-habits": "Word-Level Habits",
-    "sentence-structure": "Sentence Structure",
-    "paragraph-structure": "Paragraph Structure",
-  };
-
   for (const [dimension, rules] of byDimension) {
-    console.log(`\n${labels[dimension] ?? dimension}`);
-    console.log("─".repeat((labels[dimension] ?? dimension).length));
+    const label = DIMENSION_LABELS[dimension];
+    console.log(`\n${label}`);
+    console.log("─".repeat(label.length));
     for (const rule of rules) {
       console.log(`  ${rule.pattern}`);
       console.log(`    ${rule.sourceSummary} [${rule.id}]`);
@@ -138,19 +133,12 @@ function buildProfileMarkdown(profile: ProfileResponse): string {
     "",
   ];
 
-  const byDimension = new Map<string, typeof profile.rules>();
+  const byDimension = new Map<ObservationDimension, typeof profile.rules>();
   for (const rule of profile.rules) {
     const existing = byDimension.get(rule.dimension) ?? [];
     existing.push(rule);
     byDimension.set(rule.dimension, existing);
   }
-
-  const labels: Record<string, string> = {
-    "sentence-rhythm": "Sentence Rhythm",
-    "word-level-habits": "Word-Level Habits",
-    "sentence-structure": "Sentence Structure",
-    "paragraph-structure": "Paragraph Structure",
-  };
 
   if (byDimension.size === 0) {
     lines.push("*No patterns confirmed yet.*");
@@ -158,7 +146,7 @@ function buildProfileMarkdown(profile: ProfileResponse): string {
   }
 
   for (const [dimension, rules] of byDimension) {
-    const label = labels[dimension] ?? dimension;
+    const label = DIMENSION_LABELS[dimension];
     lines.push(`## ${label}`);
     lines.push("");
     for (const rule of rules) {

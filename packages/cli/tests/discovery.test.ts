@@ -80,6 +80,55 @@ describe("formatHelpTree", () => {
     expect(output).toContain("list");
     expect(output).toContain("GET /entries");
   });
+
+  test("renders operation parameters with name, type, and required flag", () => {
+    const output = formatHelpTree(sampleTree);
+    // `entries.create` has one required string parameter named `body`
+    expect(output).toContain("body");
+    expect(output).toContain("string");
+    expect(output).toContain("required");
+    expect(output).toContain("Entry body");
+  });
+
+  test("renders optional boolean parameters (e.g. nudge.analyze refresh)", () => {
+    const nudgeTree: HelpTreeNode = {
+      name: "ink-mirror",
+      children: {
+        nudge: {
+          name: "nudge",
+          children: {
+            analyze: {
+              name: "analyze",
+              operations: [
+                {
+                  operationId: "nudge.analyze",
+                  name: "analyze",
+                  description: "Get craft nudges",
+                  invocation: { method: "POST", path: "/nudge" },
+                  hierarchy: { root: "nudge", feature: "analyze" },
+                  parameters: [
+                    {
+                      name: "refresh",
+                      description: "Force fresh generation",
+                      required: false,
+                      type: "boolean" as const,
+                    },
+                  ],
+                  idempotent: true,
+                },
+              ],
+            },
+          },
+        },
+      },
+    };
+
+    const output = formatHelpTree(nudgeTree);
+    expect(output).toContain("refresh");
+    expect(output).toContain("boolean");
+    expect(output).toContain("optional");
+    expect(output).toContain("Force fresh generation");
+  });
 });
 
 describe("resolveCommand", () => {
@@ -151,6 +200,75 @@ describe("resolveCommand", () => {
     expect(result.type).toBe("help");
     if (result.type === "help") {
       expect(result.tree.name).toBe("entries");
+    }
+  });
+
+  // Confirms boolean parameters (added by REQ-CNP-19 for `nudge.analyze refresh`)
+  // round-trip through CLI discovery without loss. Invocation remains positional
+  // — named-flag support is an out-of-scope exit point.
+  test("boolean parameter on an operation surfaces through discovery", async () => {
+    const treeWithBoolParam: HelpTreeNode = {
+      name: "ink-mirror",
+      children: {
+        nudge: {
+          name: "nudge",
+          children: {
+            analyze: {
+              name: "analyze",
+              operations: [
+                {
+                  operationId: "nudge.analyze",
+                  name: "analyze",
+                  description: "Get craft nudges for a piece of writing",
+                  invocation: { method: "POST", path: "/nudge" },
+                  hierarchy: { root: "nudge", feature: "analyze" },
+                  parameters: [
+                    {
+                      name: "entryId",
+                      description: "Entry to nudge",
+                      required: false,
+                      type: "string" as const,
+                    },
+                    {
+                      name: "text",
+                      description: "Text to analyze directly",
+                      required: false,
+                      type: "string" as const,
+                    },
+                    {
+                      name: "context",
+                      description: "Optional context",
+                      required: false,
+                      type: "string" as const,
+                    },
+                    {
+                      name: "refresh",
+                      description: "Force fresh generation and overwrite saved nudge",
+                      required: false,
+                      type: "boolean" as const,
+                    },
+                  ],
+                  idempotent: true,
+                },
+              ],
+            },
+          },
+        },
+      },
+    };
+
+    const result = await resolveCommand(mockClient(treeWithBoolParam), [
+      "nudge",
+      "analyze",
+    ]);
+    expect(result.type).toBe("operation");
+    if (result.type === "operation") {
+      const refresh = result.operation.parameters?.find(
+        (p) => p.name === "refresh",
+      );
+      expect(refresh).toBeDefined();
+      expect(refresh?.type).toBe("boolean");
+      expect(refresh?.required).toBe(false);
     }
   });
 });

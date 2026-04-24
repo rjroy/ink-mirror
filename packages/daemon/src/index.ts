@@ -5,6 +5,7 @@ import { createApp } from "./app.js";
 import { createEventBus } from "./event-bus.js";
 import { createEntryStore } from "./entry-store.js";
 import { createObservationStore } from "./observation-store.js";
+import { createNudgeStore } from "./nudge-store.js";
 import { createProfileStore } from "./profile-store.js";
 import { createSessionRunner } from "./session-runner.js";
 import type { SessionRequest } from "./session-runner.js";
@@ -20,10 +21,12 @@ const DATA_DIR = process.env.INK_MIRROR_DATA ?? join(process.env.HOME ?? ".", ".
 const SOCKET_PATH = process.env.INK_MIRROR_SOCKET ?? join(DATA_DIR, "ink-mirror.sock");
 const ENTRIES_DIR = join(DATA_DIR, "entries");
 const OBSERVATIONS_DIR = join(DATA_DIR, "observations");
+const NUDGES_DIR = join(DATA_DIR, "nudges");
 const PROFILE_PATH = join(DATA_DIR, "profile.md");
 
 const entryStore = createEntryStore({ entriesDir: ENTRIES_DIR });
 const observationStore = createObservationStore({ observationsDir: OBSERVATIONS_DIR });
+const nudgeStore = createNudgeStore({ nudgesDir: NUDGES_DIR });
 const profileStore = createProfileStore({ profilePath: PROFILE_PATH });
 
 // Production queryFn using the Claude Agent SDK.
@@ -97,6 +100,7 @@ const nudgeRoutes = createNudgeRoutes({
     return entry?.body;
   },
   readStyleProfile: () => profileStore.toPromptMarkdown(),
+  nudgeStore,
 });
 
 const { hono } = createApp({

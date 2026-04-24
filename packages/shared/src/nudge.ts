@@ -38,13 +38,14 @@ export const NudgeOutputSchema = z.object({
 
 export type NudgeOutput = z.infer<typeof NudgeOutputSchema>;
 
-// --- Request schema (REQ-CN-24) ---
+// --- Request schema (REQ-CN-24, REQ-CNP-8) ---
 
 export const NudgeRequestSchema = z
   .object({
     entryId: z.string().optional(),
     text: z.string().optional(),
     context: z.string().optional(),
+    refresh: z.boolean().optional(),
   })
   .refine((data) => data.entryId || data.text, {
     message: "At least one of entryId or text is required",
@@ -52,17 +53,40 @@ export const NudgeRequestSchema = z
 
 export type NudgeRequest = z.infer<typeof NudgeRequestSchema>;
 
-// --- Response schema (REQ-CN-25) ---
+// --- Metrics schema (shared between response and saved record) ---
+
+export const NudgeMetricsSchema = z.object({
+  passiveRatio: z.number(),
+  totalSentences: z.number(),
+  hedgingWordCount: z.number(),
+  rhythmVariance: z.number(),
+});
+
+export type NudgeMetrics = z.infer<typeof NudgeMetricsSchema>;
+
+// --- Response schema (REQ-CN-25, REQ-CNP-12, REQ-CNP-13, REQ-CNP-14) ---
 
 export const NudgeResponseSchema = z.object({
   nudges: z.array(CraftNudgeSchema),
-  metrics: z.object({
-    passiveRatio: z.number(),
-    totalSentences: z.number(),
-    hedgingWordCount: z.number(),
-    rhythmVariance: z.number(),
-  }),
+  metrics: NudgeMetricsSchema,
+  source: z.enum(["cache", "fresh"]),
+  stale: z.boolean().optional(),
+  generatedAt: z.string(),
+  contentHash: z.string().optional(),
   error: z.string().optional(),
 });
 
 export type NudgeResponse = z.infer<typeof NudgeResponseSchema>;
+
+// --- Saved nudge record (on-disk shape, REQ-CNP-1, REQ-CNP-2) ---
+
+export const SavedNudgeSchema = z.object({
+  entryId: z.string(),
+  contentHash: z.string().regex(/^sha256:[0-9a-f]{64}$/),
+  context: z.string(),
+  generatedAt: z.string(),
+  nudges: z.array(CraftNudgeSchema),
+  metrics: NudgeMetricsSchema,
+});
+
+export type SavedNudge = z.infer<typeof SavedNudgeSchema>;

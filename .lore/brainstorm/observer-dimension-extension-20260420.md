@@ -1,6 +1,6 @@
 ---
 title: "Brainstorm: Extending the Observer's Dimension Set"
-status: approved
+status: resolved
 date: 2026-04-20
 author: Celeste
 related:

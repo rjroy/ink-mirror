@@ -88,14 +88,19 @@ export async function replaceProfile(markdown: string): Promise<Profile> {
   });
 }
 
-export async function requestNudge(params: {
-  text?: string;
-  entryId?: string;
-  context?: string;
-}): Promise<NudgeResponse> {
+export async function requestNudge(
+  params: {
+    text?: string;
+    entryId?: string;
+    context?: string;
+    refresh?: boolean;
+  },
+  options: { signal?: AbortSignal } = {},
+): Promise<NudgeResponse> {
   return fetchApi<NudgeResponse>("/nudge", {
     method: "POST",
     body: JSON.stringify(params),
+    signal: options.signal,
   });
 }
 

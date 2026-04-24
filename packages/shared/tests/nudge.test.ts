@@ -5,6 +5,7 @@ import {
   NudgeOutputSchema,
   NudgeRequestSchema,
   NudgeResponseSchema,
+  SavedNudgeSchema,
 } from "../src/nudge.js";
 
 describe("CraftPrincipleSchema", () => {
@@ -175,6 +176,28 @@ describe("NudgeRequestSchema", () => {
     const result = NudgeRequestSchema.safeParse({ context: "some context" });
     expect(result.success).toBe(false);
   });
+
+  test("accepts refresh: true, refresh: false, and omitted refresh", () => {
+    const refreshTrue = NudgeRequestSchema.safeParse({
+      entryId: "entry-001",
+      refresh: true,
+    });
+    expect(refreshTrue.success).toBe(true);
+
+    const refreshFalse = NudgeRequestSchema.safeParse({
+      entryId: "entry-001",
+      refresh: false,
+    });
+    expect(refreshFalse.success).toBe(true);
+
+    const refreshOmitted = NudgeRequestSchema.safeParse({
+      entryId: "entry-001",
+    });
+    expect(refreshOmitted.success).toBe(true);
+    if (refreshOmitted.success) {
+      expect(refreshOmitted.data.refresh).toBeUndefined();
+    }
+  });
 });
 
 describe("NudgeResponseSchema", () => {
@@ -187,6 +210,8 @@ describe("NudgeResponseSchema", () => {
         hedgingWordCount: 3,
         rhythmVariance: 45.2,
       },
+      source: "fresh",
+      generatedAt: "2026-04-22T16:00:00.000Z",
     });
     expect(result.success).toBe(true);
   });
@@ -200,6 +225,9 @@ describe("NudgeResponseSchema", () => {
         hedgingWordCount: 0,
         rhythmVariance: 0,
       },
+      source: "fresh",
+      generatedAt: "2026-04-22T16:00:00.000Z",
+      contentHash: "sha256:abc",
       error: "Failed to parse LLM output",
     });
     expect(result.success).toBe(true);
@@ -214,10 +242,126 @@ describe("NudgeResponseSchema", () => {
         hedgingWordCount: 0,
         rhythmVariance: 0,
       },
+      source: "fresh",
+      generatedAt: "2026-04-22T16:00:00.000Z",
     });
     expect(result.success).toBe(true);
     if (result.success) {
       expect(result.data.error).toBeUndefined();
     }
+  });
+
+  test("accepts a cache response with stale and contentHash", () => {
+    const result = NudgeResponseSchema.safeParse({
+      nudges: [],
+      metrics: {
+        passiveRatio: 0.1,
+        totalSentences: 5,
+        hedgingWordCount: 1,
+        rhythmVariance: 12.3,
+      },
+      source: "cache",
+      stale: true,
+      generatedAt: "2026-04-22T15:59:00.000Z",
+      contentHash: "sha256:deadbeef",
+    });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.source).toBe("cache");
+      expect(result.data.stale).toBe(true);
+      expect(result.data.contentHash).toBe("sha256:deadbeef");
+    }
+  });
+
+  test("accepts a fresh response without stale or contentHash (direct-text case)", () => {
+    const result = NudgeResponseSchema.safeParse({
+      nudges: [],
+      metrics: {
+        passiveRatio: 0,
+        totalSentences: 0,
+        hedgingWordCount: 0,
+        rhythmVariance: 0,
+      },
+      source: "fresh",
+      generatedAt: "2026-04-22T16:00:00.000Z",
+    });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.stale).toBeUndefined();
+      expect(result.data.contentHash).toBeUndefined();
+    }
+  });
+
+  test("rejects source outside the enum", () => {
+    const result = NudgeResponseSchema.safeParse({
+      nudges: [],
+      metrics: {
+        passiveRatio: 0,
+        totalSentences: 0,
+        hedgingWordCount: 0,
+        rhythmVariance: 0,
+      },
+      source: "stale",
+      generatedAt: "2026-04-22T16:00:00.000Z",
+    });
+    expect(result.success).toBe(false);
+  });
+});
+
+describe("SavedNudgeSchema", () => {
+  test("round-trips a full record", () => {
+    const record = {
+      entryId: "entry-001",
+      contentHash:
+        "sha256:1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
+      context: "Blog post for a technical audience",
+      generatedAt: "2026-04-22T16:00:00.000Z",
+      nudges: [
+        {
+          craftPrinciple: "passive-voice-clustering" as const,
+          evidence: "The report was written.\nThe data was analyzed.",
+          observation: "Two consecutive passive sentences remove the actors.",
+          question: "Did you intend to obscure who wrote the report?",
+        },
+      ],
+      metrics: {
+        passiveRatio: 0.5,
+        totalSentences: 2,
+        hedgingWordCount: 0,
+        rhythmVariance: 3.2,
+      },
+    };
+    const result = SavedNudgeSchema.safeParse(record);
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data).toEqual(record);
+    }
+  });
+
+  test("accepts empty context", () => {
+    const result = SavedNudgeSchema.safeParse({
+      entryId: "entry-002",
+      contentHash:
+        "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+      context: "",
+      generatedAt: "2026-04-22T16:00:00.000Z",
+      nudges: [],
+      metrics: {
+        passiveRatio: 0,
+        totalSentences: 0,
+        hedgingWordCount: 0,
+        rhythmVariance: 0,
+      },
+    });
+    expect(result.success).toBe(true);
+  });
+
+  test("rejects record missing required fields", () => {
+    const result = SavedNudgeSchema.safeParse({
+      entryId: "entry-001",
+      contentHash: "sha256:abc",
+      // missing context, generatedAt, nudges, metrics
+    });
+    expect(result.success).toBe(false);
   });
 });
