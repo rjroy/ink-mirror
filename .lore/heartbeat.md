@@ -26,3 +26,13 @@ Workers can also add entries to this file during their sessions.
 ## Context Notes
 
 ## Recent Activity
+- 22:18 commission-Dalton-20260423-221548 result: 
+# Phase 5D Finding 1 Fix — happy-dom global pollution
+
+- 22:18 commission-Dalton-20260423-221548 completed
+## What changed
+
+`packages/web/tests/entry-nudge.test.tsx`:
+
+- Removed the module-scope `GlobalRegistrator.register(...)` call.
+- Added a `setup...
