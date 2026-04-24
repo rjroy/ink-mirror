@@ -26,27 +26,3 @@ Workers can also add entries to this file during their sessions.
 ## Context Notes
 
 ## Recent Activity
-- 18:17 commission-Dalton-20260422-181456 result: Both bugs fixed.
-
-**Finding 1 — executor type coercion** (`packages/cli/src/executor.ts`):
-- Added `coerceArg()` that coerces raw positional args to the parameter's declared type.
-- `boolean`: accepts...
-
-- 18:17 commission-Dalton-20260422-181456 completed
-- 18:19 commission-Thorne-20260422-181524 result: ## Verdict
-
-Dalton's fix is correct and complete for Phase 4B findings. All verification criteria are satisfied. One latent edge case is worth flagging but is outside the commission's stated scope.
-
-#...
-- 18:19 commission-Thorne-20260422-181524 completed
-- 18:21 commission-Dalton-20260422-181513 result: Added 7 new interactive tests for `packages/web/components/entry-nudge.tsx`, covering all five scenarios from Thorne Finding 1, plus both optional hardenings (Findings 2 and 3).
-
-**Test infrastructure...
-- 18:21 commission-Dalton-20260422-181513 completed
-- 18:24 commission-Thorne-20260422-181532 result: 
-# Phase 5C Review — Dalton commission-Dalton-20260422-181513
-
-- 18:24 commission-Thorne-20260422-181532 completed
-## Verdict
-
-Test coverage work is correct and thorough. The five required interactive tests are present and actually exercise interactive...
