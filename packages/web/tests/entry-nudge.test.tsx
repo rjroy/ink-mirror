@@ -3,11 +3,40 @@
 // because `typeof fetch` requires it.
 /* eslint-disable @typescript-eslint/require-await */
 import { GlobalRegistrator } from "@happy-dom/global-registrator";
-if (typeof document === "undefined") {
-  GlobalRegistrator.register({ url: "http://localhost/" });
-}
+import { describe, test, expect, beforeAll, afterAll, beforeEach, afterEach } from "bun:test";
 
-import { describe, test, expect, beforeEach, afterEach } from "bun:test";
+// happy-dom's GlobalRegistrator mutates process-wide globals, including
+// replacing WritableStream with a shim that lacks `.getWriter()`. Registering
+// at module scope leaks into sibling test files (e.g. sse-streaming.test.ts,
+// where Hono's SSE handler calls .getWriter() on a real WritableStream).
+// Scope registration to describe blocks that need a DOM, and snapshot the
+// stream globals as a safety net in case unregister() doesn't fully restore them.
+type StreamGlobals = {
+  WritableStream: typeof globalThis.WritableStream;
+  ReadableStream: typeof globalThis.ReadableStream;
+  TransformStream: typeof globalThis.TransformStream;
+};
+
+function setupHappyDom(): void {
+  const snapshot: StreamGlobals = {
+    WritableStream: globalThis.WritableStream,
+    ReadableStream: globalThis.ReadableStream,
+    TransformStream: globalThis.TransformStream,
+  };
+  beforeAll(() => {
+    if (typeof document === "undefined") {
+      GlobalRegistrator.register({ url: "http://localhost/" });
+    }
+  });
+  afterAll(async () => {
+    if (GlobalRegistrator.isRegistered) {
+      await GlobalRegistrator.unregister();
+    }
+    globalThis.WritableStream = snapshot.WritableStream;
+    globalThis.ReadableStream = snapshot.ReadableStream;
+    globalThis.TransformStream = snapshot.TransformStream;
+  });
+}
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { renderToStaticMarkup } from "react-dom/server";
@@ -167,6 +196,8 @@ describe("EntryNudge initial render", () => {
 });
 
 describe("EntryNudge interactive behavior", () => {
+  setupHappyDom();
+
   let container: HTMLElement;
   let root: Root;
   let originalFetch: typeof globalThis.fetch;
@@ -425,6 +456,8 @@ describe("EntryNudge interactive behavior", () => {
 });
 
 describe("EntryNudge error handling", () => {
+  setupHappyDom();
+
   let container: HTMLElement;
   let root: Root;
   let originalFetch: typeof globalThis.fetch;
