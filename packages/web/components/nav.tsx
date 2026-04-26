@@ -2,29 +2,32 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import styles from "./nav.module.css";
 
 const links = [
   { href: "/write", label: "Write" },
   { href: "/entries", label: "Entries" },
-  { href: "/curate", label: "Curate" },
-  { href: "/profile", label: "Profile" },
+  { href: "/curate", label: "Sift" },
+  { href: "/profile", label: "Hand" },
 ] as const;
 
 export function Nav() {
   const pathname = usePathname();
 
   return (
-    <header className={styles.header}>
-      <Link href="/" className={styles.wordmark}>
-        ink<span className={styles.wordmarkSeparator}>-</span>mirror
+    <header className="im-bar">
+      <Link href="/" className="im-brand">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img className="im-shield" src="/logo-shield-light.png" alt="" />
+        <span className="im-wordmark">
+          Ink<span className="amp"> · </span>Mirror
+        </span>
       </Link>
-      <nav className={styles.nav}>
+      <nav className="im-nav">
         {links.map(({ href, label }) => (
           <Link
             key={href}
             href={href}
-            className={pathname.startsWith(href) ? styles.navItemActive : styles.navItem}
+            className={pathname.startsWith(href) ? "active" : ""}
           >
             {label}
           </Link>

@@ -1,7 +1,6 @@
 "use client";
 
 import type { CraftNudge } from "@ink-mirror/shared";
-import styles from "./nudge-results.module.css";
 
 function formatPrinciple(principle: string): string {
   return principle.replace(/-/g, " ");
@@ -15,7 +14,7 @@ export function NudgeResults({
   error?: string;
 }) {
   if (error) {
-    return <div className={styles.error}>{error}</div>;
+    return <div className="im-error">{error}</div>;
   }
 
   if (nudges.length === 0) {
@@ -23,21 +22,17 @@ export function NudgeResults({
   }
 
   return (
-    <div className={styles.nudgeSection}>
-      <div className={styles.nudgeLabel}>Craft Nudges</div>
+    <div className="im-nudge-section">
+      <div className="im-nudge-label">Craft Nudges</div>
       {nudges.map((nudge, i) => (
-        <div key={i} className={styles.nudgeCard}>
-          <div className={styles.principle}>
-            {formatPrinciple(nudge.craftPrinciple)}
+        <div key={i} className="im-note" style={{ maxWidth: 720 }}>
+          <div className="im-note-dim">{formatPrinciple(nudge.craftPrinciple)}</div>
+          <p className="im-note-body">{nudge.observation}</p>
+          <div className="im-note-quote">
+            <span className="qhead">From your writing</span>
+            &ldquo;{nudge.evidence}&rdquo;
           </div>
-          <div className={styles.observation}>{nudge.observation}</div>
-          <div className={styles.evidence}>
-            <div className={styles.evidenceLabel}>from your writing</div>
-            <div className={styles.evidenceText}>
-              &ldquo;{nudge.evidence}&rdquo;
-            </div>
-          </div>
-          <div className={styles.question}>{nudge.question}</div>
+          <p className="im-nudge-question">{nudge.question}</p>
         </div>
       ))}
     </div>
