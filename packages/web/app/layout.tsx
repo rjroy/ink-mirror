@@ -3,8 +3,8 @@ import { Nav } from "@/components/nav";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "ink-mirror",
-  description: "A writing self-awareness tool",
+  title: "Ink Mirror",
+  description: "A reading-room for your own writing.",
 };
 
 export const viewport: Viewport = {
@@ -21,10 +21,12 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
+    <html lang="en" data-accent="verdigris">
       <body>
-        <Nav />
-        <main>{children}</main>
+        <div className="im-app grain">
+          <Nav />
+          <main className="im-body">{children}</main>
+        </div>
       </body>
     </html>
   );

@@ -5,14 +5,13 @@ import { useRouter } from "next/navigation";
 import { createEntry, requestNudge, subscribeObservations } from "@/lib/api";
 import type { Observation, CraftNudge } from "@ink-mirror/shared";
 import { NudgeResults } from "./nudge-results";
-import styles from "./journal-editor.module.css";
 
 function formatDate(): string {
   return new Date().toLocaleDateString("en-US", {
     weekday: "long",
-    year: "numeric",
-    month: "long",
     day: "numeric",
+    month: "long",
+    year: "numeric",
   });
 }
 
@@ -39,7 +38,6 @@ export function JournalEditor() {
     setError(null);
     setStreamedObservations([]);
 
-    // Open SSE only during submission, close when done
     const cleanup = subscribeObservations((obs) => {
       setStreamedObservations((prev) => [...prev, obs]);
     });
@@ -77,35 +75,39 @@ export function JournalEditor() {
   }, [body]);
 
   return (
-    <div className={styles.editorPane}>
-      <div className={styles.entryDate}>{formatDate()}</div>
+    <div className="im-editor-wrap">
+      <div className="im-sheet">
+        <div className="grain-bg" />
+        <div className="im-date">{formatDate()}</div>
+        <textarea
+          className="im-textarea"
+          placeholder="Begin here. The page keeps no opinion of you."
+          value={body}
+          onChange={(e) => setBody(e.target.value)}
+          disabled={submitting}
+        />
+      </div>
 
-      <textarea
-        className={styles.textarea}
-        placeholder="Write your journal entry..."
-        value={body}
-        onChange={(e) => setBody(e.target.value)}
-        disabled={submitting}
-      />
+      {error && <div className="im-error">{error}</div>}
 
-      {error && <div className={styles.error}>{error}</div>}
-
-      <div className={styles.footer}>
-        <span className={styles.wordCount}>{wordCount} words</span>
-        <div className={styles.footerActions}>
+      <div className="im-bottombar">
+        <span className="im-wordcount">
+          {wordCount} {wordCount === 1 ? "word" : "words"}
+        </span>
+        <div style={{ display: "flex", gap: 10 }}>
           <button
-            className={styles.nudgeBtn}
+            className="btn btn-sm"
             onClick={() => void handleNudge()}
             disabled={nudging || !body.trim()}
           >
             {nudging ? "Nudging..." : "Nudge"}
           </button>
           <button
-            className={styles.submitBtn}
+            className="btn btn-primary btn-sm"
             onClick={() => void handleSubmit()}
             disabled={submitting || !body.trim()}
           >
-            {submitting ? "Observing..." : "Observe \u2192"}
+            {submitting ? "Reflecting..." : "Reflect →"}
           </button>
         </div>
       </div>
@@ -113,12 +115,12 @@ export function JournalEditor() {
       <NudgeResults nudges={nudges} error={nudgeError ?? undefined} />
 
       {streamedObservations.length > 0 && (
-        <div className={styles.streamSection}>
-          <div className={styles.streamLabel}>Observations</div>
+        <div className="im-nudge-section">
+          <div className="im-nudge-label">Observations</div>
           {streamedObservations.map((obs) => (
-            <div key={obs.id} className={styles.streamCard}>
-              <div className={styles.streamCardDimension}>{obs.dimension}</div>
-              <div className={styles.streamCardPattern}>{obs.pattern}</div>
+            <div key={obs.id} className="im-note">
+              <div className="im-note-dim">{obs.dimension}</div>
+              <p className="im-note-body">{obs.pattern}</p>
             </div>
           ))}
         </div>

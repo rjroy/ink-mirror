@@ -1,11 +1,36 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { daemonJson } from "@/lib/daemon";
-import type { Entry, Observation } from "@ink-mirror/shared";
+import type {
+  Entry,
+  Observation,
+  ObservationDimension,
+  CurationStatus,
+} from "@ink-mirror/shared";
 import { EntryNudge } from "@/components/entry-nudge";
-import styles from "./page.module.css";
 
 export const dynamic = "force-dynamic";
+
+const DIMENSION_LABELS: Record<ObservationDimension, string> = {
+  "sentence-rhythm": "Sentence rhythm",
+  "word-level-habits": "Word habits",
+  "sentence-structure": "Sentence shape",
+  "paragraph-structure": "Paragraph shape",
+};
+
+const STATUS_CLASS: Record<CurationStatus, string> = {
+  pending: "awaiting",
+  intentional: "kept",
+  accidental: "released",
+  undecided: "set-aside",
+};
+
+const STATUS_LABEL: Record<CurationStatus, string> = {
+  pending: "Awaiting",
+  intentional: "Kept",
+  accidental: "Released",
+  undecided: "Set aside",
+};
 
 export default async function EntryDetailPage({
   params,
@@ -26,53 +51,57 @@ export default async function EntryDetailPage({
     const all = await daemonJson<Observation[]>("/observations");
     observations = all.filter((o) => o.entryId === id);
   } catch {
-    // Observations loading failure is non-fatal
+    // Observations are non-fatal
   }
 
   const hasObservations = observations.length > 0;
 
   return (
-    <div className={hasObservations ? styles.layout : styles.layoutFullWidth}>
-      <section className={styles.entryPane}>
-        <Link href="/entries" className={styles.backLink}>
-          &larr; Entries
+    <div className={hasObservations ? "im-detail" : "im-page"}>
+      <section className={hasObservations ? "im-detail-main" : ""}>
+        <Link href="/entries" className="im-back">
+          ← The ledger
         </Link>
 
-        <div className={styles.entryDate}>{entry.date}</div>
-        {entry.title && <h1 className={styles.entryTitle}>{entry.title}</h1>}
-        <div className={styles.entryBody}>{entry.body}</div>
+        <div className="im-detail-date">{entry.date}</div>
+        {entry.title && <h1 className="im-detail-title">{entry.title}</h1>}
+        <div className="im-prose">{entry.body}</div>
 
         <EntryNudge entryId={id} />
       </section>
 
       {hasObservations && (
-        <aside className={styles.observerPane}>
-          <div className={styles.observerHeader}>
-            <span className={styles.observerLabel}>Observations</span>
-            <span className={styles.observerCount}>
-              {observations.length} observation{observations.length !== 1 ? "s" : ""}
-            </span>
+        <aside className="im-rail">
+          <div className="im-rail-head">
+            <div className="im-rail-title">Observations</div>
+            <div className="im-rail-count">
+              {observations.length} of {observations.length}
+            </div>
           </div>
 
-          <div className={styles.observationsList}>
-            {observations.map((obs) => (
-              <div key={obs.id} className={styles.obsCard}>
-                <div className={styles.obsDimension}>{obs.dimension}</div>
-                <div className={styles.obsText}>{obs.pattern}</div>
-                {obs.evidence && (
-                  <div className={styles.obsEvidence}>
-                    <div className={styles.obsEvidenceLabel}>from your entry</div>
-                    <div className={styles.obsEvidenceText}>
-                      &ldquo;{obs.evidence}&rdquo;
-                    </div>
-                  </div>
-                )}
-                <div className={styles.obsStatus}>
-                  {obs.status}
-                </div>
+          {observations.map((obs, i) => (
+            <div key={obs.id} className="im-note">
+              <div className="im-note-dim">
+                {DIMENSION_LABELS[obs.dimension] ?? obs.dimension}
               </div>
-            ))}
-          </div>
+              <p className="im-note-body">{obs.pattern}</p>
+              {obs.evidence && (
+                <div className="im-note-quote">
+                  <span className="qhead">From your entry</span>
+                  &ldquo;{obs.evidence}&rdquo;
+                </div>
+              )}
+              <div className="im-note-foot">
+                <span className={`im-stamp ${STATUS_CLASS[obs.status]}`}>
+                  <span className="pip" />
+                  {STATUS_LABEL[obs.status]}
+                </span>
+                <span className="im-rail-count">
+                  № {String(i + 1).padStart(2, "0")}
+                </span>
+              </div>
+            </div>
+          ))}
         </aside>
       )}
     </div>

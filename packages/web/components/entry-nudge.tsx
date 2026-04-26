@@ -4,7 +4,6 @@ import { useState, useCallback, useEffect, useRef } from "react";
 import { requestNudge } from "@/lib/api";
 import type { CraftNudge, NudgeResponse } from "@ink-mirror/shared";
 import { NudgeResults } from "./nudge-results";
-import styles from "./entry-nudge.module.css";
 
 type ResultState = {
   nudges: CraftNudge[];
@@ -94,9 +93,9 @@ export function EntryNudge({ entryId }: { entryId: string }) {
 
   if (!result && !nudgeError) {
     return (
-      <div className={styles.nudgeWrapper}>
+      <div style={{ marginTop: 28, maxWidth: 720 }}>
         <button
-          className={styles.nudgeBtn}
+          className="btn btn-sm"
           onClick={() => void runNudge(false)}
           disabled={nudging}
         >
@@ -107,18 +106,16 @@ export function EntryNudge({ entryId }: { entryId: string }) {
   }
 
   return (
-    <div className={styles.nudgeWrapper}>
+    <div style={{ marginTop: 28, maxWidth: 720 }}>
       <NudgeResults
         nudges={result?.nudges ?? []}
         error={nudgeError ?? undefined}
       />
       {result && result.nudges.length > 0 && (
-        <div className={styles.savedRow}>
-          <span className={styles.savedLabel}>
-            {formatSavedLabel(result.generatedAt, result.stale)}
-          </span>
+        <div className="im-nudge-saved">
+          <span>{formatSavedLabel(result.generatedAt, result.stale)}</span>
           <button
-            className={styles.nudgeBtn}
+            className="btn btn-sm"
             onClick={() => void runNudge(true)}
             disabled={nudging}
           >
@@ -127,9 +124,9 @@ export function EntryNudge({ entryId }: { entryId: string }) {
         </div>
       )}
       {nudgeError && (!result || result.nudges.length === 0) && (
-        <div className={styles.savedRow}>
+        <div className="im-nudge-saved">
           <button
-            className={styles.nudgeBtn}
+            className="btn btn-sm"
             onClick={() => void runNudge(false)}
             disabled={nudging}
           >

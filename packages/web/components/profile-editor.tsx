@@ -1,9 +1,8 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { updateProfileRule, deleteProfileRule, replaceProfile } from "@/lib/api";
 import type { Profile, ProfileRule } from "@ink-mirror/shared";
-import styles from "./profile-editor.module.css";
 
 interface ProfileEditorProps {
   initialProfile: Profile & { markdown: string };
@@ -27,9 +26,7 @@ export function ProfileEditor({ initialProfile }: ProfileEditorProps) {
           const updated = await updateProfileRule(ruleId, { pattern: editValue });
           setProfile((prev) => ({
             ...prev,
-            rules: prev.rules.map((r) =>
-              r.id === ruleId ? updated : r,
-            ),
+            rules: prev.rules.map((r) => (r.id === ruleId ? updated : r)),
           }));
           setEditing(null);
         } catch (err) {
@@ -75,89 +72,124 @@ export function ProfileEditor({ initialProfile }: ProfileEditorProps) {
     }
   }, [markdownContent]);
 
+  const rulesByDimension = useMemo(() => {
+    const grouped: Record<string, ProfileRule[]> = {};
+    for (const rule of profile.rules) {
+      const dim = rule.dimension;
+      if (!grouped[dim]) grouped[dim] = [];
+      grouped[dim].push(rule);
+    }
+    return grouped;
+  }, [profile.rules]);
+
   if (markdownMode) {
     return (
-      <div className={styles.container}>
-        <div className={styles.markdownHeader}>
-          <span className={styles.sectionTitle}>Edit Profile (Markdown)</span>
-          <div className={styles.markdownHeaderActions}>
-            <button onClick={() => setMarkdownMode(false)} className={styles.subtleBtn}>
+      <div className="im-hand">
+        <div className="im-hand-head">
+          <div>
+            <div className="eyebrow">Your hand</div>
+            <h1>Edit as markdown</h1>
+            <div className="sub">
+              The whole profile, raw. Save replaces every rule.
+            </div>
+          </div>
+          <div style={{ display: "flex", gap: 8 }}>
+            <button className="btn btn-sm btn-ghost" onClick={() => setMarkdownMode(false)}>
               Cancel
             </button>
-            <button onClick={() => void handleSaveMarkdown()} disabled={saving} className={styles.primaryBtn}>
-              {saving ? "Saving..." : "Save"}
+            <button
+              className="btn btn-primary btn-sm"
+              onClick={() => void handleSaveMarkdown()}
+              disabled={saving}
+            >
+              {saving ? "Saving…" : "Save"}
             </button>
           </div>
         </div>
-        {error && <div className={styles.error}>{error}</div>}
+        {error && <div className="im-error">{error}</div>}
         <textarea
+          className="im-markdown"
           value={markdownContent}
           onChange={(e) => setMarkdownContent(e.target.value)}
           rows={20}
-          className={styles.markdownTextarea}
         />
       </div>
     );
   }
 
-  const rulesByDimension: Record<string, ProfileRule[]> = {};
-  for (const rule of profile.rules) {
-    const dim = rule.dimension;
-    if (!rulesByDimension[dim]) rulesByDimension[dim] = [];
-    rulesByDimension[dim].push(rule);
-  }
+  const totalRules = profile.rules.length;
+  const dimensionEntries = Object.entries(rulesByDimension);
 
   return (
-    <div className={styles.container}>
-      <div className={styles.header}>
-        <span className={styles.sectionTitle}>Style Profile</span>
-        <button onClick={() => setMarkdownMode(true)} className={styles.subtleBtn}>
-          Edit as Markdown
-        </button>
+    <div className="im-hand">
+      <div className="im-hand-head">
+        <div>
+          <div className="eyebrow">Your hand</div>
+          <h1>The way you write</h1>
+          <div className="sub">
+            {totalRules === 0
+              ? "Drawn from nothing yet. Sift observations to build your hand."
+              : `${totalRules} rule${totalRules === 1 ? "" : "s"} confirmed across your entries.`}
+          </div>
+        </div>
+        <div style={{ display: "flex", gap: 8 }}>
+          <button className="btn btn-sm btn-ghost" onClick={() => setMarkdownMode(true)}>
+            Edit as markdown
+          </button>
+        </div>
       </div>
 
-      {error && <div className={styles.error}>{error}</div>}
+      {error && <div className="im-error">{error}</div>}
 
-      {profile.rules.length === 0 ? (
-        <p className={styles.empty}>
-          No profile rules yet. Write entries and curate observations to build your style profile.
+      {totalRules === 0 ? (
+        <p className="im-ledger-sub">
+          No profile rules yet. Write entries and sift observations to build your hand.
         </p>
       ) : (
-        Object.entries(rulesByDimension).map(([dimension, rules]) => (
-          <div key={dimension} className={styles.dimensionSection}>
-            <div className={styles.dimensionLabel}>
-              {dimension.replace("-", " ")}
+        dimensionEntries.map(([dimension, rules]) => (
+          <div key={dimension} className="im-dim-section">
+            <div className="im-dim-head">
+              <h3>{dimension.replace(/-/g, " ")}</h3>
+              <span className="rule" />
+              <span className="ct">
+                {rules.length} rule{rules.length === 1 ? "" : "s"}
+              </span>
             </div>
             {rules.map((rule) => (
-              <div key={rule.id} className={styles.ruleCard}>
-                <div className={styles.ruleContent}>
+              <div key={rule.id} className="im-rule-row">
+                <div>
                   {editing === rule.id ? (
                     <input
                       type="text"
                       value={editValue}
                       onChange={(e) => setEditValue(e.target.value)}
-                      className={styles.ruleInput}
+                      className="im-markdown"
+                      style={{ minHeight: "auto", padding: 8, fontFamily: "var(--font-serif)" }}
                     />
                   ) : (
                     <>
-                      <div className={styles.rulePattern}>{rule.pattern}</div>
-                      <div className={styles.ruleSource}>{rule.sourceSummary}</div>
+                      <p className="im-rule-text">{rule.pattern}</p>
+                      <div className="im-rule-meta">
+                        <Pips n={rule.sourceCount} />
+                        <span>{rule.sourceSummary}</span>
+                      </div>
                     </>
                   )}
                 </div>
-                <div className={styles.ruleActions}>
+                <div className="im-rule-actions">
                   <button
+                    className="btn btn-sm btn-ghost"
                     onClick={() => void handleEditRule(rule.id)}
                     disabled={saving}
-                    className={styles.subtleBtn}
                   >
                     {editing === rule.id ? "Save" : "Edit"}
                   </button>
                   <button
+                    className="btn btn-sm btn-ghost"
                     onClick={() => void handleDeleteRule(rule.id)}
-                    className={styles.dangerBtn}
+                    style={{ color: "var(--oxblood-500)" }}
                   >
-                    Delete
+                    Remove
                   </button>
                 </div>
               </div>
@@ -166,5 +198,16 @@ export function ProfileEditor({ initialProfile }: ProfileEditorProps) {
         ))
       )}
     </div>
+  );
+}
+
+function Pips({ n, max = 6 }: { n: number; max?: number }) {
+  const filled = Math.max(0, Math.min(n, max));
+  return (
+    <span className="pips">
+      {Array.from({ length: max }).map((_, i) => (
+        <i key={i} className={i < filled ? "" : "dim"} />
+      ))}
+    </span>
   );
 }
