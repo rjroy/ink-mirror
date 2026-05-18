@@ -10,7 +10,9 @@
     "test": "bun test"
   },
   "dependencies": {
-    "@anthropic-ai/claude-agent-sdk": "^0.2.112",
+    "@earendil-works/pi-agent-core": "^0.75.1",
+    "@earendil-works/pi-ai": "^0.75.1",
+    "@earendil-works/pi-coding-agent": "^0.75.1",
     "@ink-mirror/shared": "workspace:*",
     "hono": "^4.0.0"
   }
