@@ -616,24 +616,6 @@ a { color: inherit; text-decoration: none; }
   padding-top: 8px;
   margin-top: 4px;
 }
-.im-stamp {
-  font-family: var(--font-display);
-  font-size: 10px;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-}
-.im-stamp .pip {
-  width: 6px; height: 6px; border-radius: 50%;
-  background: currentColor; opacity: 0.7;
-}
-.im-stamp.kept       { color: var(--moss-500); }
-.im-stamp.released   { color: var(--oxblood-500); }
-.im-stamp.set-aside  { color: var(--brass-700); }
-.im-stamp.awaiting   { color: var(--lapis-500); }
-
 /* =====================================================
    Sift — review session (was Curate)
    ===================================================== */
@@ -928,6 +910,45 @@ a { color: inherit; text-decoration: none; }
 }
 .im-rule-meta .pips i.dim { background: var(--rule); }
 .im-rule-actions { display: flex; gap: 6px; }
+
+/* Rule health (REQ-LPC-19/20/21) and provenance badges (REQ-LPC-16/18) */
+.im-health {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  padding: 2px 6px;
+  border-radius: var(--radius);
+  border: 1px solid currentColor;
+}
+.im-health-stale { color: var(--brass-700); }
+.im-health-drift { color: var(--oxblood-500); }
+.im-health-fine { color: var(--moss-500); }
+.im-badge {
+  display: inline-flex;
+  align-items: center;
+  font-family: var(--font-display);
+  font-size: 9.5px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  padding: 2px 7px;
+  border-radius: var(--radius);
+  border: 1px solid var(--rule);
+  color: var(--fg-3);
+}
+.im-badge-writer-asserted { border-color: var(--lapis-500); color: var(--lapis-500); }
+.im-badge-evidence-confirmed { border-color: var(--moss-500); color: var(--moss-500); }
+.im-badge-migrated { border-color: var(--brass-700); color: var(--brass-700); }
+.im-badge-unconfirmed { border-color: var(--brass-700); color: var(--brass-700); }
+.im-dossier-link {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--fg-3);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.im-dossier-link:hover { color: var(--fg-1); }
 
 /* Inline error */
 .im-error {

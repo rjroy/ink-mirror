@@ -7,9 +7,12 @@ export interface EventsDeps {
 }
 
 /**
- * SSE route for streaming observation events to clients.
+ * SSE route for streaming observation and pattern-ledger events to clients
+ * (REQ-LPC-29: the event contract is versioned, and pattern:* events ride
+ * the same stream as observation:created since they're both consequences
+ * of writing/curating in the same session).
  *
- * GET /events/observations - SSE stream of observation events
+ * GET /events/observations - SSE stream of observation:created and pattern:* events
  */
 export function createEventsRoutes(deps: EventsDeps): RouteModule {
   const app = new Hono();
@@ -17,15 +20,23 @@ export function createEventsRoutes(deps: EventsDeps): RouteModule {
 
   app.get("/events/observations", (c) => {
     return streamSSE(c, async (stream) => {
-      const unsub = eventBus.subscribe("observation:created", (obs) => {
-        void stream.writeSSE({
-          data: JSON.stringify(obs),
-          event: "observation",
-        });
-      });
+      const unsubs = [
+        eventBus.subscribe("observation:created", (obs) => {
+          void stream.writeSSE({ data: JSON.stringify(obs), event: "observation" });
+        }),
+        eventBus.subscribe("pattern:discovered", (event) => {
+          void stream.writeSSE({ data: JSON.stringify(event), event: "pattern:discovered" });
+        }),
+        eventBus.subscribe("pattern:proposal", (event) => {
+          void stream.writeSSE({ data: JSON.stringify(event), event: "pattern:proposal" });
+        }),
+        eventBus.subscribe("pattern:watch-resolved", (event) => {
+          void stream.writeSSE({ data: JSON.stringify(event), event: "pattern:watch-resolved" });
+        }),
+      ];
 
       stream.onAbort(() => {
-        unsub();
+        for (const unsub of unsubs) unsub();
       });
 
       // Heartbeat keeps Bun from killing the connection as idle

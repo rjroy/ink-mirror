@@ -55,10 +55,17 @@ export function createEntryRoutes(deps: EntriesDeps): RouteModule {
       }
     }
 
-    // Emit observation events for SSE subscribers
+    // Emit observation and pattern-discovery events for SSE subscribers
+    // (REQ-LPC-29: observation:created carries the resolved pattern
+    // reference already, via Observation.patternId; pattern:discovered
+    // covers observer-side discovery here, and routes/patterns.ts covers
+    // the detach-produces-a-new-candidate case separately).
     if (observeResult && eventBus) {
       for (const obs of observeResult.observations) {
         eventBus.emit("observation:created", obs);
+      }
+      for (const pattern of observeResult.discoveries) {
+        eventBus.emit("pattern:discovered", { pattern });
       }
     }
 

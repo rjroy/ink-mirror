@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { analyzeWordFrequency } from "../../src/metrics/word-frequency.js";
+import { analyzeWordFrequency, analyzeFunctionWordFrequency } from "../../src/metrics/word-frequency.js";
 
 describe("analyzeWordFrequency", () => {
   test("counts total tokens from all words, unique tokens from content words only", () => {
@@ -152,5 +152,50 @@ describe("analyzeWordFrequency", () => {
       const result = analyzeWordFrequency("hello world");
       expect(Object.keys(result.repeatedPhrases).length).toBe(0);
     });
+  });
+});
+
+describe("analyzeFunctionWordFrequency (REQ-LPC-9)", () => {
+  test("captures exactly the tokens content-word analysis discards", () => {
+    const text = "I am the one who is walking";
+    const content = analyzeWordFrequency(text);
+    const functionWords = analyzeFunctionWordFrequency(text);
+
+    // Every content-word key is absent from the function-word map, and
+    // vice versa: the two views partition the same token stream.
+    for (const word of Object.keys(content.tokenFrequencies)) {
+      expect(functionWords.tokenFrequencies[word]).toBeUndefined();
+    }
+    expect(functionWords.tokenFrequencies["i"]).toBe(1);
+    expect(functionWords.tokenFrequencies["am"]).toBe(1);
+    expect(functionWords.tokenFrequencies["the"]).toBe(1);
+    expect(functionWords.tokenFrequencies["who"]).toBe(1);
+    expect(functionWords.tokenFrequencies["is"]).toBe(1);
+  });
+
+  test("totalTokens sums the function-word map, not the whole entry", () => {
+    const result = analyzeFunctionWordFrequency("the cat sat on the mat");
+    // "the" x2, "on" x1 => 3 function-word tokens; "cat"/"sat"/"mat" excluded.
+    expect(result.totalTokens).toBe(3);
+    expect(result.tokenFrequencies["the"]).toBe(2);
+    expect(result.tokenFrequencies["on"]).toBe(1);
+  });
+
+  test("handles empty input without NaN", () => {
+    const result = analyzeFunctionWordFrequency("");
+    expect(result.tokenFrequencies).toEqual({});
+    expect(result.totalTokens).toBe(0);
+    expect(Number.isNaN(result.totalTokens)).toBe(false);
+  });
+
+  test("handles text with no function words at all", () => {
+    const result = analyzeFunctionWordFrequency("cat dog bird fish");
+    expect(result.tokenFrequencies).toEqual({});
+    expect(result.totalTokens).toBe(0);
+  });
+
+  test("is case-insensitive, matching analyzeWordFrequency's normalization", () => {
+    const result = analyzeFunctionWordFrequency("The THE the");
+    expect(result.tokenFrequencies["the"]).toBe(3);
   });
 });

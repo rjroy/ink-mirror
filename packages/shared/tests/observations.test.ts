@@ -4,7 +4,7 @@ import {
   RawObservationSchema,
   ObserverOutputSchema,
   ObservationDimensionSchema,
-  CurationStatusSchema,
+  PatternRefSchema,
 } from "../src/observations.js";
 
 describe("ObservationDimensionSchema", () => {
@@ -18,19 +18,6 @@ describe("ObservationDimensionSchema", () => {
   test("rejects invalid dimensions", () => {
     expect(() => ObservationDimensionSchema.parse("invalid")).toThrow();
     expect(() => ObservationDimensionSchema.parse("grammar")).toThrow();
-  });
-});
-
-describe("CurationStatusSchema", () => {
-  test("accepts all valid statuses", () => {
-    expect(CurationStatusSchema.parse("pending")).toBe("pending");
-    expect(CurationStatusSchema.parse("intentional")).toBe("intentional");
-    expect(CurationStatusSchema.parse("accidental")).toBe("accidental");
-    expect(CurationStatusSchema.parse("undecided")).toBe("undecided");
-  });
-
-  test("rejects invalid status", () => {
-    expect(() => CurationStatusSchema.parse("approved")).toThrow();
   });
 });
 
@@ -59,6 +46,84 @@ describe("RawObservationSchema", () => {
       evidence: "",
       dimension: "sentence-rhythm",
     });
+    expect(result.success).toBe(false);
+  });
+
+  test("accepts a raw observation without patternRef (pre-Phase-3 shape)", () => {
+    const result = RawObservationSchema.safeParse({
+      pattern: "Short sentence emphasis",
+      evidence: "I stopped. I turned.",
+      dimension: "sentence-rhythm",
+    });
+    expect(result.success).toBe(true);
+  });
+
+  test("accepts a raw observation with a patternRef to an existing pattern", () => {
+    const result = RawObservationSchema.safeParse({
+      pattern: "Short sentence emphasis",
+      evidence: "I stopped. I turned.",
+      dimension: "sentence-rhythm",
+      patternRef: { patternId: "pat-2026-07-09-001" },
+    });
+    expect(result.success).toBe(true);
+  });
+
+  test("accepts a raw observation with a patternRef declaring a new pattern", () => {
+    const result = RawObservationSchema.safeParse({
+      pattern: "Short sentence emphasis",
+      evidence: "I stopped. I turned.",
+      dimension: "sentence-rhythm",
+      patternRef: {
+        newPattern: {
+          statement: "Uses short sentences for emphasis",
+          dimension: "sentence-rhythm",
+        },
+      },
+    });
+    expect(result.success).toBe(true);
+  });
+});
+
+describe("PatternRefSchema (existing-ID vs. new-pattern XOR, REQ-LPC-4)", () => {
+  test("accepts patternId alone", () => {
+    const result = PatternRefSchema.safeParse({ patternId: "pat-2026-07-09-001" });
+    expect(result.success).toBe(true);
+  });
+
+  test("accepts newPattern alone", () => {
+    const result = PatternRefSchema.safeParse({
+      newPattern: {
+        statement: "Uses short sentences for emphasis",
+        dimension: "sentence-rhythm",
+      },
+    });
+    expect(result.success).toBe(true);
+  });
+
+  test("accepts newPattern with an unvalidated metricLink (downgrades to qualitative later, not rejected here)", () => {
+    const result = PatternRefSchema.safeParse({
+      newPattern: {
+        statement: "Uses short sentences for emphasis",
+        dimension: "sentence-rhythm",
+        metricLink: "not-a-real-registry-key",
+      },
+    });
+    expect(result.success).toBe(true);
+  });
+
+  test("rejects both patternId and newPattern present", () => {
+    const result = PatternRefSchema.safeParse({
+      patternId: "pat-2026-07-09-001",
+      newPattern: {
+        statement: "Uses short sentences for emphasis",
+        dimension: "sentence-rhythm",
+      },
+    });
+    expect(result.success).toBe(false);
+  });
+
+  test("rejects neither patternId nor newPattern present", () => {
+    const result = PatternRefSchema.safeParse({});
     expect(result.success).toBe(false);
   });
 });
@@ -101,14 +166,14 @@ describe("ObserverOutputSchema", () => {
 });
 
 describe("ObservationSchema", () => {
-  test("accepts full observation with all fields", () => {
+  test("accepts full observation with all fields (no status field, REQ-LPC-30)", () => {
     const result = ObservationSchema.safeParse({
       id: "obs-2026-03-27-001",
       entryId: "entry-2026-03-27-001",
+      patternId: "pat-2026-03-27-001",
       pattern: "Short sentences",
       evidence: "I stopped.",
       dimension: "sentence-rhythm",
-      status: "pending",
       createdAt: "2026-03-27T10:00:00.000Z",
       updatedAt: "2026-03-27T10:00:00.000Z",
     });

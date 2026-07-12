@@ -1,4 +1,4 @@
-import type { WordFrequencyAnalysis } from "@ink-mirror/shared";
+import type { WordFrequencyAnalysis, FunctionWordFrequencyAnalysis } from "@ink-mirror/shared";
 
 /**
  * Words that signal hedging or uncertainty.
@@ -213,4 +213,27 @@ export function analyzeWordFrequency(text: string): WordFrequencyAnalysis {
     intensifiers: filterBySet(allFrequencies, INTENSIFIERS),
     repeatedPhrases: findRepeatedPhrases(text),
   };
+}
+
+/**
+ * Analyze function-word frequencies: exactly the tokens STOP_WORDS filters
+ * out of analyzeWordFrequency's content-word map. Research finding (REQ-LPC-9):
+ * function words are the topic-independent style signal, so both the
+ * content-word and function-word views are kept, computed from the same
+ * tokenization but filtered to opposite sets.
+ */
+export function analyzeFunctionWordFrequency(text: string): FunctionWordFrequencyAnalysis {
+  const tokens = tokenize(text);
+  const allFrequencies = buildFrequencyMap(tokens);
+  const tokenFrequencies = filterBySet(allFrequencies, STOP_WORDS);
+
+  // totalTokens here is the function-word count specifically (sum of this
+  // map's counts), not the entry's overall word count — a denominator for
+  // per-function-word rates, distinct from WordFrequencyAnalysis.totalTokens.
+  let totalTokens = 0;
+  for (const count of Object.values(tokenFrequencies)) {
+    totalTokens += count;
+  }
+
+  return { tokenFrequencies, totalTokens };
 }

@@ -1,36 +1,11 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { daemonJson } from "@/lib/daemon";
-import type {
-  Entry,
-  Observation,
-  ObservationDimension,
-  CurationStatus,
-} from "@ink-mirror/shared";
+import { DIMENSION_LABELS } from "@ink-mirror/shared";
+import type { Entry, Observation } from "@ink-mirror/shared";
 import { EntryNudge } from "@/components/entry-nudge";
 
 export const dynamic = "force-dynamic";
-
-const DIMENSION_LABELS: Record<ObservationDimension, string> = {
-  "sentence-rhythm": "Sentence rhythm",
-  "word-level-habits": "Word habits",
-  "sentence-structure": "Sentence shape",
-  "paragraph-structure": "Paragraph shape",
-};
-
-const STATUS_CLASS: Record<CurationStatus, string> = {
-  pending: "awaiting",
-  intentional: "kept",
-  accidental: "released",
-  undecided: "set-aside",
-};
-
-const STATUS_LABEL: Record<CurationStatus, string> = {
-  pending: "Awaiting",
-  intentional: "Kept",
-  accidental: "Released",
-  undecided: "Set aside",
-};
 
 export default async function EntryDetailPage({
   params,
@@ -92,10 +67,14 @@ export default async function EntryDetailPage({
                 </div>
               )}
               <div className="im-note-foot">
-                <span className={`im-stamp ${STATUS_CLASS[obs.status]}`}>
-                  <span className="pip" />
-                  {STATUS_LABEL[obs.status]}
-                </span>
+                {/* Classification is a pattern-level concept now (REQ-LPC-13),
+                    not per-observation, so there's no per-observation status
+                    field on the schema anymore. Link through to the pattern's
+                    dossier instead (REQ-LPC-18's "why does it say this?"),
+                    which shows the real lifecycle status. */}
+                <Link href={`/patterns/${obs.patternId}`} className="im-dossier-link">
+                  View pattern →
+                </Link>
                 <span className="im-rail-count">
                   № {String(i + 1).padStart(2, "0")}
                 </span>

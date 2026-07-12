@@ -2,6 +2,7 @@ import { describe, expect, test } from "bun:test";
 import { createApp } from "../src/app.js";
 import { createEntryStore, type EntryStoreFs } from "../src/entry-store.js";
 import { createObservationStore, type ObservationStoreFs } from "../src/observation-store.js";
+import { createPatternStore, type PatternStoreFs } from "../src/pattern-store.js";
 import { createSessionRunner } from "../src/session-runner.js";
 import { observe } from "../src/observer.js";
 import { computeEntryMetrics } from "../src/metrics/index.js";
@@ -36,6 +37,28 @@ function mockFs(): EntryStoreFs & ObservationStoreFs & { files: Record<string, s
   };
 }
 
+function mockPatternFs(): PatternStoreFs & { files: Record<string, string> } {
+  const files: Record<string, string> = {};
+  return {
+    files,
+    async readdir(path: string): Promise<string[]> {
+      const prefix = path.endsWith("/") ? path : path + "/";
+      return Object.keys(files)
+        .filter((f) => f.startsWith(prefix))
+        .map((f) => f.slice(prefix.length))
+        .filter((f) => !f.includes("/"));
+    },
+    async readFile(path: string): Promise<string> {
+      if (!(path in files)) throw new Error(`ENOENT: ${path}`);
+      return files[path];
+    },
+    async writeFile(path: string, content: string): Promise<void> {
+      files[path] = content;
+    },
+    async mkdir(): Promise<void> {},
+  };
+}
+
 const SAMPLE_ENTRY =
   "I stopped. I turned. I left. The door closed behind me. I probably should have stayed longer, but I just couldn't take it anymore.";
 
@@ -45,11 +68,13 @@ const MOCK_OBSERVER_OUTPUT = JSON.stringify({
       pattern: "Three consecutive short declarative sentences",
       evidence: "I stopped. I turned. I left.",
       dimension: "sentence-rhythm",
+      patternRef: { newPattern: { statement: "Three consecutive short declarative sentences", dimension: "sentence-rhythm" } },
     },
     {
       pattern: 'Hedging with "just" and "probably"',
       evidence: "I probably should have stayed longer, but I just couldn't take it anymore.",
       dimension: "word-level-habits",
+      patternRef: { newPattern: { statement: "Hedges with 'just' and 'probably'", dimension: "word-level-habits" } },
     },
   ],
 });
@@ -60,16 +85,19 @@ const THREE_DIM_OBSERVER_OUTPUT = JSON.stringify({
       pattern: "Three consecutive short declarative sentences",
       evidence: "I stopped. I turned. I left.",
       dimension: "sentence-rhythm",
+      patternRef: { newPattern: { statement: "Three consecutive short declarative sentences", dimension: "sentence-rhythm" } },
     },
     {
       pattern: 'Hedging with "just" and "probably"',
       evidence: "I probably should have stayed longer, but I just couldn't take it anymore.",
       dimension: "word-level-habits",
+      patternRef: { newPattern: { statement: "Hedges with 'just' and 'probably'", dimension: "word-level-habits" } },
     },
     {
       pattern: "Consistent 'I + past tense' paragraph opener pattern",
       evidence: "I stopped.",
       dimension: "sentence-structure",
+      patternRef: { newPattern: { statement: "Consistent 'I + past tense' paragraph opener pattern", dimension: "sentence-structure" } },
     },
   ],
 });
@@ -99,6 +127,7 @@ describe("observer integration: entry submission triggers observations", () => {
         {
           sessionRunner,
           observationStore,
+          patternStore: createPatternStore({ patternsDir: "/data/patterns", fs: mockPatternFs() }),
           computeMetrics: computeEntryMetrics,
         },
         entryId,
@@ -128,7 +157,6 @@ describe("observer integration: entry submission triggers observations", () => {
     expect(json.observations[0].pattern).toBe(
       "Three consecutive short declarative sentences",
     );
-    expect(json.observations[0].status).toBe("pending");
     expect(json.observations[0].dimension).toBe("sentence-rhythm");
     expect(json.observations[1].dimension).toBe("word-level-habits");
 
@@ -196,6 +224,7 @@ describe("observer integration: entry submission triggers observations", () => {
         {
           sessionRunner,
           observationStore,
+          patternStore: createPatternStore({ patternsDir: "/data/patterns", fs: mockPatternFs() }),
           computeMetrics: computeEntryMetrics,
         },
         entryId,
@@ -226,7 +255,6 @@ describe("observer integration: entry submission triggers observations", () => {
       (o: { dimension: string }) => o.dimension === "sentence-structure",
     );
     expect(structureObs.pattern).toContain("opener pattern");
-    expect(structureObs.status).toBe("pending");
   });
 
   test("observations are stored with correct entry reference", async () => {
@@ -253,6 +281,7 @@ describe("observer integration: entry submission triggers observations", () => {
         {
           sessionRunner,
           observationStore,
+          patternStore: createPatternStore({ patternsDir: "/data/patterns", fs: mockPatternFs() }),
           computeMetrics: computeEntryMetrics,
         },
         entryId,

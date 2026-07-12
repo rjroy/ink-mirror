@@ -3,7 +3,7 @@
 import { useState, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { createEntry, requestNudge, subscribeObservations } from "@/lib/api";
-import type { Observation, CraftNudge } from "@ink-mirror/shared";
+import type { ObservationCreatedEvent, PatternDiscoveredEvent, CraftNudge } from "@ink-mirror/shared";
 import { NudgeResults } from "./nudge-results";
 
 function formatDate(): string {
@@ -15,12 +15,75 @@ function formatDate(): string {
   });
 }
 
+/**
+ * The live SSE stream of observations right after entry submission
+ * (REQ-LPC-11). Every one is a fresh sighting, not yet judged — its pattern
+ * may still be a brand-new candidate or years from crossing the promotion
+ * thresholds — so each is labeled "Unconfirmed" here, matching the honest,
+ * un-hedged tone of curation-panel.tsx's "Evidence still accumulating"
+ * copy. This is deliberately scoped to the immediate post-submission
+ * stream: the dossier/curation-panel views already show real classification
+ * state (candidate/intentional/accidental/etc.) and don't need this label.
+ * Exported as its own component (rather than inlined in JournalEditor) so
+ * it can be tested directly without needing a router or a live SSE
+ * connection.
+ */
+export function StreamedObservations({ observations }: { observations: ObservationCreatedEvent[] }) {
+  if (observations.length === 0) return null;
+  return (
+    <div className="im-nudge-section">
+      <div className="im-nudge-label">Observations</div>
+      {observations.map((obs) => (
+        <div key={obs.id} className="im-note">
+          <div className="im-note-dim">{obs.dimension}</div>
+          <p className="im-note-body">{obs.pattern}</p>
+          <span
+            className="im-badge im-badge-unconfirmed"
+            title="A sighting, not a confirmed pattern — it needs to cross the confirmation thresholds during curation first."
+          >
+            Unconfirmed
+          </span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/**
+ * A "new pattern noticed" banner for the same submission-scoped SSE window
+ * StreamedObservations covers (REQ-LPC-29). `pattern:discovered` fires when
+ * the Observer creates a brand-new candidate pattern while processing the
+ * just-submitted entry — that happens inside the same request/SSE-connection
+ * window this component's caller already has open, so surfacing it here is a
+ * natural extension of the existing stream rather than a new connection.
+ * (Detach-triggered `pattern:discovered` events, from routes/patterns.ts,
+ * fire during curation, outside this window, and are simply never observed
+ * here — there is no live listener open at that time.)
+ * Exported separately, like StreamedObservations, so it can be tested without
+ * a router or a live SSE connection.
+ */
+export function DiscoveredPatterns({ patterns }: { patterns: PatternDiscoveredEvent[] }) {
+  if (patterns.length === 0) return null;
+  return (
+    <div className="im-nudge-section">
+      <div className="im-nudge-label">New patterns</div>
+      {patterns.map(({ pattern }) => (
+        <div key={pattern.id} className="im-note">
+          <div className="im-note-dim">{pattern.dimension}</div>
+          <p className="im-note-body">New pattern noticed: {pattern.statement}</p>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export function JournalEditor() {
   const router = useRouter();
   const [body, setBody] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [streamedObservations, setStreamedObservations] = useState<Observation[]>([]);
+  const [streamedObservations, setStreamedObservations] = useState<ObservationCreatedEvent[]>([]);
+  const [discoveredPatterns, setDiscoveredPatterns] = useState<PatternDiscoveredEvent[]>([]);
   const [nudging, setNudging] = useState(false);
   const [nudges, setNudges] = useState<CraftNudge[]>([]);
   const [nudgeError, setNudgeError] = useState<string | null>(null);
@@ -37,9 +100,15 @@ export function JournalEditor() {
     setSubmitting(true);
     setError(null);
     setStreamedObservations([]);
+    setDiscoveredPatterns([]);
 
-    const cleanup = subscribeObservations((obs) => {
-      setStreamedObservations((prev) => [...prev, obs]);
+    const cleanup = subscribeObservations({
+      onObservation: (obs) => {
+        setStreamedObservations((prev) => [...prev, obs]);
+      },
+      onPatternDiscovered: (event) => {
+        setDiscoveredPatterns((prev) => [...prev, event]);
+      },
     });
 
     try {
@@ -114,17 +183,8 @@ export function JournalEditor() {
 
       <NudgeResults nudges={nudges} error={nudgeError ?? undefined} />
 
-      {streamedObservations.length > 0 && (
-        <div className="im-nudge-section">
-          <div className="im-nudge-label">Observations</div>
-          {streamedObservations.map((obs) => (
-            <div key={obs.id} className="im-note">
-              <div className="im-note-dim">{obs.dimension}</div>
-              <p className="im-note-body">{obs.pattern}</p>
-            </div>
-          ))}
-        </div>
-      )}
+      <DiscoveredPatterns patterns={discoveredPatterns} />
+      <StreamedObservations observations={streamedObservations} />
     </div>
   );
 }

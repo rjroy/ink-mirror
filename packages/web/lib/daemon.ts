@@ -13,8 +13,15 @@ import http from "node:http";
 
 import { join } from "node:path";
 
-const DATA_DIR = process.env.INK_MIRROR_DATA ?? join(process.env.HOME ?? ".", ".ink-mirror");
-const SOCKET_PATH = process.env.INK_MIRROR_SOCKET ?? join(DATA_DIR, "ink-mirror.sock");
+/**
+ * Resolved per-call (not cached at module load) so tests can point this
+ * client at a fake daemon by setting INK_MIRROR_SOCKET before a request,
+ * regardless of when this module was first imported.
+ */
+function getSocketPath(): string {
+  const dataDir = process.env.INK_MIRROR_DATA ?? join(process.env.HOME ?? ".", ".ink-mirror");
+  return process.env.INK_MIRROR_SOCKET ?? join(dataDir, "ink-mirror.sock");
+}
 
 export interface DaemonFetchOptions {
   method?: string;
@@ -32,7 +39,7 @@ function makeRequest(
   return new Promise<http.IncomingMessage>((resolve, reject) => {
     const req = http.request(
       {
-        socketPath: SOCKET_PATH,
+        socketPath: getSocketPath(),
         path,
         method,
         headers: bodyStr !== undefined

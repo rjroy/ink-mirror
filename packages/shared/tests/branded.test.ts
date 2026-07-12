@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { entryId, observationId } from "../src/branded.js";
+import { entryId, observationId, patternId, sightingId } from "../src/branded.js";
 
 describe("branded IDs", () => {
   test("entryId wraps a string", () => {
@@ -15,14 +15,30 @@ describe("branded IDs", () => {
     expect(typeof id).toBe("string");
   });
 
+  test("patternId wraps a string", () => {
+    const id = patternId("pat-2026-07-09-001");
+    expect(id).toBe("pat-2026-07-09-001" as unknown as typeof id);
+    expect(typeof id).toBe("string");
+  });
+
+  test("sightingId wraps a string", () => {
+    const id = sightingId("obs-2026-07-09-001");
+    expect(id).toBe("obs-2026-07-09-001" as unknown as typeof id);
+    expect(typeof id).toBe("string");
+  });
+
   // Type-level test: these would fail to compile if brands leaked.
   // Can't test compile-time constraints at runtime, but the types exist
   // and the constructors produce the correct runtime values.
   test("different branded IDs have distinct values", () => {
     const eid = entryId("same-string");
     const oid = observationId("same-string");
+    const pid = patternId("same-string");
+    const sid = sightingId("same-string");
     // Same runtime value, different compile-time types
     expect(eid).toBe("same-string" as unknown as typeof eid);
     expect(oid).toBe("same-string" as unknown as typeof oid);
+    expect(pid).toBe("same-string" as unknown as typeof pid);
+    expect(sid).toBe("same-string" as unknown as typeof sid);
   });
 });

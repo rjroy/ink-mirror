@@ -1,12 +1,12 @@
 import { NextResponse } from "next/server";
 import { daemonFetch } from "@/lib/daemon";
 
-export async function GET(request: Request) {
+// The `?status=` filter this proxy used to forward is gone (REQ-LPC-30):
+// classification moved to pattern grain, and the daemon's GET /observations
+// no longer has a per-observation status to filter by.
+export async function GET() {
   try {
-    const { searchParams } = new URL(request.url);
-    const status = searchParams.get("status");
-    const path = status ? `/observations?status=${status}` : "/observations";
-    const res = await daemonFetch(path);
+    const res = await daemonFetch("/observations");
     const data = await res.json();
     return NextResponse.json(data, { status: res.status });
   } catch {

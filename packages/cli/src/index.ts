@@ -4,7 +4,7 @@ import { createDaemonClient } from "./client.js";
 import { resolveCommand, formatHelpTree } from "./discovery.js";
 import { executeOperation } from "./executor.js";
 import { writeEntry } from "./write.js";
-import { curateObservations } from "./curate.js";
+import { curatePatterns } from "./curate.js";
 import { showProfile, editProfile } from "./profile.js";
 
 const DATA_DIR = process.env.INK_MIRROR_DATA ?? join(process.env.HOME ?? ".", ".ink-mirror");
@@ -20,9 +20,9 @@ async function main(): Promise<void> {
     return;
   }
 
-  // "curate" is interactive: presents observations one at a time
+  // "curate" is interactive: presents pattern dossiers one at a time
   if (args[0] === "curate") {
-    await curateObservations(client);
+    await curatePatterns(client);
     return;
   }
 

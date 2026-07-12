@@ -3,8 +3,6 @@ import {
   createProfileStore,
   profileToMarkdown,
   profileFromMarkdown,
-  transformToStablePattern,
-  patternsMatch,
 } from "../src/profile-store.js";
 import type { Profile } from "@ink-mirror/shared";
 
@@ -45,54 +43,6 @@ function createTestStore(files?: Map<string, string>) {
     files: mock.files,
   };
 }
-
-// --- transformToStablePattern ---
-
-describe("transformToStablePattern", () => {
-  test("strips 'in this entry' references", () => {
-    const result = transformToStablePattern("Used short sentences in this entry for emphasis");
-    expect(result).toBe("Uses short sentences for emphasis");
-  });
-
-  test("strips 'in the March entry' references", () => {
-    const result = transformToStablePattern("Employed staccato rhythm in the March entry");
-    expect(result).toBe("Employs staccato rhythm");
-  });
-
-  test("strips 'today's entry' references", () => {
-    const result = transformToStablePattern("Relied on hedging words in today's entry");
-    expect(result).toBe("Relies on hedging words");
-  });
-
-  test("converts past tense to present tense", () => {
-    expect(transformToStablePattern("Used staccato rhythm")).toBe("Uses staccato rhythm");
-    expect(transformToStablePattern("Relied on short sentences")).toBe("Relies on short sentences");
-    expect(transformToStablePattern("Favored active voice")).toBe("Favors active voice");
-    expect(transformToStablePattern("Showed tendency to hedge")).toBe("Shows tendency to hedge");
-    expect(transformToStablePattern("Demonstrated variety in pacing")).toBe("Demonstrates variety in pacing");
-    expect(transformToStablePattern("Tended to use filler words")).toBe("Tends to use filler words");
-  });
-
-  test("preserves already-present tense patterns", () => {
-    const result = transformToStablePattern("Uses staccato rhythm for emphasis at paragraph endings");
-    expect(result).toBe("Uses staccato rhythm for emphasis at paragraph endings");
-  });
-
-  test("handles combined temporal reference and tense", () => {
-    const result = transformToStablePattern("Used four short sentences in the March 26 entry for emphasis");
-    expect(result).toBe("Uses four short sentences for emphasis");
-  });
-
-  test("capitalizes first letter", () => {
-    const result = transformToStablePattern("relies on hedging words");
-    expect(result).toBe("Relies on hedging words");
-  });
-
-  test("cleans up extra whitespace", () => {
-    const result = transformToStablePattern("Used   staccato   rhythm");
-    expect(result).toBe("Uses staccato rhythm");
-  });
-});
 
 // --- profileToMarkdown / profileFromMarkdown ---
 
@@ -198,6 +148,128 @@ describe("profileToMarkdown / profileFromMarkdown", () => {
     const md = "---\nversion: 99\nupdatedAt: 2026-01-01\n---\n\n# Profile\n";
     expect(profileFromMarkdown(md)).toBeUndefined();
   });
+
+  // --- version 1/2 acceptance (REQ-LPC-18/19: migration produces version 2) ---
+
+  test("accepts version 2 and reports it back on the parsed profile", () => {
+    const md = [
+      "---",
+      "version: 2",
+      "updatedAt: 2026-04-01T00:00:00.000Z",
+      "---",
+      "",
+      "# Writing Style Profile",
+      "",
+      "## Sentence Rhythm",
+      "",
+      "- **Uses staccato rhythm**",
+      "  *Confirmed across 1 entry* <!-- id:rule-sentence-rhythm-001 created:2026-04-01T00:00:00.000Z -->",
+      "",
+    ].join("\n");
+
+    const parsed = profileFromMarkdown(md);
+    expect(parsed).toBeDefined();
+    expect(parsed!.version).toBe(2);
+    expect(parsed!.rules).toHaveLength(1);
+  });
+
+  test("still accepts version 1 (pre-migration profiles keep parsing)", () => {
+    const md = "---\nversion: 1\nupdatedAt: 2026-01-01T00:00:00.000Z\n---\n\n# Writing Style Profile\n";
+    const parsed = profileFromMarkdown(md);
+    expect(parsed).toBeDefined();
+    expect(parsed!.version).toBe(1);
+  });
+
+  test("round-trip preserves version 2 rather than downgrading to 1", () => {
+    const profile: Profile = { version: 2, updatedAt: FIXED_TIME, rules: [] };
+    const md = profileToMarkdown(profile);
+    expect(md).toContain("version: 2");
+    const parsed = profileFromMarkdown(md);
+    expect(parsed!.version).toBe(2);
+  });
+
+  // --- headerToDimension: paragraph-structure regression ---
+
+  test("matches paragraph-structure when header uses the raw dimension key", () => {
+    const md = [
+      "---",
+      "version: 1",
+      "updatedAt: 2026-03-27T12:00:00.000Z",
+      "---",
+      "",
+      "# Writing Style Profile",
+      "",
+      "## paragraph-structure",
+      "",
+      "- **Alternates short and long paragraphs**",
+      "  *Confirmed across 1 entry* <!-- id:rule-paragraph-structure-001 -->",
+      "",
+    ].join("\n");
+
+    const profile = profileFromMarkdown(md);
+    expect(profile).toBeDefined();
+    expect(profile!.rules).toHaveLength(1);
+    expect(profile!.rules[0].dimension).toBe("paragraph-structure");
+  });
+
+  // --- baseline/lastSupportedAt round-trip (REQ-LPC-19/21) ---
+
+  test("round-trips baseline and lastSupportedAt through the markdown comment", () => {
+    const profile: Profile = {
+      version: 2,
+      updatedAt: FIXED_TIME,
+      rules: [
+        {
+          id: "rule-sentence-rhythm-001",
+          pattern: "Uses staccato rhythm for emphasis",
+          dimension: "sentence-rhythm",
+          sourceCount: 3,
+          sourceSummary: "Confirmed across 3 entries",
+          createdAt: FIXED_TIME,
+          updatedAt: FIXED_TIME,
+          patternId: "pat-2026-03-27-001",
+          provenance: "evidence-confirmed",
+          baseline: 12.5,
+          lastSupportedAt: "2026-04-01T00:00:00.000Z",
+        },
+      ],
+    };
+
+    const md = profileToMarkdown(profile);
+    expect(md).toContain("baseline:12.5");
+    expect(md).toContain("lastSupportedAt:2026-04-01T00:00:00.000Z");
+
+    const parsed = profileFromMarkdown(md);
+    expect(parsed).toBeDefined();
+    expect(parsed!.rules[0].baseline).toBe(12.5);
+    expect(parsed!.rules[0].lastSupportedAt).toBe("2026-04-01T00:00:00.000Z");
+  });
+
+  test("baseline/lastSupportedAt are omitted from the comment when absent, and stay undefined on parse", () => {
+    const profile: Profile = {
+      version: 1,
+      updatedAt: FIXED_TIME,
+      rules: [
+        {
+          id: "rule-sentence-rhythm-001",
+          pattern: "Uses staccato rhythm",
+          dimension: "sentence-rhythm",
+          sourceCount: 1,
+          sourceSummary: "Confirmed across 1 entry",
+          createdAt: FIXED_TIME,
+          updatedAt: FIXED_TIME,
+        },
+      ],
+    };
+
+    const md = profileToMarkdown(profile);
+    expect(md).not.toContain("baseline:");
+    expect(md).not.toContain("lastSupportedAt:");
+
+    const parsed = profileFromMarkdown(md);
+    expect(parsed!.rules[0].baseline).toBeUndefined();
+    expect(parsed!.rules[0].lastSupportedAt).toBeUndefined();
+  });
 });
 
 // --- ProfileStore ---
@@ -234,14 +306,17 @@ describe("ProfileStore", () => {
   });
 
   describe("addOrMergeRule", () => {
-    test("creates new rule from observation pattern", async () => {
+    test("creates a new rule using the pattern text as-is (no regex transform)", async () => {
+      // REQ-LPC-17: the regex-based transformToStablePattern promotion path
+      // is removed. Callers now always pass an already-canonical statement
+      // (a Pattern's `statement` field), so addOrMergeRule stores it verbatim.
       const { store, files } = createTestStore();
       const rule = await store.addOrMergeRule(
-        "Used staccato rhythm in this entry",
+        "Uses staccato rhythm for emphasis at paragraph endings",
         "sentence-rhythm",
       );
       expect(rule.id).toBe("rule-sentence-rhythm-001");
-      expect(rule.pattern).toBe("Uses staccato rhythm");
+      expect(rule.pattern).toBe("Uses staccato rhythm for emphasis at paragraph endings");
       expect(rule.sourceCount).toBe(1);
       expect(rule.sourceSummary).toBe("Confirmed across 1 entry");
       expect(rule.dimension).toBe("sentence-rhythm");
@@ -249,26 +324,29 @@ describe("ProfileStore", () => {
       // Verify persisted
       const md = files.get(PROFILE_PATH);
       expect(md).toBeDefined();
-      expect(md).toContain("Uses staccato rhythm");
+      expect(md).toContain("Uses staccato rhythm for emphasis at paragraph endings");
     });
 
-    test("merges duplicate patterns by incrementing source count", async () => {
+    test("without a patternId, two calls never merge even when the text is similar", async () => {
+      // REQ-LPC-17: the old word-overlap heuristic (patternsMatch) is gone.
+      // Identity is now structural (same patternId), so text similarity
+      // alone no longer merges two calls into one rule.
       const { store } = createTestStore();
       await store.addOrMergeRule("Uses staccato rhythm", "sentence-rhythm");
-      const merged = await store.addOrMergeRule(
-        "Uses staccato rhythm for emphasis",
-        "sentence-rhythm",
-      );
-      expect(merged.sourceCount).toBe(2);
-      expect(merged.sourceSummary).toBe("Confirmed across 2 entries");
+      const second = await store.addOrMergeRule("Uses staccato rhythm for emphasis", "sentence-rhythm");
+
+      expect(second.sourceCount).toBe(1);
+      const profile = await store.get();
+      expect(profile.rules).toHaveLength(2);
     });
 
     test("does not merge patterns from different dimensions", async () => {
       const { store } = createTestStore();
-      await store.addOrMergeRule("Uses short patterns", "sentence-rhythm");
+      await store.addOrMergeRule("Uses short patterns", "sentence-rhythm", { patternId: "pat-1" });
       const second = await store.addOrMergeRule(
         "Uses short patterns",
         "word-level-habits",
+        { patternId: "pat-1" },
       );
       expect(second.id).toBe("rule-word-level-habits-001");
       expect(second.sourceCount).toBe(1);
@@ -277,12 +355,84 @@ describe("ProfileStore", () => {
       expect(profile.rules).toHaveLength(2);
     });
 
+    test("merges into the existing rule when called again with the same patternId", async () => {
+      // Identity is by patternId + dimension, not text overlap: a second
+      // call for the same pattern updates the existing rule in place,
+      // taking sourceCount/sourceSummary from the caller's distinctEntryCount
+      // (the pattern's real entryIds.length, REQ-LPC-17/19) rather than an
+      // internal increment.
+      const { store } = createTestStore();
+      const first = await store.addOrMergeRule("Uses staccato rhythm", "sentence-rhythm", {
+        patternId: "pat-2026-03-27-001",
+        provenance: "writer-asserted",
+        distinctEntryCount: 1,
+      });
+      expect(first.patternId).toBe("pat-2026-03-27-001");
+
+      const merged = await store.addOrMergeRule(
+        "Uses staccato rhythm for emphasis",
+        "sentence-rhythm",
+        { patternId: "pat-2026-03-27-001", provenance: "evidence-confirmed", distinctEntryCount: 4 },
+      );
+
+      // Same rule (merged, not a new one), sourceCount reflects the pattern's
+      // real distinct-entry count, and provenance was updated.
+      expect(merged.id).toBe(first.id);
+      expect(merged.sourceCount).toBe(4);
+      expect(merged.sourceSummary).toBe("Confirmed across 4 entries");
+      expect(merged.patternId).toBe("pat-2026-03-27-001");
+      expect(merged.provenance).toBe("evidence-confirmed");
+
+      // Persisted, not just the in-memory return value.
+      const profile = await store.get();
+      expect(profile.rules).toHaveLength(1);
+      expect(profile.rules[0].sourceCount).toBe(4);
+      expect(profile.rules[0].provenance).toBe("evidence-confirmed");
+    });
+
     test("generates sequential IDs per dimension", async () => {
       const { store } = createTestStore();
       const r1 = await store.addOrMergeRule("Uses staccato rhythm for emphasis", "sentence-rhythm");
       const r2 = await store.addOrMergeRule("Alternates between long flowing sentences and abrupt stops", "sentence-rhythm");
       expect(r1.id).toBe("rule-sentence-rhythm-001");
       expect(r2.id).toBe("rule-sentence-rhythm-002");
+    });
+  });
+
+  describe("getRuleByPatternId", () => {
+    test("finds the rule linked to a pattern", async () => {
+      const { store } = createTestStore();
+      await store.addOrMergeRule("Uses staccato rhythm", "sentence-rhythm", { patternId: "pat-1" });
+      const found = await store.getRuleByPatternId("pat-1");
+      expect(found).toBeDefined();
+      expect(found!.patternId).toBe("pat-1");
+    });
+
+    test("returns undefined when no rule links to the pattern", async () => {
+      const { store } = createTestStore();
+      const found = await store.getRuleByPatternId("pat-nonexistent");
+      expect(found).toBeUndefined();
+    });
+  });
+
+  describe("reaffirmRule", () => {
+    test("sets lastSupportedAt to now and persists it", async () => {
+      const { store } = createTestStore();
+      const rule = await store.addOrMergeRule("Uses staccato rhythm", "sentence-rhythm");
+      expect(rule.lastSupportedAt).toBeUndefined();
+
+      const reaffirmed = await store.reaffirmRule(rule.id);
+      expect(reaffirmed).toBeDefined();
+      expect(reaffirmed!.lastSupportedAt).toBe(FIXED_TIME);
+
+      const profile = await store.get();
+      expect(profile.rules[0].lastSupportedAt).toBe(FIXED_TIME);
+    });
+
+    test("returns undefined for a non-existent rule", async () => {
+      const { store } = createTestStore();
+      const result = await store.reaffirmRule("rule-nonexistent");
+      expect(result).toBeUndefined();
     });
   });
 
@@ -374,55 +524,6 @@ describe("ProfileStore", () => {
       const { store } = createTestStore();
       await expect(store.replaceFromMarkdown("not markdown")).rejects.toThrow();
     });
-  });
-});
-
-// --- patternsMatch (F6: direct unit tests for the merge heuristic) ---
-
-describe("patternsMatch", () => {
-  test("matches exact patterns after normalization", () => {
-    expect(patternsMatch("Uses staccato rhythm", "uses staccato rhythm")).toBe(true);
-  });
-
-  test("matches when one contains the other", () => {
-    expect(patternsMatch("Uses staccato rhythm", "Uses staccato rhythm for emphasis")).toBe(true);
-  });
-
-  test("matches patterns with high word overlap (>=60%)", () => {
-    // "staccato rhythm paragraph endings" vs "staccato rhythm sentence endings"
-    // shared: staccato, rhythm, endings (3/4 = 75%)
-    expect(patternsMatch(
-      "Uses staccato rhythm at paragraph endings",
-      "Uses staccato rhythm at sentence endings",
-    )).toBe(true);
-  });
-
-  test("does not match patterns with low word overlap (<60%)", () => {
-    expect(patternsMatch(
-      "Uses short sentences for emphasis",
-      "Relies on hedging words in technical writing",
-    )).toBe(false);
-  });
-
-  test("does not match when one pattern has only short words", () => {
-    // After normalization and filtering words <3 chars, if nothing remains
-    expect(patternsMatch("is a", "at on")).toBe(false);
-  });
-
-  test("handles filler word stripping ('uses', 'tends to', etc.)", () => {
-    // After stripping "uses" and "tends to", core content should still compare
-    expect(patternsMatch(
-      "Uses hedging words in technical prose",
-      "Tends to use hedging words in technical prose",
-    )).toBe(true);
-  });
-
-  test("does not false-merge unrelated patterns with some shared words", () => {
-    // Only 1 shared word out of 3+ = below threshold
-    expect(patternsMatch(
-      "Short sentences at paragraph breaks",
-      "Long compound sentences with subordinate clauses",
-    )).toBe(false);
   });
 });
 

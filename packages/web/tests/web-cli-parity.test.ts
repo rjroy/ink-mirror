@@ -8,11 +8,15 @@ import { createObservationStore } from "../../daemon/src/observation-store.js";
 import { createProfileStore } from "../../daemon/src/profile-store.js";
 import { createEntryRoutes } from "../../daemon/src/routes/entries.js";
 import { createObservationRoutes } from "../../daemon/src/routes/observations.js";
+import { createPatternRoutes } from "../../daemon/src/routes/patterns.js";
 import { createProfileRoutes } from "../../daemon/src/routes/profile.js";
 import { createEventsRoutes } from "../../daemon/src/routes/events.js";
 import { createEventBus } from "../../daemon/src/event-bus.js";
+import { createPatternStore } from "../../daemon/src/pattern-store.js";
+import { createSnapshotStore } from "../../daemon/src/snapshot-store.js";
+import { DEFAULT_CONFIG } from "../../daemon/src/config.js";
 import type { Hono } from "hono";
-import type { Entry, EntryListItem, Observation, Profile, CurationSession, ObservationDimension } from "@ink-mirror/shared";
+import type { Entry, EntryListItem, Observation, Profile, PatternCurationSession } from "@ink-mirror/shared";
 
 /**
  * Tests that web API calls produce identical results to CLI calls
@@ -35,27 +39,33 @@ function req(path: string, opts?: { method?: string; body?: unknown }): Request 
 describe("web-cli parity", () => {
   let dataDir: string;
   let hono: Hono;
+  let patternStore: ReturnType<typeof createPatternStore>;
 
   beforeEach(() => {
     dataDir = mkdtempSync(join(tmpdir(), "ink-mirror-web-test-"));
     const entryStore = createEntryStore({ entriesDir: join(dataDir, "entries") });
     const observationStore = createObservationStore({ observationsDir: join(dataDir, "observations") });
+    patternStore = createPatternStore({ patternsDir: join(dataDir, "patterns") });
+    const snapshotStore = createSnapshotStore({ snapshotsDir: join(dataDir, "snapshots") });
     const profileStore = createProfileStore({ profilePath: join(dataDir, "profile.md") });
     const eventBus = createEventBus();
 
     const entryRoutes = createEntryRoutes({ entryStore, eventBus });
-    const observationRoutes = createObservationRoutes({
+    const observationRoutes = createObservationRoutes({ observationStore });
+    const patternRoutes = createPatternRoutes({
+      patternStore,
       observationStore,
       entryStore,
-      onIntentional: async (pattern, dimension) => {
-        await profileStore.addOrMergeRule(pattern, dimension as ObservationDimension);
-      },
+      snapshotStore,
+      profileStore,
+      config: DEFAULT_CONFIG,
+      eventBus,
     });
     const profileRoutes = createProfileRoutes({ profileStore });
     const eventsRoutes = createEventsRoutes({ eventBus });
 
     const app = createApp({
-      routeModules: [entryRoutes, observationRoutes, profileRoutes, eventsRoutes],
+      routeModules: [entryRoutes, observationRoutes, patternRoutes, profileRoutes, eventsRoutes],
       eventBus,
     });
     hono = app.hono;
@@ -95,14 +105,14 @@ describe("web-cli parity", () => {
     expect(list[1].preview).toBeDefined();
   });
 
-  test("GET /observations/pending returns curation session", async () => {
-    const pendingRes = await hono.request(req("/observations/pending"));
-    expect(pendingRes.status).toBe(200);
-    const session: CurationSession = await pendingRes.json();
+  test("GET /patterns/session returns the pattern curation session", async () => {
+    const sessionRes = await hono.request(req("/patterns/session"));
+    expect(sessionRes.status).toBe(200);
+    const session: PatternCurationSession = await sessionRes.json();
 
-    expect(session.observations).toBeDefined();
+    expect(session.dossiers).toBeDefined();
     expect(session.contradictions).toBeDefined();
-    expect(Array.isArray(session.observations)).toBe(true);
+    expect(Array.isArray(session.dossiers)).toBe(true);
     expect(Array.isArray(session.contradictions)).toBe(true);
   });
 
@@ -155,22 +165,89 @@ updatedAt: "2026-03-27T00:00:00.000Z"
     expect(res.status).toBe(400);
   });
 
-  test("PATCH /observations/:id rejects invalid ID format", async () => {
+  test("PATCH /observations/:id no longer exists (REQ-LPC-28: classification moved to pattern grain)", async () => {
     const res = await hono.request(
       req("/observations/not-an-obs-id", { method: "PATCH", body: { status: "intentional" } }),
     );
-    expect(res.status).toBe(400);
+    expect(res.status).toBe(404);
   });
 
-  test("GET /observations supports status filter", async () => {
-    const res = await hono.request(req("/observations?status=pending"));
+  test("GET /observations lists sightings without a status filter (REQ-LPC-30)", async () => {
+    const res = await hono.request(req("/observations"));
     expect(res.status).toBe(200);
     const obs: Observation[] = await res.json();
     expect(Array.isArray(obs)).toBe(true);
   });
 
-  test("GET /observations rejects invalid status filter", async () => {
-    const res = await hono.request(req("/observations?status=invalid"));
+  test("POST /patterns/:id/classify rejects an invalid pattern ID format", async () => {
+    const res = await hono.request(
+      req("/patterns/not-a-pattern-id/classify", { method: "POST", body: { status: "intentional" } }),
+    );
+    expect(res.status).toBe(400);
+  });
+
+  test("GET /patterns/watch returns an empty watch list before any pattern is classified accidental", async () => {
+    const res = await hono.request(req("/patterns/watch"));
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(Array.isArray(body.watchList)).toBe(true);
+    expect(body.watchList).toHaveLength(0);
+  });
+
+  test("GET /patterns?status= filters the ledger by lifecycle status (REQ-LPC-1)", async () => {
+    const res = await hono.request(req("/patterns?status=intentional"));
+    expect(res.status).toBe(200);
+    const patterns = await res.json();
+    expect(Array.isArray(patterns)).toBe(true);
+  });
+
+  test("GET /patterns?status= rejects an invalid status value", async () => {
+    const res = await hono.request(req("/patterns?status=not-a-real-status"));
+    expect(res.status).toBe(400);
+  });
+
+  test("GET /patterns/:id returns 404 for a well-formed but nonexistent pattern ID", async () => {
+    const res = await hono.request(req("/patterns/pat-2026-01-01-999"));
+    expect(res.status).toBe(404);
+  });
+
+  test("POST /patterns/:id/promote returns 404 for a nonexistent pattern", async () => {
+    const res = await hono.request(req("/patterns/pat-2026-01-01-999/promote", { method: "POST" }));
+    expect(res.status).toBe(404);
+  });
+
+  test("POST /patterns/:id/dismiss returns 404 for a nonexistent pattern", async () => {
+    const res = await hono.request(req("/patterns/pat-2026-01-01-999/dismiss", { method: "POST" }));
+    expect(res.status).toBe(404);
+  });
+
+  test("POST /patterns/:id/retire returns 404 for a nonexistent pattern", async () => {
+    const res = await hono.request(req("/patterns/pat-2026-01-01-999/retire", { method: "POST" }));
+    expect(res.status).toBe(404);
+  });
+
+  test("POST /patterns/:id/reactivate rejects a pattern that isn't retired", async () => {
+    // A freshly-created pattern is "candidate", not "retired" — the route
+    // should reject reactivating it (409), the same rule the daemon and CLI
+    // both enforce (REQ-LPC-22). This suite has no observer wired
+    // (no onEntryCreated), so the pattern is created directly rather than
+    // via entry submission.
+    const pattern = await patternStore.create({
+      statement: "Candidate pattern for reactivate parity check",
+      dimension: "sentence-rhythm",
+    });
+    const res = await hono.request(req(`/patterns/${pattern.id}/reactivate`, { method: "POST" }));
+    expect(res.status).toBe(409);
+  });
+
+  test("POST /patterns/:id/merge rejects merging a pattern into itself", async () => {
+    const pattern = await patternStore.create({
+      statement: "Pattern for self-merge parity check",
+      dimension: "sentence-rhythm",
+    });
+    const res = await hono.request(
+      req(`/patterns/${pattern.id}/merge`, { method: "POST", body: { duplicateId: pattern.id } }),
+    );
     expect(res.status).toBe(400);
   });
 });
