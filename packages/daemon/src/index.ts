@@ -26,8 +26,10 @@ import { createProfileRoutes } from "./routes/profile.js";
 import { createEventsRoutes } from "./routes/events.js";
 import { createNudgeRoutes } from "./routes/nudge.js";
 
-const DATA_DIR = process.env.INK_MIRROR_DATA ?? join(process.env.HOME ?? ".", ".ink-mirror");
-const SOCKET_PATH = process.env.INK_MIRROR_SOCKET ?? join(DATA_DIR, "ink-mirror.sock");
+const DATA_DIR =
+  process.env.INK_MIRROR_DATA ?? join(process.env.HOME ?? ".", ".ink-mirror");
+const SOCKET_PATH =
+  process.env.INK_MIRROR_SOCKET ?? join(DATA_DIR, "ink-mirror.sock");
 // INK_MIRROR_MODEL format: "provider:modelId" — e.g. "anthropic:claude-opus-4-7",
 // "openrouter:openrouter/free". The modelId may contain slashes; we split on the
 // first colon only. Pi resolves credentials via AuthStorage when prompt() runs.
@@ -83,6 +85,10 @@ let piBindings: Promise<PiBindings> | undefined;
 
 async function getPiBindings(): Promise<PiBindings> {
   if (piBindings) return piBindings;
+  const bindingsStart = performance.now();
+  console.log(
+    "[pi-agent] resolving bindings (first call only — cached after this)...",
+  );
   piBindings = (async () => {
     const {
       AuthStorage,
@@ -93,6 +99,9 @@ async function getPiBindings(): Promise<PiBindings> {
       createAgentSession,
       getAgentDir,
     } = await import("@earendil-works/pi-coding-agent");
+    console.log(
+      `[pi-agent] pi-coding-agent module loaded (${(performance.now() - bindingsStart).toFixed(0)}ms)`,
+    );
 
     const cwd = process.cwd();
     const agentDir = getAgentDir();
@@ -108,6 +117,9 @@ async function getPiBindings(): Promise<PiBindings> {
     }
     const provider = MODEL_SPEC.slice(0, sep);
     const modelId = MODEL_SPEC.slice(sep + 1);
+    console.log(
+      `[pi-agent] bindings ready (${(performance.now() - bindingsStart).toFixed(0)}ms): provider=${provider} modelId=${modelId}`,
+    );
 
     return {
       createAgentSession,
@@ -125,10 +137,23 @@ async function getPiBindings(): Promise<PiBindings> {
   return piBindings;
 }
 
-async function productionQueryFn(request: SessionRequest): Promise<{ content: string }> {
-  const pi = await getPiBindings();
+async function productionQueryFn(
+  request: SessionRequest,
+): Promise<{ content: string }> {
+  // Every stage below is logged with its own elapsed time. Before this, the
+  // entire function was one opaque `await` chain from the session-runner's
+  // "calling LLM..." log to either the final response or a fatal-error log
+  // — if it hung partway through, there was no way to tell which stage
+  // never returned. Each stage timestamp answers that directly.
+  const callStart = performance.now();
+  const elapsed = () => (performance.now() - callStart).toFixed(0);
 
-  const lastUserMsg = [...request.messages].reverse().find((m) => m.role === "user");
+  const pi = await getPiBindings();
+  console.log(`[pi-agent] bindings resolved (${elapsed()}ms total)`);
+
+  const lastUserMsg = [...request.messages]
+    .reverse()
+    .find((m) => m.role === "user");
   if (!lastUserMsg) {
     throw new Error("session-runner: request has no user message");
   }
@@ -146,8 +171,10 @@ async function productionQueryFn(request: SessionRequest): Promise<{ content: st
     noSkills: true,
     noPromptTemplates: true,
     noThemes: true,
+    noExtensions: true,
   });
   await loader.reload();
+  console.log(`[pi-agent] resource loader reloaded (${elapsed()}ms total)`);
 
   const { session, modelFallbackMessage } = await pi.createAgentSession({
     cwd: pi.cwd,
@@ -160,6 +187,7 @@ async function productionQueryFn(request: SessionRequest): Promise<{ content: st
     // Observer/nudger generate text, not tool calls.
     noTools: "all",
   });
+  console.log(`[pi-agent] agent session created (${elapsed()}ms total)`);
   if (modelFallbackMessage) {
     console.warn(`[pi-agent] ${modelFallbackMessage}`);
   }
@@ -169,6 +197,7 @@ async function productionQueryFn(request: SessionRequest): Promise<{ content: st
   // Look up + setModel must happen after this; the constructor-time `model`
   // option on createAgentSession does not actually wire the model in.
   await session.bindExtensions({});
+  console.log(`[pi-agent] extensions bound (${elapsed()}ms total)`);
 
   const model = session.modelRegistry.find(pi.provider, pi.modelId);
   if (!model) {
@@ -178,12 +207,70 @@ async function productionQueryFn(request: SessionRequest): Promise<{ content: st
     );
   }
   await session.setModel(model);
+  console.log(
+    `[pi-agent] model set: ${pi.provider}/${pi.modelId} (${elapsed()}ms total)`,
+  );
 
-  await session.prompt(lastUserMsg.content);
+  // Subscribed before prompt() so the first-token timestamp is visible even
+  // if the overall call is still in flight — the only way to tell "no
+  // response yet because generation hasn't started" apart from "no response
+  // yet because it's mid-generation" without waiting for the whole thing to
+  // finish or time out.
+  let firstTokenAt: number | undefined;
+  const unsubscribe = session.subscribe((event) => {
+    if (
+      firstTokenAt === undefined &&
+      event.type === "message_update" &&
+      event.assistantMessageEvent?.type === "text_delta"
+    ) {
+      firstTokenAt = performance.now();
+      console.log(`[pi-agent] first token received (${elapsed()}ms total)`);
+    }
+  });
+  console.log("[pi-agent] prompt() starting...");
+  try {
+    await session.prompt(lastUserMsg.content);
+  } finally {
+    unsubscribe();
+  }
+  console.log(
+    `[pi-agent] prompt() resolved (${elapsed()}ms total` +
+      (firstTokenAt === undefined ? ", no text_delta ever observed" : "") +
+      ")",
+  );
 
-  const lastAssistant = [...session.messages].reverse().find((m) => m.role === "assistant");
+  const lastAssistant = [...session.messages]
+    .reverse()
+    .find((m) => m.role === "assistant");
   if (!lastAssistant || lastAssistant.role !== "assistant") {
     throw new Error("session-runner: agent produced no assistant message");
+  }
+
+  // Logged unconditionally (not just on the empty-text failure path below):
+  // provider/model/usage prove which model actually answered, and a
+  // non-empty diagnostics array means the SDK caught and recovered from an
+  // internal failure — e.g. a provider error that got silently retried —
+  // even though this message otherwise looks like a normal success. Without
+  // this, that recovery is invisible: the caller only ever sees the final
+  // text, never that the requested model wasn't the one that produced it.
+  console.log(
+    `[pi-agent] responded via ${lastAssistant.provider}/${lastAssistant.model}` +
+      (lastAssistant.responseModel &&
+      lastAssistant.responseModel !== lastAssistant.model
+        ? ` (responseModel=${lastAssistant.responseModel})`
+        : "") +
+      ` stopReason=${lastAssistant.stopReason} usage=${JSON.stringify(lastAssistant.usage)}`,
+  );
+  if (lastAssistant.diagnostics && lastAssistant.diagnostics.length > 0) {
+    for (const d of lastAssistant.diagnostics) {
+      console.warn(
+        `[pi-agent] diagnostic on this response: type=${d.type}` +
+          (d.error
+            ? ` error=${d.error.name ?? ""} ${d.error.message} (code=${d.error.code ?? "n/a"})`
+            : "") +
+          (d.details ? ` details=${JSON.stringify(d.details)}` : ""),
+      );
+    }
   }
 
   const text = lastAssistant.content
@@ -193,8 +280,11 @@ async function productionQueryFn(request: SessionRequest): Promise<{ content: st
 
   if (!text) {
     throw new Error(
-      `session-runner: assistant produced no text (stopReason=${lastAssistant.stopReason}` +
-        (lastAssistant.errorMessage ? `, error=${lastAssistant.errorMessage}` : "") +
+      `session-runner: assistant produced no text (provider=${lastAssistant.provider}/${lastAssistant.model}, ` +
+        `stopReason=${lastAssistant.stopReason}` +
+        (lastAssistant.errorMessage
+          ? `, error=${lastAssistant.errorMessage}`
+          : "") +
         ")",
     );
   }
@@ -226,7 +316,14 @@ export interface OnEntryCreatedDeps {
  */
 export function createOnEntryCreated(deps: OnEntryCreatedDeps) {
   const now = deps.now ?? (() => new Date().toISOString());
-  const { snapshotStore, sessionRunner, observationStore, patternStore, entryStore, profileStore } = deps;
+  const {
+    snapshotStore,
+    sessionRunner,
+    observationStore,
+    patternStore,
+    entryStore,
+    profileStore,
+  } = deps;
 
   return async (entryIdStr: string, entryText: string) => {
     const metrics = computeEntryMetrics(entryText);
@@ -289,11 +386,17 @@ const onEntryCreated = createOnEntryCreated({
 export let server: ReturnType<typeof Bun.serve> | undefined;
 
 if (import.meta.main) {
+  // Resolved once at import time from process.env — logged here so a
+  // daemon started from a shell where INK_MIRROR_DATA differs from what the
+  // CLI/web expect is visible immediately instead of discovered later as a
+  // silent "wrong directory" mismatch.
+  console.log(`[daemon] DATA_DIR=${DATA_DIR} SOCKET_PATH=${SOCKET_PATH}`);
+
   // Migration (REQ-LPC-27/30) must finish before any route can serve a
   // request: it's what brings profile.md and any pre-Phase-3 observation
   // files up to the shape every store/route below assumes. Idempotent — a
   // no-op after the first successful run.
-  await runMigration({
+  const migrationResult = await runMigration({
     patternStore,
     profileStore,
     observationStore,
@@ -302,10 +405,23 @@ if (import.meta.main) {
     sightingsDir: SIGHTINGS_DIR,
     dataDir: DATA_DIR,
   });
+  if (migrationResult.migrated) {
+    console.log(
+      `[migration] ran: profile=${migrationResult.profileMigrated} ` +
+        `legacyObservations=${migrationResult.legacyObservationsMigrated} ` +
+        `patternsCreated=${migrationResult.patternsCreated} backup=${migrationResult.backupDir}`,
+    );
+  } else {
+    console.log("[migration] nothing to migrate");
+  }
 
   const eventBus = createEventBus();
 
-  const entryRoutes = createEntryRoutes({ entryStore, onEntryCreated, eventBus });
+  const entryRoutes = createEntryRoutes({
+    entryStore,
+    onEntryCreated,
+    eventBus,
+  });
   const observationRoutes = createObservationRoutes({ observationStore });
   const patternRoutes = createPatternRoutes({
     patternStore,
@@ -330,7 +446,14 @@ if (import.meta.main) {
   });
 
   const { hono } = createApp({
-    routeModules: [entryRoutes, observationRoutes, patternRoutes, profileRoutes, eventsRoutes, nudgeRoutes],
+    routeModules: [
+      entryRoutes,
+      observationRoutes,
+      patternRoutes,
+      profileRoutes,
+      eventsRoutes,
+      nudgeRoutes,
+    ],
     eventBus,
   });
 
@@ -363,6 +486,7 @@ if (import.meta.main) {
       noSkills: true,
       noPromptTemplates: true,
       noThemes: true,
+      noExtensions: true,
     });
     await loader.reload();
     const { session } = await pi.createAgentSession({
@@ -386,6 +510,8 @@ if (import.meta.main) {
     console.log(`[pi-agent] using model ${pi.provider}/${pi.modelId}`);
     session.dispose();
   })().catch((err) => {
-    console.error(`[pi-agent] startup check failed: ${err instanceof Error ? err.message : err}`);
+    console.error(
+      `[pi-agent] startup check failed: ${err instanceof Error ? err.message : err}`,
+    );
   });
 }

@@ -87,9 +87,12 @@ export const RawObservationSchema = z.object({
 export type RawObservation = z.infer<typeof RawObservationSchema>;
 
 export const ObserverOutputSchema = z.object({
+  // min 0: an entry can genuinely have nothing that clears the curation
+  // bar (see buildSystemPrompt's Output Format section) — the schema must
+  // accept {"observations": []} rather than force the model to manufacture
+  // a weak observation just to satisfy a minimum.
   observations: z
     .array(RawObservationSchema)
-    .min(1)
     .max(3),
 });
 

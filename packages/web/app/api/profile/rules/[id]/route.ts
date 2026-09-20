@@ -11,7 +11,8 @@ export async function PATCH(
     const res = await daemonFetch(`/profile/rules/${id}`, { method: "PATCH", body });
     const data = await res.json();
     return NextResponse.json(data, { status: res.status });
-  } catch {
+  } catch (err) {
+    console.error(`[api] PATCH /api/profile/rules/:id failed:`, err);
     return NextResponse.json({ error: "Daemon unavailable" }, { status: 502 });
   }
 }
@@ -25,7 +26,8 @@ export async function DELETE(
     const res = await daemonFetch(`/profile/rules/${id}`, { method: "DELETE" });
     const data = await res.json();
     return NextResponse.json(data, { status: res.status });
-  } catch {
+  } catch (err) {
+    console.error(`[api] DELETE /api/profile/rules/:id failed:`, err);
     return NextResponse.json({ error: "Daemon unavailable" }, { status: 502 });
   }
 }

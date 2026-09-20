@@ -6,7 +6,8 @@ export async function GET() {
     const res = await daemonFetch("/entries");
     const data = await res.json();
     return NextResponse.json(data, { status: res.status });
-  } catch {
+  } catch (err) {
+    console.error(`[api] GET /api/entries failed:`, err);
     return NextResponse.json({ error: "Daemon unavailable" }, { status: 502 });
   }
 }
@@ -17,7 +18,8 @@ export async function POST(request: Request) {
     const res = await daemonFetch("/entries", { method: "POST", body });
     const data = await res.json();
     return NextResponse.json(data, { status: res.status });
-  } catch {
+  } catch (err) {
+    console.error(`[api] POST /api/entries failed:`, err);
     return NextResponse.json({ error: "Daemon unavailable" }, { status: 502 });
   }
 }

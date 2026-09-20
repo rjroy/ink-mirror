@@ -19,7 +19,8 @@ export async function GET() {
         Connection: "keep-alive",
       },
     });
-  } catch {
+  } catch (err) {
+    console.error(`[api] GET /api/events/observations failed:`, err);
     return new Response("Daemon unavailable", { status: 502 });
   }
 }

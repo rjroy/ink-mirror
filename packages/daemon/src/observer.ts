@@ -331,6 +331,8 @@ Your user message contains several sections, separated by horizontal rules:
 
 Respond with valid JSON only. No markdown fencing, no explanation outside the JSON. Each observation's \`patternRef\` includes exactly one of \`patternId\` (matching a ledger entry) or \`newPattern\` (a fresh discovery).
 
+If nothing in the entry clears the bar in Rule 2 — no habit is distinctive enough to name, or every candidate is a near-duplicate of an existing ledger pattern already declined by the writer — respond with \`{"observations": []}\` and nothing else. Never explain the absence of observations in prose; an empty array is a complete, valid response.
+
 {
   "observations": [
     {

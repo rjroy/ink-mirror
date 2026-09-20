@@ -147,9 +147,9 @@ describe("ObserverOutputSchema", () => {
     expect(three.success).toBe(true);
   });
 
-  test("rejects empty observations", () => {
+  test("accepts empty observations", () => {
     const result = ObserverOutputSchema.safeParse({ observations: [] });
-    expect(result.success).toBe(false);
+    expect(result.success).toBe(true);
   });
 
   test("rejects more than 3 observations", () => {

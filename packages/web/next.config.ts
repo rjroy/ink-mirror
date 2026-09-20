@@ -5,9 +5,12 @@ const nextConfig: NextConfig = {
   allowedDevOrigins: ["*.raptor-piranha.ts.net"],
   // @ink-mirror/shared's relative imports use explicit ".js" extensions
   // (Node16/NodeNext style, needed so `bun`/daemon/CLI can run the .ts
-  // sources directly). Neither webpack nor Turbopack resolve ".js" specifiers
-  // to ".ts" files by default when transpiling a workspace package's source
-  // — webpack needs resolve.extensionAlias to do it explicitly.
+  // sources directly). webpack needs resolve.extensionAlias to map those
+  // back to ".ts" when transpiling a workspace package's source. Turbopack
+  // has no equivalent (its resolveAlias only remaps exact bare specifiers,
+  // not extension patterns) — both `dev` and `build` scripts pass
+  // `--webpack` for this reason; don't switch either back to Turbopack
+  // without an alternative fix for this resolution.
   webpack: (config) => {
     config.resolve.extensionAlias = {
       ...config.resolve.extensionAlias,

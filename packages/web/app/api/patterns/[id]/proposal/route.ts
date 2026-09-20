@@ -11,7 +11,8 @@ export async function POST(
     const res = await daemonFetch(`/patterns/${id}/proposal`, { method: "POST", body });
     const data = await res.json();
     return NextResponse.json(data, { status: res.status });
-  } catch {
+  } catch (err) {
+    console.error(`[api] POST /api/patterns/:id/proposal failed:`, err);
     return NextResponse.json({ error: "Daemon unavailable" }, { status: 502 });
   }
 }

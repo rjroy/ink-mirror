@@ -6,7 +6,8 @@ export async function GET() {
     const res = await daemonFetch("/patterns/watch");
     const data = await res.json();
     return NextResponse.json(data, { status: res.status });
-  } catch {
+  } catch (err) {
+    console.error(`[api] GET /api/patterns/watch failed:`, err);
     return NextResponse.json({ error: "Daemon unavailable" }, { status: 502 });
   }
 }

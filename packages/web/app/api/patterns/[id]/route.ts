@@ -10,7 +10,8 @@ export async function GET(
     const res = await daemonFetch(`/patterns/${id}`);
     const data = await res.json();
     return NextResponse.json(data, { status: res.status });
-  } catch {
+  } catch (err) {
+    console.error(`[api] GET /api/patterns/:id failed:`, err);
     return NextResponse.json({ error: "Daemon unavailable" }, { status: 502 });
   }
 }

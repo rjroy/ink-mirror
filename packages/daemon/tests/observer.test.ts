@@ -480,11 +480,14 @@ describe("parseObserverOutput", () => {
     }
   });
 
-  test("rejects empty observations array", () => {
+  test("accepts empty observations array", () => {
     const result = parseObserverOutput(
       JSON.stringify({ observations: [] }),
     );
-    expect(result.success).toBe(false);
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data).toHaveLength(0);
+    }
   });
 
   test("rejects observation with missing pattern", () => {

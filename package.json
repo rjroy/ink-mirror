@@ -4,8 +4,8 @@
   "private": true,
   "workspaces": ["packages/*"],
   "scripts": {
-    "dev": "concurrently -n daemon,web -c blue,magenta 'bun run --filter @ink-mirror/daemon dev' 'bun run --filter @ink-mirror/web dev'",
-    "start": "bun run build && concurrently -n daemon,web -c blue,magenta 'bun run --filter @ink-mirror/daemon start' 'bun run --filter @ink-mirror/web start'",
+    "dev": "concurrently -n daemon,web -c blue,magenta 'cd packages/daemon && bun run dev' 'cd packages/web && bun run dev'",
+    "start": "bun run build && concurrently -n daemon,web -c blue,magenta 'cd packages/daemon && bun run start' 'cd packages/web && bun run start'",
     "build": "cd packages/web && bun run build",
     "test": "bun test packages/shared packages/daemon/tests packages/cli/tests packages/web/tests",
     "lint": "eslint",
