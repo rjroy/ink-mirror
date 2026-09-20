@@ -59,6 +59,12 @@ export interface ObserveResult {
   discoveries: Pattern[];
 }
 
+export interface ObserveOptions {
+  /** Called after a reflection has durably saved its accepted output, so the
+   * caller can retire the entry's previously current observations. */
+  replaceCurrentObservations?: (entryId: string, observationIds: string[]) => Promise<void>;
+}
+
 /**
  * Run the Observer on a submitted entry.
  * Returns stored observations and any validation errors.
@@ -75,6 +81,7 @@ export async function observe(
   entryId: string,
   entryText: string,
   precomputedMetrics?: EntryMetrics,
+  options: ObserveOptions = {},
 ): Promise<ObserveResult> {
   const { sessionRunner, observationStore, patternStore, computeMetrics } = deps;
   const ledgerCap = deps.ledgerCap ?? DEFAULT_CONFIG.ledgerCap;
@@ -139,6 +146,13 @@ export async function observe(
     }
     stored.push(resolution.observation);
     if (resolution.discoveredPattern) discoveries.push(resolution.discoveredPattern);
+  }
+
+  // A fully accepted empty response is a deliberate replacement. A response
+  // containing validation/storage errors but no accepted observations leaves
+  // the prior accepted set intact, matching the reflection UI's warning path.
+  if (options.replaceCurrentObservations && (stored.length > 0 || errors.length === 0)) {
+    await options.replaceCurrentObservations(entryId, stored.map((observation) => observation.id));
   }
 
   console.log(`[observer] done: ${stored.length} stored, ${errors.length} errors, ${discoveries.length} discovered`);

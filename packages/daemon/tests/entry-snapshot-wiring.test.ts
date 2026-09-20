@@ -20,7 +20,7 @@ import { createPatternStore, type PatternStoreFs } from "../src/pattern-store.js
 import { createSnapshotStore, type SnapshotStoreFs } from "../src/snapshot-store.js";
 import { createProfileStore, type ProfileStoreFs } from "../src/profile-store.js";
 import { createSessionRunner } from "../src/session-runner.js";
-import { createOnEntryCreated, type OnEntryCreatedDeps } from "../src/index.js";
+import { createOnEntryCreated, createOnEntryReflection, type OnEntryCreatedDeps } from "../src/index.js";
 import { mkdtempSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
@@ -173,8 +173,9 @@ describe("onEntryCreated wiring: compute once, snapshot, then observe (Phase 2 p
       now: () => "2026-07-10T10:00:00.000Z",
     };
     const onEntryCreated = createOnEntryCreated(deps);
+    const onEntryReflected = createOnEntryReflection(deps);
 
-    const entryRoutes = createEntryRoutes({ entryStore, onEntryCreated });
+    const entryRoutes = createEntryRoutes({ entryStore, onEntryCreated, onEntryReflected });
     const { hono } = createApp({ routeModules: [entryRoutes] });
 
     const createRes = await hono.request(
@@ -194,6 +195,21 @@ describe("onEntryCreated wiring: compute once, snapshot, then observe (Phase 2 p
 
     // The Observer still ran and stored its observation.
     expect(created.observations).toHaveLength(1);
+
+    const originalSnapshot = snapshotFs.files[`/data/snapshots/${created.id}.yaml`];
+    const reflectRes = await hono.request(req(`/entries/${created.id}/reflect`, { method: "POST" }));
+    expect(reflectRes.status).toBe(200);
+    // Reflection reuses the original metrics and never rewrites the entry's
+    // historical snapshot.
+    expect(snapshotFs.files[`/data/snapshots/${created.id}.yaml`]).toBe(originalSnapshot);
+    expect(callOrder).toEqual(["snapshot-saved", "observer-llm-call", "observer-llm-call"]);
+
+    // The initial observation is retained as history, but a reload can select
+    // only the single current reflection set.
+    const storedObservations = await observationStore.list();
+    expect(storedObservations).toHaveLength(2);
+    expect(storedObservations.filter((observation) => !observation.supersededAt)).toHaveLength(1);
+    expect(storedObservations.filter((observation) => observation.supersededAt)).toHaveLength(1);
 
     rmSync(entriesDir, { recursive: true, force: true });
   });

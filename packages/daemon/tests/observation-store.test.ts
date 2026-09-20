@@ -217,6 +217,38 @@ describe("observation store", () => {
     expect(obs).toBeUndefined();
   });
 
+  test("serializes overlapping reflection replacements and preserves the last accepted current set after reload", async () => {
+    const fs = mockFs();
+    const options = {
+      observationsDir: "/data/observations",
+      fs,
+      now: () => "2026-03-27T10:00:00.000Z",
+    };
+    const store = createObservationStore(options);
+
+    const prior = await store.save("entry-001", sampleRaw, SAMPLE_PATTERN_ID);
+    const firstReflection = await store.save("entry-001", {
+      ...sampleRaw,
+      pattern: "First overlapping reflection",
+    }, SAMPLE_PATTERN_ID);
+    const lastReflection = await store.save("entry-001", {
+      ...sampleRaw,
+      pattern: "Last overlapping reflection",
+    }, SAMPLE_PATTERN_ID);
+
+    await Promise.all([
+      store.replaceCurrentForEntry?.("entry-001", [firstReflection.id]),
+      store.replaceCurrentForEntry?.("entry-001", [lastReflection.id]),
+    ]);
+
+    const reloadedStore = createObservationStore(options);
+    const reloaded = await reloadedStore.list();
+    expect(reloaded.find((observation) => observation.id === prior.id)?.supersededAt).toBeDefined();
+    expect(reloaded.find((observation) => observation.id === firstReflection.id)?.supersededAt).toBeDefined();
+    expect(reloaded.filter((observation) => !observation.supersededAt).map((observation) => observation.id))
+      .toEqual([lastReflection.id]);
+  });
+
   describe("reassignPattern", () => {
     test("rewrites patternId and persists it, confirmed by a re-read", async () => {
       const fs = mockFs();

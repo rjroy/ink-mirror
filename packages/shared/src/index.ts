@@ -23,9 +23,11 @@ export {
   CreateEntryRequestSchema,
   EntrySchema,
   EntryListItemSchema,
+  ReflectEntryResponseSchema,
   type CreateEntryRequest,
   type Entry,
   type EntryListItem,
+  type ReflectEntryResponse,
 } from "./schemas.js";
 
 export {

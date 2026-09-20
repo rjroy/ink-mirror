@@ -500,7 +500,68 @@ export function createOnEntryCreated(deps: OnEntryCreatedDeps) {
   };
 }
 
+/**
+ * Re-observes an existing entry without changing its historical metrics
+ * snapshot. The original snapshot is reused for prompt consistency; entries
+ * created before snapshots existed use transiently computed metrics instead.
+ */
+export function createOnEntryReflection(deps: OnEntryCreatedDeps) {
+  const {
+    snapshotStore,
+    sessionRunner,
+    observationStore,
+    patternStore,
+    entryStore,
+    profileStore,
+  } = deps;
+
+  return async (entryIdStr: string, entryText: string) => {
+    const metrics = (await snapshotStore.get(entryIdStr))?.metrics ?? computeEntryMetrics(entryText);
+    return observe(
+      {
+        sessionRunner,
+        observationStore,
+        patternStore,
+        computeMetrics: computeEntryMetrics,
+        readStyleProfile: () => profileStore.toPromptMarkdown(),
+        listSnapshots: () => snapshotStore.listAll(),
+        ledgerCap: config.ledgerCap,
+        corpusSize: async () => (await entryStore.list()).length,
+        recentEntries: async (limit: number) => {
+          const items = await entryStore.list();
+          const recent = items.filter((item) => item.id !== entryIdStr).slice(0, limit);
+          const entries = [];
+          for (const item of recent) {
+            const entry = await entryStore.get(entryId(item.id));
+            if (entry) entries.push({ id: entry.id, body: entry.body });
+          }
+          return entries;
+        },
+      },
+      entryIdStr,
+      entryText,
+      metrics,
+      {
+        replaceCurrentObservations: async (entryId, observationIds) => {
+          if (!observationStore.replaceCurrentForEntry) {
+            throw new Error("observation store does not support reflection replacement");
+          }
+          await observationStore.replaceCurrentForEntry(entryId, observationIds);
+        },
+      },
+    );
+  };
+}
+
 const onEntryCreated = createOnEntryCreated({
+  snapshotStore,
+  sessionRunner,
+  observationStore,
+  patternStore,
+  entryStore,
+  profileStore,
+});
+const onEntryReflected = createOnEntryReflection({
   snapshotStore,
   sessionRunner,
   observationStore,
@@ -555,6 +616,7 @@ if (import.meta.main) {
   const entryRoutes = createEntryRoutes({
     entryStore,
     onEntryCreated,
+    onEntryReflected,
     eventBus,
   });
   const observationRoutes = createObservationRoutes({ observationStore });

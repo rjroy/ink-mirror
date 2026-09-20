@@ -64,6 +64,8 @@ export const ObservationSchema = z.object({
   validationStatus: ObservationValidationStatusSchema.default("verified"),
   validationWarnings: z.array(ObservationValidationWarningSchema).default([]),
   validationDiagnostics: z.array(ObservationValidationDiagnosticSchema).default([]),
+  /** Present when a later reflection replaced this observation for its entry. */
+  supersededAt: z.string().optional(),
   createdAt: z.string(),
   updatedAt: z.string(),
 });

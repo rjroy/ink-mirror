@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import type { Entry, EntryListItem, Pattern } from "@ink-mirror/shared";
+import type { Entry, EntryListItem, Observation, Pattern } from "@ink-mirror/shared";
 import type { EntryId } from "@ink-mirror/shared";
 import { createEntryRoutes, type ObserveFn } from "../src/routes/entries.js";
 import type { EntryStore } from "../src/entry-store.js";
@@ -255,17 +255,74 @@ describe("GET /entries/:id", () => {
   });
 });
 
+describe("POST /entries/:id/reflect", () => {
+  const entry: Entry = {
+    id: "entry-2026-03-27-001",
+    date: "2026-03-27",
+    body: "A stored entry remains unchanged.",
+  };
+  const observation: Observation = {
+    id: "obs-001",
+    entryId: entry.id,
+    patternId: "pat-001",
+    pattern: "Uses a concise declarative sentence",
+    evidence: ["A stored entry remains unchanged."],
+    dimension: "sentence-rhythm",
+    validationStatus: "verified",
+    validationWarnings: [],
+    validationDiagnostics: [],
+    createdAt: "2026-03-27T10:00:00.000Z",
+    updatedAt: "2026-03-27T10:00:00.000Z",
+  };
+
+  test("explicitly invokes the reflection observer without re-saving the entry", async () => {
+    const store = mockEntryStore([entry]);
+    const calls: Array<{ id: string; body: string }> = [];
+    const onEntryCreated: ObserveFn = async (id, body) => {
+      calls.push({ id, body });
+      return { observations: [observation], errors: [], discoveries: [] };
+    };
+    const { routes } = createEntryRoutes({ entryStore: store, onEntryReflected: onEntryCreated });
+
+    const res = await routes.request(req(`/entries/${entry.id}/reflect`, { method: "POST" }));
+
+    expect(res.status).toBe(200);
+    expect(calls).toEqual([{ id: entry.id, body: entry.body }]);
+    expect(store.entries).toEqual([entry]);
+    expect(await res.json()).toEqual({ observations: [observation], errors: [] });
+  });
+
+  test("returns observer validation errors as a successful warning response", async () => {
+    const store = mockEntryStore([entry]);
+    const onEntryCreated: ObserveFn = async () => ({
+      observations: [],
+      errors: ["candidate evidence was rejected"],
+      discoveries: [],
+    });
+    const { routes } = createEntryRoutes({ entryStore: store, onEntryReflected: onEntryCreated });
+
+    const res = await routes.request(req(`/entries/${entry.id}/reflect`, { method: "POST" }));
+
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({
+      observations: [],
+      errors: ["candidate evidence was rejected"],
+    });
+  });
+});
+
 describe("operations registration", () => {
-  test("registers create, list, and read operations", () => {
+  test("registers create, list, read, and reflect operations", () => {
     const store = mockEntryStore();
     const { operations } = createEntryRoutes({ entryStore: store });
 
-    expect(operations).toHaveLength(3);
+    expect(operations).toHaveLength(4);
 
     const ids = operations.map((o) => o.operationId);
     expect(ids).toContain("entries.create");
     expect(ids).toContain("entries.list");
     expect(ids).toContain("entries.read");
+    expect(ids).toContain("entries.reflect");
   });
 
   test("create operation has body and title parameters (F-07)", () => {

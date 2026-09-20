@@ -36,6 +36,9 @@ export interface ObservationStore {
   ): Promise<Observation>;
   list(): Promise<Observation[]>;
   get(id: ObservationId): Promise<Observation | undefined>;
+  /** Marks an entry's prior current observations as superseded, preserving
+   * them as history while making exactly `currentObservationIds` current. */
+  replaceCurrentForEntry?(entryId: string, currentObservationIds: string[]): Promise<void>;
   /**
    * Rewrites a stored observation's `patternId` (routes/patterns.ts detach
    * and merge, REQ-LPC-6 / planning decision 2). pattern-store.ts's
@@ -98,6 +101,7 @@ export function toYaml(obs: Observation | (Omit<Observation, keyof ObservationVa
     `validationStatus: ${validation.validationStatus}`,
     `validationWarnings: ${JSON.stringify(validation.validationWarnings)}`,
     `validationDiagnostics: ${JSON.stringify(validation.validationDiagnostics)}`,
+    ...(obs.supersededAt ? [`supersededAt: ${obs.supersededAt}`] : []),
     `createdAt: ${obs.createdAt}`,
     `updatedAt: ${obs.updatedAt}`,
     `pattern: |`,
@@ -193,6 +197,7 @@ export function fromYaml(content: string): Observation | undefined {
   const validationDiagnostics = parseValidationDiagnostics(scalar("validationDiagnostics"));
   const createdAt = scalar("createdAt");
   const updatedAt = scalar("updatedAt");
+  const supersededAt = scalar("supersededAt");
   const pattern = block("pattern");
   // Current files store an ordered YAML block-scalar list. Older files used
   // one block scalar, which remains readable as a single fragment.
@@ -221,6 +226,7 @@ export function fromYaml(content: string): Observation | undefined {
     validationStatus,
     validationWarnings,
     validationDiagnostics,
+    ...(supersededAt ? { supersededAt } : {}),
     createdAt,
     updatedAt,
     pattern,
@@ -321,8 +327,49 @@ export function createObservationStore(deps: ObservationStoreDeps): ObservationS
   const { observationsDir, legacyObservationsDir } = deps;
   const fs = deps.fs ?? realFs;
   const now = deps.now ?? (() => new Date().toISOString());
+  // Reflections save their candidate observations before replacing the entry's
+  // current set. Serialize just that replacement phase per entry so two
+  // completed reflections cannot each supersede the other's accepted set.
+  const replacementQueues = new Map<string, Promise<void>>();
 
-  return {
+  const replaceCurrentForEntry = async (
+    entryId: string,
+    currentObservationIds: string[],
+  ): Promise<void> => {
+    const previous = replacementQueues.get(entryId) ?? Promise.resolve();
+    const replacement = previous.catch(() => undefined).then(async () => {
+      const currentIds = new Set(currentObservationIds);
+      const observations = await store.list();
+      const supersededAt = now();
+
+      for (const observation of observations) {
+        if (observation.entryId !== entryId) continue;
+
+        const shouldBeCurrent = currentIds.has(observation.id);
+        const isCurrent = !observation.supersededAt;
+        if (shouldBeCurrent === isCurrent) continue;
+
+        await fs.writeFile(
+          join(observationsDir, `${observation.id}.yaml`),
+          toYaml({
+            ...observation,
+            ...(shouldBeCurrent ? { supersededAt: undefined } : { supersededAt }),
+          }),
+        );
+      }
+    });
+
+    replacementQueues.set(entryId, replacement);
+    try {
+      await replacement;
+    } finally {
+      if (replacementQueues.get(entryId) === replacement) {
+        replacementQueues.delete(entryId);
+      }
+    }
+  };
+
+  const store: ObservationStore = {
     async save(
       entryId: string,
       raw: RawObservation,
@@ -401,5 +448,9 @@ export function createObservationStore(deps: ObservationStoreDeps): ObservationS
       await fs.writeFile(join(observationsDir, `${id}.yaml`), toYaml(updated));
       return updated;
     },
+
+    replaceCurrentForEntry,
   };
+
+  return store;
 }

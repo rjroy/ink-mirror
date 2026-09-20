@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { ObservationSchema } from "./observations.js";
 
 // --- Operation discovery schemas ---
 
@@ -78,6 +79,13 @@ export const EntryListItemSchema = z.object({
   preview: z.string(),
 });
 
+/** Result returned when an existing entry is explicitly re-reflected. */
+export const ReflectEntryResponseSchema = z.object({
+  observations: z.array(ObservationSchema),
+  errors: z.array(z.string()),
+});
+
 export type CreateEntryRequest = z.infer<typeof CreateEntryRequestSchema>;
 export type Entry = z.infer<typeof EntrySchema>;
 export type EntryListItem = z.infer<typeof EntryListItemSchema>;
+export type ReflectEntryResponse = z.infer<typeof ReflectEntryResponseSchema>;

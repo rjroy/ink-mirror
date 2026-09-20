@@ -15,6 +15,7 @@ import type {
   PatternCurationSession,
   PatternProposal,
   ObservationCreatedEvent,
+  Observation,
   PatternDiscoveredEvent,
   PatternProposalEvent,
   PatternWatchResolvedEvent,
@@ -49,6 +50,19 @@ export async function createEntry(body: string, title?: string): Promise<Entry> 
 
 export async function listEntries(): Promise<EntryListItem[]> {
   return fetchApi<EntryListItem[]>("/entries");
+}
+
+export interface ReflectEntryResult {
+  observations: Observation[];
+  errors: string[];
+}
+
+/** Explicitly re-run the observer for a stored entry. This is unrelated to nudge refresh. */
+export async function reflectEntry(id: string): Promise<ReflectEntryResult> {
+  return fetchApi<ReflectEntryResult>(`/entries/${id}/reflect`, {
+    method: "POST",
+    body: JSON.stringify({}),
+  });
 }
 
 // --- Pattern-grain curation API (REQ-LPC-28) ---
