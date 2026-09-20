@@ -252,12 +252,18 @@ function parseValidationDiagnostics(content: string | undefined): ObservationVal
     const parsed: unknown = JSON.parse(content);
     if (!Array.isArray(parsed)) return undefined;
     return parsed.every(
-      (diagnostic): diagnostic is ObservationValidationDiagnostic =>
-        typeof diagnostic === "object" &&
-        diagnostic !== null &&
-        diagnostic.code === "evidence-not-found-in-entry" &&
-        typeof diagnostic.fragment === "string" && diagnostic.fragment.length > 0 &&
-        typeof diagnostic.message === "string" && diagnostic.message.length > 0,
+      (diagnostic): diagnostic is ObservationValidationDiagnostic => {
+        const candidate: unknown = diagnostic;
+        if (typeof candidate !== "object" || candidate === null || Array.isArray(candidate)) {
+          return false;
+        }
+        const record: Record<string, unknown> = candidate;
+        return (
+          record.code === "evidence-not-found-in-entry" &&
+          typeof record.fragment === "string" && record.fragment.length > 0 &&
+          typeof record.message === "string" && record.message.length > 0
+        );
+      },
     ) ? parsed : undefined;
   } catch {
     return undefined;
