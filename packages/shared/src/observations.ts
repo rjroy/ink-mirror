@@ -20,6 +20,10 @@ export const DIMENSION_LABELS: Record<ObservationDimension, string> = {
 
 // --- Single observation ---
 
+export const EvidenceFragmentsSchema = z
+  .array(z.string().min(1))
+  .min(1);
+
 export const ObservationSchema = z.object({
   id: z.string(),
   entryId: z.string(),
@@ -32,7 +36,7 @@ export const ObservationSchema = z.object({
    */
   patternId: z.string(),
   pattern: z.string().min(1),
-  evidence: z.string().min(1),
+  evidence: EvidenceFragmentsSchema,
   dimension: ObservationDimensionSchema,
   createdAt: z.string(),
   updatedAt: z.string(),
@@ -75,7 +79,7 @@ export type PatternRef = z.infer<typeof PatternRefSchema>;
 
 export const RawObservationSchema = z.object({
   pattern: z.string().min(1),
-  evidence: z.string().min(1),
+  evidence: EvidenceFragmentsSchema,
   dimension: ObservationDimensionSchema,
   /**
    * Optional until the Observer rework (Phase 3) starts emitting it; existing

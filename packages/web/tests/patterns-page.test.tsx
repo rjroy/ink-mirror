@@ -48,7 +48,7 @@ describe("pattern dossier page", () => {
               id: "obs-1",
               patternId: "pat-1",
               entryId: "entry-2026-07-01-001",
-              evidence: "Short. Sharp. Done.",
+              evidence: ["Short. Sharp. Done."],
               dimension: "sentence-rhythm",
               createdAt: "2026-07-01T00:00:00.000Z",
               entryText: "Short. Sharp. Done. That was the whole entry.",

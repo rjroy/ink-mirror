@@ -60,10 +60,12 @@ export default async function EntryDetailPage({
                 {DIMENSION_LABELS[obs.dimension] ?? obs.dimension}
               </div>
               <p className="im-note-body">{obs.pattern}</p>
-              {obs.evidence && (
+              {obs.evidence.length > 0 && (
                 <div className="im-note-quote">
                   <span className="qhead">From your entry</span>
-                  &ldquo;{obs.evidence}&rdquo;
+                  {obs.evidence.map((fragment, index) => (
+                    <span key={index} className="block">&ldquo;{fragment}&rdquo;</span>
+                  ))}
                 </div>
               )}
               <div className="im-note-foot">

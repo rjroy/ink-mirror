@@ -366,7 +366,7 @@ async function migrateLegacyObservations(
       id: record.id,
       patternId,
       entryId: record.entryId,
-      evidence: record.evidence,
+      evidence: [record.evidence],
       dimension: record.dimension,
       createdAt: record.createdAt,
     };
@@ -376,7 +376,7 @@ async function migrateLegacyObservations(
       entryId: record.entryId,
       patternId,
       pattern: record.pattern,
-      evidence: record.evidence,
+      evidence: [record.evidence],
       dimension: record.dimension,
       createdAt: record.createdAt,
       updatedAt: record.updatedAt,

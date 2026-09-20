@@ -38,7 +38,7 @@ describe("events routes", () => {
       entryId: "entry-2026-03-27-001",
       patternId: "pat-2026-03-27-001",
       pattern: "Test pattern from observer",
-      evidence: "cited text",
+      evidence: ["cited text"],
       dimension: "sentence-rhythm",
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),

@@ -131,7 +131,7 @@ describe("Tier 2 activation logic", () => {
             content: JSON.stringify({
               observations: [{
                 pattern: "Test pattern",
-                evidence: "hello world",
+                evidence: ["hello world"],
                 dimension: "sentence-rhythm",
                 patternRef: { newPattern: { statement: "Test pattern", dimension: "sentence-rhythm" } },
               }],
@@ -180,7 +180,7 @@ describe("Tier 2 activation logic", () => {
             content: JSON.stringify({
               observations: [{
                 pattern: "Test pattern",
-                evidence: "hello world",
+                evidence: ["hello world"],
                 dimension: "sentence-rhythm",
                 patternRef: { newPattern: { statement: "Test pattern", dimension: "sentence-rhythm" } },
               }],
@@ -233,7 +233,7 @@ describe("Tier 2 activation logic", () => {
             content: JSON.stringify({
               observations: [{
                 pattern: "Test pattern",
-                evidence: "hello world",
+                evidence: ["hello world"],
                 dimension: "sentence-rhythm",
                 patternRef: { newPattern: { statement: "Test pattern", dimension: "sentence-rhythm" } },
               }],
@@ -281,7 +281,7 @@ describe("Tier 2 activation logic", () => {
             content: JSON.stringify({
               observations: [{
                 pattern: "Test pattern",
-                evidence: "hello world",
+                evidence: ["hello world"],
                 dimension: "sentence-rhythm",
                 patternRef: { newPattern: { statement: "Test pattern", dimension: "sentence-rhythm" } },
               }],

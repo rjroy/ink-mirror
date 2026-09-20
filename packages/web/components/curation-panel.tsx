@@ -234,7 +234,9 @@ function DossierEvidence({
             {s.entryText && <p className="im-note-body">{s.entryText}</p>}
             <div className="im-note-quote">
               <span className="qhead">Evidence</span>
-              &ldquo;{s.evidence}&rdquo;
+              {s.evidence.map((fragment, index) => (
+                <span key={index} className="block">&ldquo;{fragment}&rdquo;</span>
+              ))}
             </div>
             {onDetach && (
               <div className="im-note-foot">

@@ -33,7 +33,7 @@ function mockFs(): ObservationStoreFs & { files: Record<string, string> } {
 
 const sampleRaw: RawObservation = {
   pattern: "Uses three consecutive short sentences for emphasis",
-  evidence: "I stopped. I turned. I left.",
+  evidence: ["I stopped.", "I turned.", "I left."],
   dimension: "sentence-rhythm",
 };
 
@@ -46,7 +46,7 @@ describe("YAML serialization", () => {
       entryId: "entry-2026-03-27-001",
       patternId: SAMPLE_PATTERN_ID,
       pattern: "Uses short sentences for emphasis",
-      evidence: "I stopped. I turned.",
+      evidence: ["I stopped. I turned."],
       dimension: "sentence-rhythm" as const,
       createdAt: "2026-03-27T10:00:00.000Z",
       updatedAt: "2026-03-27T10:00:00.000Z",
@@ -64,7 +64,7 @@ describe("YAML serialization", () => {
       entryId: "entry-001",
       patternId: SAMPLE_PATTERN_ID,
       pattern: "Line one\nLine two",
-      evidence: "Some evidence",
+      evidence: ["Some evidence"],
       dimension: "word-level-habits" as const,
       createdAt: "2026-03-27T10:00:00Z",
       updatedAt: "2026-03-27T10:00:00Z",
@@ -74,6 +74,21 @@ describe("YAML serialization", () => {
     const parsed = fromYaml(yaml);
 
     expect(parsed?.pattern).toBe("Line one\nLine two");
+  });
+
+  test("preserves trailing whitespace in evidence fragments", () => {
+    const obs = {
+      id: "obs-001",
+      entryId: "entry-001",
+      patternId: SAMPLE_PATTERN_ID,
+      pattern: "A pattern",
+      evidence: ["first  ", "last\n"],
+      dimension: "word-level-habits" as const,
+      createdAt: "2026-03-27T10:00:00Z",
+      updatedAt: "2026-03-27T10:00:00Z",
+    };
+
+    expect(fromYaml(toYaml(obs))?.evidence).toEqual(["first  ", "last\n"]);
   });
 
   test("returns undefined for invalid YAML", () => {
@@ -198,7 +213,7 @@ describe("observation store", () => {
       expect(reread!.patternId).toBe(NEW_PATTERN_ID);
       // Everything else about the observation is untouched by the reassignment.
       expect(reread!.pattern).toBe(sampleRaw.pattern);
-      expect(reread!.evidence).toBe(sampleRaw.evidence);
+      expect(reread!.evidence).toEqual(sampleRaw.evidence);
     });
 
     test("returns undefined (does not throw) for an unknown observation ID", async () => {

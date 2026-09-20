@@ -58,6 +58,21 @@ export interface ObservationStoreDeps {
  * Hand-rolled to avoid a YAML library dependency for a simple flat structure.
  */
 export function toYaml(obs: Observation): string {
+  const evidenceBlock = (fragment: string): string[] => {
+    const endsWithNewline = fragment.endsWith("\n");
+    const lines = fragment.split("\n");
+
+    // The final empty segment represents the terminating newline itself. With
+    // `|+`, that newline belongs to the scalar, so it must not be serialized
+    // as an additional blank content line.
+    if (endsWithNewline) lines.pop();
+
+    return [
+      `  - |${endsWithNewline ? "+" : "-"}`,
+      ...lines.map((line) => `      ${line}`),
+    ];
+  };
+
   const lines = [
     `id: ${obs.id}`,
     `entryId: ${obs.entryId}`,
@@ -67,8 +82,8 @@ export function toYaml(obs: Observation): string {
     `updatedAt: ${obs.updatedAt}`,
     `pattern: |`,
     ...obs.pattern.split("\n").map((l) => `  ${l}`),
-    `evidence: |`,
-    ...obs.evidence.split("\n").map((l) => `  ${l}`),
+    `evidence:`,
+    ...obs.evidence.flatMap(evidenceBlock),
     "",
   ];
   return lines.join("\n");
@@ -110,6 +125,45 @@ export function fromYaml(content: string): Observation | undefined {
       .trimEnd();
   };
 
+  const blockList = (key: string): string[] | undefined => {
+    const start = content.match(new RegExp(`^${key}:\\s*\\n`, "m"));
+    if (!start || start.index === undefined) return undefined;
+
+    const rest = content.slice(start.index + start[0].length);
+    const lines = rest.split("\n");
+    const values: string[] = [];
+    let current: string[] | undefined;
+    let chomping: "+" | "-" | undefined;
+
+    const finishCurrent = () => {
+      if (!current) return;
+      const value = current.join("\n");
+      // Existing files used the default clip mode and were historically
+      // parsed with trimEnd(). Keep that behavior while recognizing the
+      // explicit chomping modes written by current versions.
+      values.push(chomping === "+" ? `${value}\n` : chomping === "-" ? value : value.trimEnd());
+    };
+
+    for (const line of lines) {
+      const header = line.match(/^ {2}- \|([+-])?$/);
+      if (header) {
+        finishCurrent();
+        current = [];
+        chomping = header[1] as "+" | "-" | undefined;
+      } else if (current && line.startsWith("      ")) {
+        current.push(line.slice(6));
+      } else if (line === "" && current) {
+        // This is the document's line terminator, not scalar content. Blank
+        // scalar lines emitted by toYaml retain their indentation above.
+        continue;
+      } else {
+        break;
+      }
+    }
+    finishCurrent();
+    return values.length > 0 && values.every((value) => value.length > 0) ? values : undefined;
+  };
+
   const id = scalar("id");
   const entryId = scalar("entryId");
   const patternId = scalar("patternId");
@@ -117,7 +171,10 @@ export function fromYaml(content: string): Observation | undefined {
   const createdAt = scalar("createdAt");
   const updatedAt = scalar("updatedAt");
   const pattern = block("pattern");
-  const evidence = block("evidence");
+  // Current files store an ordered YAML block-scalar list. Older files used
+  // one block scalar, which remains readable as a single fragment.
+  const legacyEvidence = block("evidence");
+  const evidence = blockList("evidence") ?? (legacyEvidence ? [legacyEvidence] : undefined);
 
   if (!id || !entryId || !dimension || !createdAt || !updatedAt || !pattern || !evidence) {
     return undefined;

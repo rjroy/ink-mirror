@@ -221,7 +221,7 @@ describe("showProfile", () => {
               id: "obs-001",
               patternId: "pat-001",
               entryId: "e1",
-              evidence: "I stopped. I turned.",
+              evidence: ["I stopped. I turned."],
               dimension: "sentence-rhythm",
               createdAt: "2026-01-01T00:00:00.000Z",
               entryText: "I stopped. I turned. The room was quiet.",

@@ -8,7 +8,7 @@ function makeObs(overrides: Partial<Observation> & { id: string }): Observation 
     entryId: "entry-2026-03-27-001",
     patternId: "pat-2026-03-27-001",
     pattern: "Uses short sentences",
-    evidence: "I stopped. I turned.",
+    evidence: ["I stopped. I turned."],
     dimension: "sentence-rhythm",
     createdAt: "2026-03-27T10:00:00.000Z",
     updatedAt: "2026-03-27T10:00:00.000Z",

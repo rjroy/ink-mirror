@@ -11,7 +11,7 @@ const baseObservation = {
   id: "obs-2026-07-09-001",
   entryId: "entry-2026-07-09-001",
   pattern: "Short sentences",
-  evidence: "I stopped.",
+  evidence: ["I stopped."],
   dimension: "sentence-rhythm",
   status: "pending",
   createdAt: "2026-07-09T00:00:00.000Z",

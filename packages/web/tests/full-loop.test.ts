@@ -55,7 +55,7 @@ function buildApp(dataDir: string, statement: string, dimension: "sentence-rhyth
   const onEntryCreated = async (entryId: string, entryText: string) => {
     const existing = (await patternStore.list()).find((p) => p.statement === statement);
     const pattern = existing ?? (await patternStore.create({ statement, dimension }));
-    const obs = await observationStore.save(entryId, { pattern: statement, evidence: entryText, dimension }, pattern.id);
+    const obs = await observationStore.save(entryId, { pattern: statement, evidence: [entryText], dimension }, pattern.id);
     await patternStore.recordSighting(pattern.id, {
       id: obs.id, patternId: pattern.id, entryId, evidence: obs.evidence, dimension: obs.dimension, createdAt: obs.createdAt,
     });

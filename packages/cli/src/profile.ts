@@ -52,7 +52,9 @@ async function formatRuleDossierSummary(client: DaemonClient, patternId: string)
     }
     const entryWord = dossier.distinctEntryCount === 1 ? "entry" : "entries";
     const sightingWord = dossier.sightings.length === 1 ? "sighting" : "sightings";
-    const citation = dossier.sightings[0] ? ` e.g. "${dossier.sightings[0].evidence}"` : "";
+    const citation = dossier.sightings[0]
+      ? ` e.g. ${dossier.sightings[0].evidence.map((fragment) => `"${fragment}"`).join(", ")}`
+      : "";
     return `Why: "${dossier.pattern.statement}" — ${dossier.sightings.length} ${sightingWord} across ${dossier.distinctEntryCount} ${entryWord}.${citation}`;
   } catch {
     return "Why: dossier unavailable.";

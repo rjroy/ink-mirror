@@ -32,7 +32,7 @@ function makeObservationEvent(overrides: Partial<ObservationCreatedEvent> = {}):
     entryId: "entry-2026-07-11-001",
     patternId: "pat-2026-07-11-001",
     pattern: "Uses short declarative sentences for emphasis",
-    evidence: "I stopped. I turned. I left.",
+    evidence: ["I stopped. I turned. I left."],
     dimension: "sentence-rhythm",
     createdAt: "2026-07-11T09:00:00.000Z",
     updatedAt: "2026-07-11T09:00:00.000Z",

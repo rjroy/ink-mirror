@@ -201,7 +201,7 @@ describe("SightingSchema (REQ-LPC-3)", () => {
       id: "obs-2026-07-09-001",
       patternId: "pat-2026-07-09-001",
       entryId: "entry-2026-07-09-001",
-      evidence: "I stopped. I turned.",
+      evidence: ["I stopped. I turned."],
       dimension: "sentence-rhythm",
       createdAt: "2026-07-09T00:00:00.000Z",
     });
@@ -213,7 +213,7 @@ describe("SightingSchema (REQ-LPC-3)", () => {
       id: "obs-2026-07-09-001",
       patternId: "pat-2026-07-09-001",
       entryId: "entry-2026-07-09-001",
-      evidence: "",
+      evidence: [""],
       dimension: "sentence-rhythm",
       createdAt: "2026-07-09T00:00:00.000Z",
     });
@@ -251,7 +251,7 @@ describe("DossierSchema (REQ-LPC-12)", () => {
           id: "obs-2026-07-09-001",
           patternId: "pat-2026-07-09-001",
           entryId: "entry-2026-07-09-001",
-          evidence: "I stopped.",
+          evidence: ["I stopped."],
           dimension: "sentence-rhythm",
           createdAt: "2026-07-09T00:00:00.000Z",
           entryText: "I stopped. I turned around.",

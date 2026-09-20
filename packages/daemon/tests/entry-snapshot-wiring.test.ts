@@ -128,7 +128,7 @@ const VALID_OBSERVER_JSON = JSON.stringify({
   observations: [
     {
       pattern: "Uses short sentences for emphasis",
-      evidence: "A wiring test entry.",
+      evidence: ["A wiring test entry."],
       dimension: "sentence-rhythm",
       patternRef: { newPattern: { statement: "Uses short sentences for emphasis", dimension: "sentence-rhythm" } },
     },

@@ -136,7 +136,7 @@ export const SightingSchema = z.object({
   id: z.string(),
   patternId: z.string(),
   entryId: z.string(),
-  evidence: z.string().min(1),
+  evidence: z.array(z.string().min(1)).min(1),
   dimension: ObservationDimensionSchema,
   createdAt: z.string(),
 });

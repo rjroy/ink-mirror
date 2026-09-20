@@ -24,12 +24,12 @@ const VALID_OBSERVER_JSON = JSON.stringify({
   observations: [
     {
       pattern: "Uses three consecutive short sentences for emphasis",
-      evidence: "I stopped. I turned. I left.",
+      evidence: ["I stopped. I turned. I left."],
       dimension: "sentence-rhythm",
     },
     {
       pattern: 'Hedging with "just" to soften direct statements',
-      evidence: "I just couldn't take it anymore",
+      evidence: ["I just couldn't take it anymore"],
       dimension: "word-level-habits",
     },
   ],
@@ -40,13 +40,13 @@ const VALID_OBSERVER_JSON_WITH_REFS = JSON.stringify({
   observations: [
     {
       pattern: "Uses three consecutive short sentences for emphasis",
-      evidence: "I stopped. I turned. I left.",
+      evidence: ["I stopped. I turned. I left."],
       dimension: "sentence-rhythm",
       patternRef: { newPattern: { statement: "Uses short sentences for emphasis", dimension: "sentence-rhythm" } },
     },
     {
       pattern: 'Hedging with "just" to soften direct statements',
-      evidence: "I just couldn't take it anymore",
+      evidence: ["I just couldn't take it anymore"],
       dimension: "word-level-habits",
       patternRef: { newPattern: { statement: "Hedges with 'just' before admitting a reaction", dimension: "word-level-habits" } },
     },
@@ -160,7 +160,7 @@ describe("buildUserMessage", () => {
 
   test("contains a schema-valid worked JSON example with at most three observations", () => {
     const message = buildUserMessage(SAMPLE_ENTRY, stubMetrics, "");
-    const example = message.match(/\{\n  "observations": \[[\s\S]*?\n  \]\n\}/)?.[0];
+    const example = message.match(/\{\n {2}"observations": \[[\s\S]*?\n {2}\]\n\}/)?.[0];
     expect(example).toBeDefined();
     const parsed = ObserverOutputSchema.safeParse(JSON.parse(example ?? "{}"));
     expect(parsed.success).toBe(true);
@@ -453,7 +453,7 @@ describe("parseObserverOutput", () => {
     const result = parseObserverOutput(
       JSON.stringify({
         observations: [
-          { pattern: "", evidence: "some text", dimension: "sentence-rhythm" },
+          { pattern: "", evidence: ["some text"], dimension: "sentence-rhythm" },
         ],
       }),
     );
@@ -464,7 +464,7 @@ describe("parseObserverOutput", () => {
     const result = parseObserverOutput(
       JSON.stringify({
         observations: [
-          { pattern: "test", evidence: "text", dimension: "invalid-dimension" },
+          { pattern: "test", evidence: ["text"], dimension: "invalid-dimension" },
         ],
       }),
     );
@@ -475,10 +475,10 @@ describe("parseObserverOutput", () => {
     const result = parseObserverOutput(
       JSON.stringify({
         observations: [
-          { pattern: "a", evidence: "x", dimension: "sentence-rhythm" },
-          { pattern: "b", evidence: "y", dimension: "sentence-rhythm" },
-          { pattern: "c", evidence: "z", dimension: "sentence-rhythm" },
-          { pattern: "d", evidence: "w", dimension: "sentence-rhythm" },
+          { pattern: "a", evidence: ["x"], dimension: "sentence-rhythm" },
+          { pattern: "b", evidence: ["y"], dimension: "sentence-rhythm" },
+          { pattern: "c", evidence: ["z"], dimension: "sentence-rhythm" },
+          { pattern: "d", evidence: ["w"], dimension: "sentence-rhythm" },
         ],
       }),
     );
@@ -491,7 +491,7 @@ describe("parseObserverOutput", () => {
         observations: [
           {
             pattern: "test",
-            evidence: "text",
+            evidence: ["text"],
             dimension: "sentence-rhythm",
             patternRef: { patternId: "pat-2026-01-01-001" },
           },
@@ -507,7 +507,7 @@ describe("parseObserverOutput", () => {
         observations: [
           {
             pattern: "test",
-            evidence: "text",
+            evidence: ["text"],
             dimension: "sentence-rhythm",
             patternRef: {
               patternId: "pat-2026-01-01-001",
@@ -532,7 +532,7 @@ describe("validateObservations", () => {
     const observations: RawObservation[] = [
       {
         pattern: "Short sentence emphasis",
-        evidence: "I stopped. I turned. I left.",
+        evidence: ["I stopped. I turned. I left."],
         dimension: "sentence-rhythm",
         patternRef: NEW_PATTERN_REF,
       },
@@ -547,7 +547,7 @@ describe("validateObservations", () => {
     const observations: RawObservation[] = [
       {
         pattern: "Some pattern",
-        evidence: "This text is not in the entry at all",
+        evidence: ["This text is not in the entry at all"],
         dimension: "sentence-rhythm",
         patternRef: NEW_PATTERN_REF,
       },
@@ -563,7 +563,7 @@ describe("validateObservations", () => {
     const obs: RawObservation[] = [
       {
         pattern: "   ",
-        evidence: "I stopped.",
+        evidence: ["I stopped."],
         dimension: "sentence-rhythm",
         patternRef: NEW_PATTERN_REF,
       },
@@ -578,7 +578,7 @@ describe("validateObservations", () => {
     const observations: RawObservation[] = [
       {
         pattern: "Some pattern",
-        evidence: "   ",
+        evidence: ["   "],
         dimension: "sentence-rhythm",
         patternRef: NEW_PATTERN_REF,
       },
@@ -593,7 +593,7 @@ describe("validateObservations", () => {
     const observations: RawObservation[] = [
       {
         pattern: "Short sentences",
-        evidence: "i stopped. i turned. i left.",
+        evidence: ["i stopped. i turned. i left."],
         dimension: "sentence-rhythm",
         patternRef: NEW_PATTERN_REF,
       },
@@ -607,7 +607,7 @@ describe("validateObservations", () => {
     const observations: RawObservation[] = [
       {
         pattern: "Three single-sentence paragraphs isolate each action",
-        evidence: "I stopped. I turned. I left.",
+        evidence: ["I stopped. I turned. I left."],
         dimension: "paragraph-structure",
         patternRef: { newPattern: { statement: "x", dimension: "paragraph-structure" } },
       },
@@ -623,7 +623,7 @@ describe("validateObservations", () => {
     const observations: RawObservation[] = [
       {
         pattern: "Long lead paragraph followed by shorter body",
-        evidence: "This evidence text does not appear in the entry",
+        evidence: ["This evidence text does not appear in the entry"],
         dimension: "paragraph-structure",
         patternRef: { newPattern: { statement: "x", dimension: "paragraph-structure" } },
       },
@@ -639,13 +639,13 @@ describe("validateObservations", () => {
     const observations: RawObservation[] = [
       {
         pattern: "Valid pattern",
-        evidence: "I stopped.",
+        evidence: ["I stopped."],
         dimension: "sentence-rhythm",
         patternRef: NEW_PATTERN_REF,
       },
       {
         pattern: "Invalid pattern",
-        evidence: "Not in the text at all",
+        evidence: ["Not in the text at all"],
         dimension: "word-level-habits",
         patternRef: NEW_PATTERN_REF,
       },
@@ -668,7 +668,7 @@ describe("validateObservations", () => {
       const observations: RawObservation[] = [
         {
           pattern: "Staccato rhythm again",
-          evidence: "I stopped. I turned. I left.",
+          evidence: ["I stopped. I turned. I left."],
           dimension: "sentence-rhythm",
           patternRef: { patternId: "pat-2026-01-01-001" },
         },
@@ -682,7 +682,7 @@ describe("validateObservations", () => {
       const observations: RawObservation[] = [
         {
           pattern: "Claims an unknown pattern",
-          evidence: "I stopped. I turned. I left.",
+          evidence: ["I stopped. I turned. I left."],
           dimension: "sentence-rhythm",
           patternRef: { patternId: "pat-does-not-exist" },
         },
@@ -697,7 +697,7 @@ describe("validateObservations", () => {
       const observations: RawObservation[] = [
         {
           pattern: "No pattern reference supplied",
-          evidence: "I stopped. I turned. I left.",
+          evidence: ["I stopped. I turned. I left."],
           dimension: "sentence-rhythm",
         },
       ];
@@ -710,7 +710,7 @@ describe("validateObservations", () => {
       const observations: RawObservation[] = [
         {
           pattern: "A genuinely new habit",
-          evidence: "I stopped. I turned. I left.",
+          evidence: ["I stopped. I turned. I left."],
           dimension: "sentence-rhythm",
           patternRef: { newPattern: { statement: "A brand new pattern", dimension: "sentence-rhythm" } },
         },
@@ -724,7 +724,7 @@ describe("validateObservations", () => {
       const observations: RawObservation[] = [
         {
           pattern: "Claims a bogus metric link",
-          evidence: "I stopped. I turned. I left.",
+          evidence: ["I stopped. I turned. I left."],
           dimension: "sentence-rhythm",
           patternRef: {
             newPattern: {
@@ -745,7 +745,7 @@ describe("validateObservations", () => {
       const observations: RawObservation[] = [
         {
           pattern: "Claims a real metric link",
-          evidence: "I stopped. I turned. I left.",
+          evidence: ["I stopped. I turned. I left."],
           dimension: "sentence-rhythm",
           patternRef: {
             newPattern: {
@@ -843,7 +843,7 @@ describe("observe (pipeline)", () => {
       observations: [
         {
           pattern: "Uses three consecutive short sentences for emphasis",
-          evidence: "I stopped. I turned. I left.",
+          evidence: ["I stopped. I turned. I left."],
           dimension: "sentence-rhythm",
           patternRef: { patternId: existing.id },
         },
@@ -875,7 +875,7 @@ describe("observe (pipeline)", () => {
       observations: [
         {
           pattern: "Claims a pattern the ledger never offered",
-          evidence: "I stopped. I turned. I left.",
+          evidence: ["I stopped. I turned. I left."],
           dimension: "sentence-rhythm",
           patternRef: { patternId: "pat-does-not-exist" },
         },
@@ -902,7 +902,7 @@ describe("observe (pipeline)", () => {
       observations: [
         {
           pattern: "Three single-sentence paragraphs isolate each action",
-          evidence: "I stopped. I turned. I left.",
+          evidence: ["I stopped. I turned. I left."],
           dimension: "paragraph-structure",
           patternRef: { newPattern: { statement: "Isolates actions with single-sentence paragraphs", dimension: "paragraph-structure" } },
         },
@@ -931,13 +931,13 @@ describe("observe (pipeline)", () => {
       observations: [
         {
           pattern: "Valid pattern",
-          evidence: "I stopped.",
+          evidence: ["I stopped."],
           dimension: "sentence-rhythm",
           patternRef: { newPattern: { statement: "x", dimension: "sentence-rhythm" } },
         },
         {
           pattern: "Fabricated evidence",
-          evidence: "Text that doesn't exist in the entry",
+          evidence: ["Text that doesn't exist in the entry"],
           dimension: "word-level-habits",
           patternRef: { newPattern: { statement: "y", dimension: "word-level-habits" } },
         },
@@ -1175,6 +1175,29 @@ describe("observe (pipeline)", () => {
 // that worst-case construction in as a regression guard so a future change
 // to buildSystemPrompt/buildUserMessage/buildLedger can't silently balloon
 // the per-entry cost without a test failing first.
+test("validateObservations rejects the whole observation when any ordered evidence fragment is invalid", () => {
+  const result = validateObservations(
+    [
+      {
+        pattern: "Uses short sentences in sequence",
+        evidence: ["I stopped.", "This fragment was fabricated", "I left."],
+        dimension: "sentence-rhythm",
+        patternRef: {
+          newPattern: {
+            statement: "Uses short sentences in sequence",
+            dimension: "sentence-rhythm",
+          },
+        },
+      },
+    ],
+    "I stopped. I turned. I left.",
+  );
+
+  expect(result.valid).toEqual([]);
+  expect(result.errors).toHaveLength(1);
+  expect(result.errors[0]).toContain('Cited evidence not found in entry text: "This fragment was fabricated"');
+});
+
 describe("Observer prompt cost budget (worst-case ledger)", () => {
   const LINKABLE_KEYS: LinkableMetricKey[] = [
     "avgSentenceLength",

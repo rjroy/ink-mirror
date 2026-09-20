@@ -66,13 +66,13 @@ const MOCK_OBSERVER_OUTPUT = JSON.stringify({
   observations: [
     {
       pattern: "Three consecutive short declarative sentences",
-      evidence: "I stopped. I turned. I left.",
+      evidence: ["I stopped. I turned. I left."],
       dimension: "sentence-rhythm",
       patternRef: { newPattern: { statement: "Three consecutive short declarative sentences", dimension: "sentence-rhythm" } },
     },
     {
       pattern: 'Hedging with "just" and "probably"',
-      evidence: "I probably should have stayed longer, but I just couldn't take it anymore.",
+      evidence: ["I probably should have stayed longer, but I just couldn't take it anymore."],
       dimension: "word-level-habits",
       patternRef: { newPattern: { statement: "Hedges with 'just' and 'probably'", dimension: "word-level-habits" } },
     },
@@ -83,19 +83,19 @@ const THREE_DIM_OBSERVER_OUTPUT = JSON.stringify({
   observations: [
     {
       pattern: "Three consecutive short declarative sentences",
-      evidence: "I stopped. I turned. I left.",
+      evidence: ["I stopped. I turned. I left."],
       dimension: "sentence-rhythm",
       patternRef: { newPattern: { statement: "Three consecutive short declarative sentences", dimension: "sentence-rhythm" } },
     },
     {
       pattern: 'Hedging with "just" and "probably"',
-      evidence: "I probably should have stayed longer, but I just couldn't take it anymore.",
+      evidence: ["I probably should have stayed longer, but I just couldn't take it anymore."],
       dimension: "word-level-habits",
       patternRef: { newPattern: { statement: "Hedges with 'just' and 'probably'", dimension: "word-level-habits" } },
     },
     {
       pattern: "Consistent 'I + past tense' paragraph opener pattern",
-      evidence: "I stopped.",
+      evidence: ["I stopped."],
       dimension: "sentence-structure",
       patternRef: { newPattern: { statement: "Consistent 'I + past tense' paragraph opener pattern", dimension: "sentence-structure" } },
     },

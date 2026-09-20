@@ -291,7 +291,7 @@ function buildTaskAndOutputContract(): string {
 
 Identify 2-3 distinctive writing patterns in the current entry. Quality over quantity. When possible, select observations from different dimensions. Each observation must pass this curation test: the writer can meaningfully answer "is this intentional?" Name a specific pattern, not a broad category.
 
-Every observation must cite specific text from the current entry as evidence. Copy that text exactly, character for character. Use only writer-internal comparisons: the current entry, recent entries, and the writer's style profile. Do not compare against external standards.
+Every observation must cite one or more specific fragments from the current entry as evidence. Copy every fragment exactly, character for character, and list the fragments in reading order. Each fragment must independently appear in the current entry. Use only writer-internal comparisons: the current entry, recent entries, and the writer's style profile. Do not compare against external standards.
 
 Classify each observation as one of these dimensions:
 - **sentence-rhythm**: length patterns, pace changes, and sentence-length variation.
@@ -311,19 +311,19 @@ Respond with valid JSON only. Do not use Markdown fences or add prose outside th
   "observations": [
     {
       "pattern": "Uses three consecutive short sentences for emphasis",
-      "evidence": "I stopped. I turned. I left.",
+      "evidence": ["I stopped.", "I turned.", "I left."],
       "dimension": "sentence-rhythm",
       "patternRef": { "patternId": "pat-2026-01-01-001" }
     },
     {
       "pattern": "Repeats 'just' as a softener when describing personal reactions",
-      "evidence": "I just couldn't take it anymore. It was just too much.",
+      "evidence": ["I just couldn't take it anymore.", "It was just too much."],
       "dimension": "word-level-habits",
       "patternRef": { "newPattern": { "statement": "Uses 'just' as a softener before admitting a strong reaction", "dimension": "word-level-habits" } }
     },
     {
       "pattern": "Closes with an isolated single-sentence paragraph",
-      "evidence": "That was the last time I looked back.",
+      "evidence": ["That was the last time I looked back."],
       "dimension": "paragraph-structure",
       "patternRef": { "newPattern": { "statement": "Closes sections with an isolated single-sentence paragraph", "dimension": "paragraph-structure" } }
     }
@@ -510,11 +510,17 @@ export function validateObservations(
       issueList.push("Missing pattern name");
     }
 
-    // REQ-V1-7: evidence must appear in the entry text
-    if (!obs.evidence || obs.evidence.trim().length === 0) {
+    // REQ-V1-7: every evidence fragment must independently appear in the entry text.
+    if (obs.evidence.length === 0) {
       issueList.push("Missing cited evidence");
-    } else if (!normalizedEntry.includes(obs.evidence.toLowerCase())) {
-      issueList.push(`Cited evidence not found in entry text: "${obs.evidence.slice(0, 80)}"`);
+    } else {
+      for (const fragment of obs.evidence) {
+        if (fragment.trim().length === 0) {
+          issueList.push("Missing cited evidence");
+        } else if (!normalizedEntry.includes(fragment.toLowerCase())) {
+          issueList.push(`Cited evidence not found in entry text: "${fragment.slice(0, 80)}"`);
+        }
+      }
     }
 
     // REQ-LPC-2/4: every observation must resolve to exactly one pattern.

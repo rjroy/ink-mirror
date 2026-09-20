@@ -100,7 +100,7 @@ describe("SSE streaming", () => {
       entryId: "entry-2026-03-27-001",
       patternId: "pat-2026-03-27-001",
       pattern: "Test pattern",
-      evidence: "Test evidence",
+      evidence: ["Test evidence"],
       dimension: "sentence-rhythm",
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),

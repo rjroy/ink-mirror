@@ -67,7 +67,9 @@ function formatDossier(dossier: Dossier, index: number, total: number, headerLab
     const entryWord = distinctEntryCount === 1 ? "entry" : "entries";
     lines.push(`Evidence (${sightings.length} sighting(s) across ${distinctEntryCount} distinct ${entryWord}):`);
     sightings.forEach((s, i) => {
-      lines.push(`  [${i + 1}] entry ${s.entryId}: "${s.evidence}"`);
+      lines.push(
+        `  [${i + 1}] entry ${s.entryId}: ${s.evidence.map((fragment) => `"${fragment}"`).join(", ")}`,
+      );
       lines.push(`      context: ${s.entryText}`);
     });
   }

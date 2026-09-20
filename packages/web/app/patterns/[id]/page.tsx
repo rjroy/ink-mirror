@@ -84,7 +84,9 @@ export default async function PatternDossierPage({
               {sighting.entryText && <p className="im-note-body">{sighting.entryText}</p>}
               <div className="im-note-quote">
                 <span className="qhead">Evidence</span>
-                &ldquo;{sighting.evidence}&rdquo;
+                {sighting.evidence.map((fragment, index) => (
+                  <span key={index} className="block">&ldquo;{fragment}&rdquo;</span>
+                ))}
               </div>
             </div>
           ))

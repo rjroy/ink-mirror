@@ -101,7 +101,7 @@ async function seedPatternWithSighting(
   });
   const obs = await observationStore.save(
     entry.id,
-    { pattern: overrides.statement, evidence: entry.body, dimension: pattern.dimension },
+    { pattern: overrides.statement, evidence: [entry.body], dimension: pattern.dimension },
     pattern.id,
   );
   const recorded = await patternStore.recordSighting(pattern.id, {
@@ -443,7 +443,7 @@ describe("POST /patterns/:id/proposal", () => {
       const entry = await entryStore.create(longBody);
       const obs = await observationStore.save(
         entry.id,
-        { pattern: pattern.statement, evidence: longBody.slice(0, 10), dimension: "sentence-rhythm" },
+        { pattern: pattern.statement, evidence: [longBody.slice(0, 10)], dimension: "sentence-rhythm" },
         pattern.id,
       );
       await patternStore.recordSighting(pattern.id, {
@@ -515,7 +515,7 @@ describe("GET /patterns/session: proposals and events", () => {
       const entry = await entryStore.create(longBody);
       const obs = await observationStore.save(
         entry.id,
-        { pattern: pattern.statement, evidence: longBody.slice(0, 10), dimension: "sentence-rhythm" },
+        { pattern: pattern.statement, evidence: [longBody.slice(0, 10)], dimension: "sentence-rhythm" },
         pattern.id,
       );
       await patternStore.recordSighting(pattern.id, {

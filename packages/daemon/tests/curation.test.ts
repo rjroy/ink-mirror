@@ -28,7 +28,7 @@ function makeObservation(overrides: Partial<Observation> & { id: string; pattern
   return {
     entryId: "entry-2026-03-27-001",
     pattern: "Some pattern",
-    evidence: "Some evidence",
+    evidence: ["Some evidence"],
     dimension: "sentence-rhythm",
     createdAt: "2026-03-27T10:00:00.000Z",
     updatedAt: "2026-03-27T10:00:00.000Z",

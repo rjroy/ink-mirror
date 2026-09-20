@@ -49,7 +49,7 @@ function makeSighting(overrides: Partial<Sighting> = {}): Sighting {
     id: "sight-001",
     patternId: "pat-2026-01-01-001",
     entryId: "entry-1",
-    evidence: "some evidence",
+    evidence: ["some evidence"],
     dimension: "sentence-rhythm",
     createdAt: "2026-01-01T00:00:00.000Z",
     ...overrides,

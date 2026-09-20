@@ -89,7 +89,7 @@ describe("pattern-grain curation integration", () => {
     });
     const obs1 = await observationStore.save(entry.id, {
       pattern: "Uses three consecutive short sentences",
-      evidence: "I stopped. I turned. I left.",
+      evidence: ["I stopped. I turned. I left."],
       dimension: "sentence-rhythm",
     }, pattern1.id);
     await patternStore.recordSighting(pattern1.id, {
@@ -102,7 +102,7 @@ describe("pattern-grain curation integration", () => {
     });
     const obs2 = await observationStore.save(entry.id, {
       pattern: "Favors first-person declarative statements",
-      evidence: "I stopped. I turned. I left.",
+      evidence: ["I stopped. I turned. I left."],
       dimension: "word-level-habits",
     }, pattern2.id);
     await patternStore.recordSighting(pattern2.id, {
@@ -164,7 +164,7 @@ describe("pattern-grain curation integration", () => {
     await patternStore.updateStatus(confirmed.id, "intentional");
     const obs1 = await observationStore.save(entry1.id, {
       pattern: "Uses short declarative sentences for impact",
-      evidence: "I stopped. I turned. I left.",
+      evidence: ["I stopped. I turned. I left."],
       dimension: "sentence-rhythm",
     }, confirmed.id);
     await patternStore.recordSighting(confirmed.id, {
@@ -177,7 +177,7 @@ describe("pattern-grain curation integration", () => {
     });
     const obs2 = await observationStore.save(entry2.id, {
       pattern: "Uses long compound sentences that flow continuously",
-      evidence: "The morning was long and the afternoon stretched further into evening.",
+      evidence: ["The morning was long and the afternoon stretched further into evening."],
       dimension: "sentence-rhythm",
     }, candidate.id);
     await patternStore.recordSighting(candidate.id, {
@@ -202,7 +202,7 @@ describe("pattern-grain curation integration", () => {
     const pattern = await patternStore.create({ statement: "Test pattern", dimension: "sentence-rhythm" });
     const obs = await observationStore.save(entry.id, {
       pattern: "Test pattern",
-      evidence: "Test evidence",
+      evidence: ["Test evidence"],
       dimension: "sentence-rhythm",
     }, pattern.id);
     await patternStore.recordSighting(pattern.id, {
@@ -238,7 +238,7 @@ describe("pattern-grain curation integration", () => {
     const pattern = await patternStore.create({ statement: "Uses staccato rhythm for emphasis", dimension: "sentence-rhythm" });
     const obs = await observationStore.save(entry.id, {
       pattern: "Uses staccato rhythm for emphasis",
-      evidence: "Short. Sharp. Done.",
+      evidence: ["Short. Sharp. Done."],
       dimension: "sentence-rhythm",
     }, pattern.id);
     await patternStore.recordSighting(pattern.id, {

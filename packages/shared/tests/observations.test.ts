@@ -25,7 +25,7 @@ describe("RawObservationSchema", () => {
   test("accepts valid raw observation", () => {
     const result = RawObservationSchema.safeParse({
       pattern: "Short sentence emphasis",
-      evidence: "I stopped. I turned.",
+      evidence: ["I stopped. I turned."],
       dimension: "sentence-rhythm",
     });
     expect(result.success).toBe(true);
@@ -34,7 +34,7 @@ describe("RawObservationSchema", () => {
   test("rejects empty pattern", () => {
     const result = RawObservationSchema.safeParse({
       pattern: "",
-      evidence: "some text",
+      evidence: ["some text"],
       dimension: "sentence-rhythm",
     });
     expect(result.success).toBe(false);
@@ -43,7 +43,7 @@ describe("RawObservationSchema", () => {
   test("rejects empty evidence", () => {
     const result = RawObservationSchema.safeParse({
       pattern: "pattern",
-      evidence: "",
+      evidence: [""],
       dimension: "sentence-rhythm",
     });
     expect(result.success).toBe(false);
@@ -52,7 +52,7 @@ describe("RawObservationSchema", () => {
   test("accepts a raw observation without patternRef (pre-Phase-3 shape)", () => {
     const result = RawObservationSchema.safeParse({
       pattern: "Short sentence emphasis",
-      evidence: "I stopped. I turned.",
+      evidence: ["I stopped. I turned."],
       dimension: "sentence-rhythm",
     });
     expect(result.success).toBe(true);
@@ -61,7 +61,7 @@ describe("RawObservationSchema", () => {
   test("accepts a raw observation with a patternRef to an existing pattern", () => {
     const result = RawObservationSchema.safeParse({
       pattern: "Short sentence emphasis",
-      evidence: "I stopped. I turned.",
+      evidence: ["I stopped. I turned."],
       dimension: "sentence-rhythm",
       patternRef: { patternId: "pat-2026-07-09-001" },
     });
@@ -71,7 +71,7 @@ describe("RawObservationSchema", () => {
   test("accepts a raw observation with a patternRef declaring a new pattern", () => {
     const result = RawObservationSchema.safeParse({
       pattern: "Short sentence emphasis",
-      evidence: "I stopped. I turned.",
+      evidence: ["I stopped. I turned."],
       dimension: "sentence-rhythm",
       patternRef: {
         newPattern: {
@@ -132,16 +132,16 @@ describe("ObserverOutputSchema", () => {
   test("accepts 1-3 observations", () => {
     const one = ObserverOutputSchema.safeParse({
       observations: [
-        { pattern: "a", evidence: "x", dimension: "sentence-rhythm" },
+        { pattern: "a", evidence: ["x"], dimension: "sentence-rhythm" },
       ],
     });
     expect(one.success).toBe(true);
 
     const three = ObserverOutputSchema.safeParse({
       observations: [
-        { pattern: "a", evidence: "x", dimension: "sentence-rhythm" },
-        { pattern: "b", evidence: "y", dimension: "word-level-habits" },
-        { pattern: "c", evidence: "z", dimension: "sentence-rhythm" },
+        { pattern: "a", evidence: ["x"], dimension: "sentence-rhythm" },
+        { pattern: "b", evidence: ["y"], dimension: "word-level-habits" },
+        { pattern: "c", evidence: ["z"], dimension: "sentence-rhythm" },
       ],
     });
     expect(three.success).toBe(true);
@@ -155,10 +155,10 @@ describe("ObserverOutputSchema", () => {
   test("rejects more than 3 observations", () => {
     const result = ObserverOutputSchema.safeParse({
       observations: [
-        { pattern: "a", evidence: "x", dimension: "sentence-rhythm" },
-        { pattern: "b", evidence: "y", dimension: "sentence-rhythm" },
-        { pattern: "c", evidence: "z", dimension: "sentence-rhythm" },
-        { pattern: "d", evidence: "w", dimension: "sentence-rhythm" },
+        { pattern: "a", evidence: ["x"], dimension: "sentence-rhythm" },
+        { pattern: "b", evidence: ["y"], dimension: "sentence-rhythm" },
+        { pattern: "c", evidence: ["z"], dimension: "sentence-rhythm" },
+        { pattern: "d", evidence: ["w"], dimension: "sentence-rhythm" },
       ],
     });
     expect(result.success).toBe(false);
@@ -172,7 +172,7 @@ describe("ObservationSchema", () => {
       entryId: "entry-2026-03-27-001",
       patternId: "pat-2026-03-27-001",
       pattern: "Short sentences",
-      evidence: "I stopped.",
+      evidence: ["I stopped."],
       dimension: "sentence-rhythm",
       createdAt: "2026-03-27T10:00:00.000Z",
       updatedAt: "2026-03-27T10:00:00.000Z",

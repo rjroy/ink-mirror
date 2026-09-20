@@ -62,7 +62,7 @@ function makeDossier(overrides: Partial<Dossier> = {}): Dossier {
         id: "obs-2026-07-01-001",
         patternId: pattern.id,
         entryId: "entry-2026-07-01-001",
-        evidence: "Short. Sharp. Done.",
+        evidence: ["Short. Sharp. Done."],
         dimension: pattern.dimension,
         createdAt: "2026-07-01T00:00:00.000Z",
         entryText: "Short. Sharp. Done. That was the whole entry.",
