@@ -1,5 +1,5 @@
 import { Hono } from "hono";
-import { entryId, CreateEntryRequestSchema } from "@ink-mirror/shared";
+import { entryId, CreateEntryRequestSchema, ReflectEntryResponseSchema } from "@ink-mirror/shared";
 import type { EntryStore } from "../entry-store.js";
 import type { EventBus, RouteModule } from "../types.js";
 import type { ObserveResult } from "../observer.js";
@@ -13,6 +13,7 @@ export type ObserveFn = (entryId: string, entryText: string) => Promise<ObserveR
 export interface EntriesDeps {
   entryStore: EntryStore;
   onEntryCreated?: ObserveFn;
+  onEntryReflected?: ObserveFn;
   eventBus?: EventBus;
 }
 
@@ -22,10 +23,11 @@ export interface EntriesDeps {
  * POST /entries     - Create a new entry
  * GET  /entries     - List all entries
  * GET  /entries/:id - Read a single entry
+ * POST /entries/:id/reflect - Explicitly re-run observation for an existing entry
  */
 export function createEntryRoutes(deps: EntriesDeps): RouteModule {
   const app = new Hono();
-  const { entryStore, onEntryCreated, eventBus } = deps;
+  const { entryStore, onEntryCreated, onEntryReflected, eventBus } = deps;
 
   app.post("/entries", async (c) => {
     const raw: unknown = await c.req.json();
@@ -55,10 +57,17 @@ export function createEntryRoutes(deps: EntriesDeps): RouteModule {
       }
     }
 
-    // Emit observation events for SSE subscribers
+    // Emit observation and pattern-discovery events for SSE subscribers
+    // (REQ-LPC-29: observation:created carries the resolved pattern
+    // reference already, via Observation.patternId; pattern:discovered
+    // covers observer-side discovery here, and routes/patterns.ts covers
+    // the detach-produces-a-new-candidate case separately).
     if (observeResult && eventBus) {
       for (const obs of observeResult.observations) {
         eventBus.emit("observation:created", obs);
+      }
+      for (const pattern of observeResult.discoveries) {
+        eventBus.emit("pattern:discovered", { pattern });
       }
     }
 
@@ -93,6 +102,41 @@ export function createEntryRoutes(deps: EntriesDeps): RouteModule {
     }
 
     return c.json(entry);
+  });
+
+  app.post("/entries/:id/reflect", async (c) => {
+    const raw = c.req.param("id");
+    if (!/^entry-[\w-]+$/.test(raw)) {
+      return c.json({ error: "Invalid entry ID" }, 400);
+    }
+
+    const entry = await entryStore.get(entryId(raw));
+    if (!entry) {
+      return c.json({ error: "Entry not found" }, 404);
+    }
+    if (!onEntryReflected) {
+      return c.json({ error: "Observation is unavailable" }, 503);
+    }
+
+    try {
+      const result = await onEntryReflected(entry.id, entry.body);
+      if (eventBus) {
+        for (const observation of result.observations) {
+          eventBus.emit("observation:created", observation);
+        }
+        for (const pattern of result.discoveries) {
+          eventBus.emit("pattern:discovered", { pattern });
+        }
+      }
+      return c.json(ReflectEntryResponseSchema.parse({
+        observations: result.observations,
+        errors: result.errors,
+      }));
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      console.error(`[daemon] observer failed for ${entry.id}: ${message}`);
+      return c.json({ error: "Observation failed", details: message }, 502);
+    }
   });
 
   return {
@@ -143,6 +187,22 @@ export function createEntryRoutes(deps: EntriesDeps): RouteModule {
           },
         ],
         idempotent: true,
+      },
+      {
+        operationId: "entries.reflect",
+        name: "reflect",
+        description: "Explicitly re-run observation for an existing journal entry",
+        invocation: { method: "POST", path: "/entries/:id/reflect" },
+        hierarchy: { root: "entries", feature: "reflect" },
+        parameters: [
+          {
+            name: "id",
+            description: "Entry ID",
+            required: true,
+            type: "string" as const,
+          },
+        ],
+        idempotent: false,
       },
     ],
   };

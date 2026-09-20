@@ -1,8 +1,9 @@
 import { describe, expect, test } from "bun:test";
-import type { Entry, EntryListItem } from "@ink-mirror/shared";
+import type { Entry, EntryListItem, Observation, Pattern } from "@ink-mirror/shared";
 import type { EntryId } from "@ink-mirror/shared";
-import { createEntryRoutes } from "../src/routes/entries.js";
+import { createEntryRoutes, type ObserveFn } from "../src/routes/entries.js";
 import type { EntryStore } from "../src/entry-store.js";
+import { createEventBus } from "../src/event-bus.js";
 
 /**
  * In-memory entry store for route tests.
@@ -110,6 +111,67 @@ describe("POST /entries", () => {
   });
 });
 
+describe("POST /entries: pattern:discovered event (REQ-LPC-29)", () => {
+  function makeDiscoveredPattern(overrides: Partial<Pattern> = {}): Pattern {
+    return {
+      id: "pat-2026-03-27-001",
+      statement: "Uses short sentences for emphasis",
+      dimension: "sentence-rhythm",
+      status: "candidate",
+      createdAt: "2026-03-27T10:00:00.000Z",
+      updatedAt: "2026-03-27T10:00:00.000Z",
+      sightingCount: 1,
+      entryIds: ["entry-2026-03-27-001"],
+      ...overrides,
+    };
+  }
+
+  test("emits pattern:discovered for each pattern the observer discovered", async () => {
+    const store = mockEntryStore();
+    const eventBus = createEventBus();
+    const discoveredEvents: unknown[] = [];
+    eventBus.subscribe("pattern:discovered", (e) => discoveredEvents.push(e));
+
+    const discovered = makeDiscoveredPattern();
+    const onEntryCreated: ObserveFn = async () => ({
+      observations: [],
+      errors: [],
+      discoveries: [discovered],
+    });
+
+    const { routes } = createEntryRoutes({ entryStore: store, onEntryCreated, eventBus });
+
+    const res = await routes.request(
+      req("/entries", { method: "POST", body: { body: "A day of short sentences." } }),
+    );
+    expect(res.status).toBe(201);
+
+    expect(discoveredEvents).toHaveLength(1);
+    expect(discoveredEvents[0]).toEqual({ pattern: discovered });
+  });
+
+  test("does not emit pattern:discovered when the observer discovers nothing", async () => {
+    const store = mockEntryStore();
+    const eventBus = createEventBus();
+    const discoveredEvents: unknown[] = [];
+    eventBus.subscribe("pattern:discovered", (e) => discoveredEvents.push(e));
+
+    const onEntryCreated: ObserveFn = async () => ({
+      observations: [],
+      errors: [],
+      discoveries: [],
+    });
+
+    const { routes } = createEntryRoutes({ entryStore: store, onEntryCreated, eventBus });
+
+    await routes.request(
+      req("/entries", { method: "POST", body: { body: "Nothing notable here." } }),
+    );
+
+    expect(discoveredEvents).toHaveLength(0);
+  });
+});
+
 describe("GET /entries", () => {
   test("returns empty list when no entries", async () => {
     const store = mockEntryStore();
@@ -193,17 +255,74 @@ describe("GET /entries/:id", () => {
   });
 });
 
+describe("POST /entries/:id/reflect", () => {
+  const entry: Entry = {
+    id: "entry-2026-03-27-001",
+    date: "2026-03-27",
+    body: "A stored entry remains unchanged.",
+  };
+  const observation: Observation = {
+    id: "obs-001",
+    entryId: entry.id,
+    patternId: "pat-001",
+    pattern: "Uses a concise declarative sentence",
+    evidence: ["A stored entry remains unchanged."],
+    dimension: "sentence-rhythm",
+    validationStatus: "verified",
+    validationWarnings: [],
+    validationDiagnostics: [],
+    createdAt: "2026-03-27T10:00:00.000Z",
+    updatedAt: "2026-03-27T10:00:00.000Z",
+  };
+
+  test("explicitly invokes the reflection observer without re-saving the entry", async () => {
+    const store = mockEntryStore([entry]);
+    const calls: Array<{ id: string; body: string }> = [];
+    const onEntryCreated: ObserveFn = async (id, body) => {
+      calls.push({ id, body });
+      return { observations: [observation], errors: [], discoveries: [] };
+    };
+    const { routes } = createEntryRoutes({ entryStore: store, onEntryReflected: onEntryCreated });
+
+    const res = await routes.request(req(`/entries/${entry.id}/reflect`, { method: "POST" }));
+
+    expect(res.status).toBe(200);
+    expect(calls).toEqual([{ id: entry.id, body: entry.body }]);
+    expect(store.entries).toEqual([entry]);
+    expect(await res.json()).toEqual({ observations: [observation], errors: [] });
+  });
+
+  test("returns observer validation errors as a successful warning response", async () => {
+    const store = mockEntryStore([entry]);
+    const onEntryCreated: ObserveFn = async () => ({
+      observations: [],
+      errors: ["candidate evidence was rejected"],
+      discoveries: [],
+    });
+    const { routes } = createEntryRoutes({ entryStore: store, onEntryReflected: onEntryCreated });
+
+    const res = await routes.request(req(`/entries/${entry.id}/reflect`, { method: "POST" }));
+
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({
+      observations: [],
+      errors: ["candidate evidence was rejected"],
+    });
+  });
+});
+
 describe("operations registration", () => {
-  test("registers create, list, and read operations", () => {
+  test("registers create, list, read, and reflect operations", () => {
     const store = mockEntryStore();
     const { operations } = createEntryRoutes({ entryStore: store });
 
-    expect(operations).toHaveLength(3);
+    expect(operations).toHaveLength(4);
 
     const ids = operations.map((o) => o.operationId);
     expect(ids).toContain("entries.create");
     expect(ids).toContain("entries.list");
     expect(ids).toContain("entries.read");
+    expect(ids).toContain("entries.reflect");
   });
 
   test("create operation has body and title parameters (F-07)", () => {

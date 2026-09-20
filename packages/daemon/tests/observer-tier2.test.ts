@@ -1,6 +1,33 @@
 import { describe, test, expect } from "bun:test";
 import { buildUserMessage } from "../src/observer.js";
+import { createPatternStore, type PatternStoreFs } from "../src/pattern-store.js";
 import type { EntryMetrics } from "@ink-mirror/shared";
+
+function mockPatternFs(): PatternStoreFs {
+  const files: Record<string, string> = {};
+  return {
+    async readdir(path: string): Promise<string[]> {
+      const prefix = path.endsWith("/") ? path : path + "/";
+      return Object.keys(files)
+        .filter((f) => f.startsWith(prefix))
+        .map((f) => f.slice(prefix.length))
+        .filter((f) => !f.includes("/"));
+    },
+    async readFile(path: string): Promise<string> {
+      if (!(path in files)) throw new Error(`ENOENT: ${path}`);
+      return files[path];
+    },
+    async writeFile(path: string, content: string): Promise<void> {
+      files[path] = content;
+    },
+    async mkdir(): Promise<void> {},
+  };
+}
+
+/** A fresh, empty pattern store for tests that only care about Tier 2 wiring. */
+function stubPatternStore() {
+  return createPatternStore({ patternsDir: "/data/patterns", fs: mockPatternFs() });
+}
 
 const stubMetrics: EntryMetrics = {
   sentences: [{ text: "Hello world.", wordCount: 2, charCount: 12 }],
@@ -104,27 +131,32 @@ describe("Tier 2 activation logic", () => {
             content: JSON.stringify({
               observations: [{
                 pattern: "Test pattern",
-                evidence: "hello world",
+                evidence: ["hello world"],
                 dimension: "sentence-rhythm",
+                patternRef: { newPattern: { statement: "Test pattern", dimension: "sentence-rhythm" } },
               }],
             }),
           }),
         },
         observationStore: {
-          save: async (_eid, raw) => ({
+          save: async (_eid, raw, patternId) => ({
             id: "obs-1",
             entryId: "entry-1",
+            patternId,
             pattern: raw.pattern,
             evidence: raw.evidence,
             dimension: raw.dimension,
-            status: "pending" as const,
             createdAt: "2026-01-01",
             updatedAt: "2026-01-01",
+            validationStatus: "verified",
+            validationWarnings: [],
+            validationDiagnostics: [],
           }),
           list: async () => [],
           get: async () => undefined,
-          updateStatus: async () => undefined,
+          reassignPattern: async () => undefined,
         },
+        patternStore: stubPatternStore(),
         computeMetrics: () => stubMetrics,
         corpusSize: async () => 3,
         recentEntries: async () => {
@@ -151,27 +183,32 @@ describe("Tier 2 activation logic", () => {
             content: JSON.stringify({
               observations: [{
                 pattern: "Test pattern",
-                evidence: "hello world",
+                evidence: ["hello world"],
                 dimension: "sentence-rhythm",
+                patternRef: { newPattern: { statement: "Test pattern", dimension: "sentence-rhythm" } },
               }],
             }),
           }),
         },
         observationStore: {
-          save: async (_eid, raw) => ({
+          save: async (_eid, raw, patternId) => ({
             id: "obs-1",
             entryId: "entry-1",
+            patternId,
             pattern: raw.pattern,
             evidence: raw.evidence,
             dimension: raw.dimension,
-            status: "pending" as const,
             createdAt: "2026-01-01",
             updatedAt: "2026-01-01",
+            validationStatus: "verified",
+            validationWarnings: [],
+            validationDiagnostics: [],
           }),
           list: async () => [],
           get: async () => undefined,
-          updateStatus: async () => undefined,
+          reassignPattern: async () => undefined,
         },
+        patternStore: stubPatternStore(),
         computeMetrics: () => stubMetrics,
         corpusSize: async () => 7,
         recentEntries: async (limit: number) => {
@@ -202,27 +239,32 @@ describe("Tier 2 activation logic", () => {
             content: JSON.stringify({
               observations: [{
                 pattern: "Test pattern",
-                evidence: "hello world",
+                evidence: ["hello world"],
                 dimension: "sentence-rhythm",
+                patternRef: { newPattern: { statement: "Test pattern", dimension: "sentence-rhythm" } },
               }],
             }),
           }),
         },
         observationStore: {
-          save: async (_eid, raw) => ({
+          save: async (_eid, raw, patternId) => ({
             id: "obs-1",
             entryId: "entry-1",
+            patternId,
             pattern: raw.pattern,
             evidence: raw.evidence,
             dimension: raw.dimension,
-            status: "pending" as const,
             createdAt: "2026-01-01",
             updatedAt: "2026-01-01",
+            validationStatus: "verified",
+            validationWarnings: [],
+            validationDiagnostics: [],
           }),
           list: async () => [],
           get: async () => undefined,
-          updateStatus: async () => undefined,
+          reassignPattern: async () => undefined,
         },
+        patternStore: stubPatternStore(),
         computeMetrics: () => stubMetrics,
         corpusSize: async () => 4,
         recentEntries: async () => {
@@ -248,27 +290,32 @@ describe("Tier 2 activation logic", () => {
             content: JSON.stringify({
               observations: [{
                 pattern: "Test pattern",
-                evidence: "hello world",
+                evidence: ["hello world"],
                 dimension: "sentence-rhythm",
+                patternRef: { newPattern: { statement: "Test pattern", dimension: "sentence-rhythm" } },
               }],
             }),
           }),
         },
         observationStore: {
-          save: async (_eid, raw) => ({
+          save: async (_eid, raw, patternId) => ({
             id: "obs-1",
             entryId: "entry-1",
+            patternId,
             pattern: raw.pattern,
             evidence: raw.evidence,
             dimension: raw.dimension,
-            status: "pending" as const,
             createdAt: "2026-01-01",
             updatedAt: "2026-01-01",
+            validationStatus: "verified",
+            validationWarnings: [],
+            validationDiagnostics: [],
           }),
           list: async () => [],
           get: async () => undefined,
-          updateStatus: async () => undefined,
+          reassignPattern: async () => undefined,
         },
+        patternStore: stubPatternStore(),
         computeMetrics: () => stubMetrics,
         corpusSize: async () => 5,
         recentEntries: async (limit: number) => {

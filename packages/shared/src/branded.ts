@@ -10,6 +10,8 @@ type Brand<T, B extends string> = T & { readonly [brand]: B };
 
 export type EntryId = Brand<string, "EntryId">;
 export type ObservationId = Brand<string, "ObservationId">;
+export type PatternId = Brand<string, "PatternId">;
+export type SightingId = Brand<string, "SightingId">;
 
 export function entryId(id: string): EntryId {
   return id as EntryId;
@@ -17,4 +19,12 @@ export function entryId(id: string): EntryId {
 
 export function observationId(id: string): ObservationId {
   return id as ObservationId;
+}
+
+export function patternId(id: string): PatternId {
+  return id as PatternId;
+}
+
+export function sightingId(id: string): SightingId {
+  return id as SightingId;
 }

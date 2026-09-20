@@ -13,8 +13,15 @@ import http from "node:http";
 
 import { join } from "node:path";
 
-const DATA_DIR = process.env.INK_MIRROR_DATA ?? join(process.env.HOME ?? ".", ".ink-mirror");
-const SOCKET_PATH = process.env.INK_MIRROR_SOCKET ?? join(DATA_DIR, "ink-mirror.sock");
+/**
+ * Resolved per-call (not cached at module load) so tests can point this
+ * client at a fake daemon by setting INK_MIRROR_SOCKET before a request,
+ * regardless of when this module was first imported.
+ */
+function getSocketPath(): string {
+  const dataDir = process.env.INK_MIRROR_DATA ?? join(process.env.HOME ?? ".", ".ink-mirror");
+  return process.env.INK_MIRROR_SOCKET ?? join(dataDir, "ink-mirror.sock");
+}
 
 export interface DaemonFetchOptions {
   method?: string;
@@ -28,11 +35,12 @@ function makeRequest(
 ): Promise<http.IncomingMessage> {
   const { method = "GET", body } = options;
   const bodyStr = body !== undefined ? JSON.stringify(body) : undefined;
+  const socketPath = getSocketPath();
 
   return new Promise<http.IncomingMessage>((resolve, reject) => {
     const req = http.request(
       {
-        socketPath: SOCKET_PATH,
+        socketPath,
         path,
         method,
         headers: bodyStr !== undefined
@@ -41,7 +49,15 @@ function makeRequest(
       },
       resolve,
     );
-    req.on("error", reject);
+    req.on("error", (err) => {
+      // Single choke point every API route's daemonFetch call goes through.
+      // Every route's catch block discards the real error before returning
+      // a generic "Daemon unavailable" 502, so this is the only place a
+      // connection failure (wrong socket path, daemon down, etc.) is
+      // actually logged with enough detail to diagnose it.
+      console.error(`[daemon-client] ${method} ${path} via ${socketPath} failed: ${err.message}`);
+      reject(err);
+    });
     if (bodyStr !== undefined) {
       req.write(bodyStr);
     }
@@ -80,7 +96,10 @@ export async function daemonFetch(
         }),
       );
     });
-    res.on("error", reject);
+    res.on("error", (err) => {
+      console.error(`[daemon-client] response stream for ${path} failed: ${err.message}`);
+      reject(err);
+    });
   });
 }
 

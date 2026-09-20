@@ -36,10 +36,13 @@ describe("events routes", () => {
     const mockObs: Observation = {
       id: "obs-2026-03-27-001",
       entryId: "entry-2026-03-27-001",
+      patternId: "pat-2026-03-27-001",
       pattern: "Test pattern from observer",
-      evidence: "cited text",
+      evidence: ["cited text"],
       dimension: "sentence-rhythm",
-      status: "pending",
+      validationStatus: "verified",
+      validationWarnings: [],
+      validationDiagnostics: [],
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };

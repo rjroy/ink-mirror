@@ -112,6 +112,41 @@ describe("computeEntryMetrics", () => {
     expect(metrics.wordFrequency.totalTokens).toBe(0);
   });
 
+  describe("REQ-LPC-9: functionWordFrequencies and punctuation", () => {
+    test("populates functionWordFrequencies from the tokens content-word analysis discards", () => {
+      const metrics = computeEntryMetrics("I am the one who is walking.");
+      expect(metrics.functionWordFrequencies).toBeDefined();
+      expect(metrics.functionWordFrequencies?.tokenFrequencies["the"]).toBe(1);
+      expect(metrics.functionWordFrequencies?.tokenFrequencies["is"]).toBe(1);
+      // Content words never leak into the function-word map.
+      expect(metrics.functionWordFrequencies?.tokenFrequencies["walking"]).toBeUndefined();
+    });
+
+    test("populates punctuation rates", () => {
+      const metrics = computeEntryMetrics("Wait, really? I never said that!");
+      expect(metrics.punctuation).toBeDefined();
+      expect(metrics.punctuation?.commaRatePer1000).toBeGreaterThan(0);
+      expect(metrics.punctuation?.questionRatePer1000).toBeGreaterThan(0);
+      expect(metrics.punctuation?.exclamationRatePer1000).toBeGreaterThan(0);
+    });
+
+    test("empty input populates both blocks with zeroed, non-NaN values", () => {
+      const metrics = computeEntryMetrics("");
+      expect(metrics.functionWordFrequencies).toEqual({ tokenFrequencies: {}, totalTokens: 0 });
+      expect(metrics.punctuation?.commaRatePer1000).toBe(0);
+      for (const value of Object.values(metrics.punctuation ?? {})) {
+        expect(Number.isNaN(value)).toBe(false);
+      }
+    });
+
+    test("running the pipeline twice on the same text is byte-identical (determinism gate)", () => {
+      const text = "I think I probably left the stove on again, sort of on purpose, if I'm honest.";
+      const first = JSON.stringify(computeEntryMetrics(text));
+      const second = JSON.stringify(computeEntryMetrics(text));
+      expect(first).toBe(second);
+    });
+  });
+
   test("detects hedging patterns across a realistic entry", () => {
     const entry = [
       "I think the project is going well.",

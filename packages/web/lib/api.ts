@@ -6,11 +6,19 @@
 import type {
   Entry,
   EntryListItem,
-  Observation,
-  CurationSession,
   Profile,
   ProfileRule,
   NudgeResponse,
+  Pattern,
+  PatternStatus,
+  Dossier,
+  PatternCurationSession,
+  PatternProposal,
+  ObservationCreatedEvent,
+  Observation,
+  PatternDiscoveredEvent,
+  PatternProposalEvent,
+  PatternWatchResolvedEvent,
 } from "@ink-mirror/shared";
 
 async function fetchApi<T>(
@@ -44,22 +52,120 @@ export async function listEntries(): Promise<EntryListItem[]> {
   return fetchApi<EntryListItem[]>("/entries");
 }
 
-export async function getCurationSession(): Promise<CurationSession> {
-  return fetchApi<CurationSession>("/observations/pending");
+export interface ReflectEntryResult {
+  observations: Observation[];
+  errors: string[];
 }
 
-export async function classifyObservation(
-  id: string,
-  status: "intentional" | "accidental" | "undecided",
-): Promise<Observation & { profileUpdated: boolean }> {
-  return fetchApi<Observation & { profileUpdated: boolean }>(
-    `/observations/${id}`,
-    {
-      method: "PATCH",
-      body: JSON.stringify({ status }),
-    },
+/** Explicitly re-run the observer for a stored entry. This is unrelated to nudge refresh. */
+export async function reflectEntry(id: string): Promise<ReflectEntryResult> {
+  return fetchApi<ReflectEntryResult>(`/entries/${id}/reflect`, {
+    method: "POST",
+    body: JSON.stringify({}),
+  });
+}
+
+// --- Pattern-grain curation API (REQ-LPC-28) ---
+//
+// Observation-grain classifyObservation is gone: the endpoint it called
+// (PATCH /observations/:id) was removed from the daemon in Phase 4.
+// Curation now judges whole pattern dossiers, not single observations.
+
+export async function getPatternSession(): Promise<
+  PatternCurationSession & { proposals: PatternProposal[] }
+> {
+  return fetchApi<PatternCurationSession & { proposals: PatternProposal[] }>(
+    "/patterns/session",
   );
 }
+
+export async function listPatterns(status?: PatternStatus): Promise<Pattern[]> {
+  const path = status ? `/patterns?status=${status}` : "/patterns";
+  return fetchApi<Pattern[]>(path);
+}
+
+export async function getPattern(id: string): Promise<Dossier> {
+  return fetchApi<Dossier>(`/patterns/${id}`);
+}
+
+export async function classifyPattern(
+  id: string,
+  status: "intentional" | "accidental" | "undecided",
+  promote?: boolean,
+): Promise<Pattern & { rule?: ProfileRule }> {
+  return fetchApi<Pattern & { rule?: ProfileRule }>(`/patterns/${id}/classify`, {
+    method: "POST",
+    body: JSON.stringify(promote ? { status, promote } : { status }),
+  });
+}
+
+export async function promotePattern(id: string): Promise<Pattern & { rule: ProfileRule }> {
+  return fetchApi<Pattern & { rule: ProfileRule }>(`/patterns/${id}/promote`, {
+    method: "POST",
+    body: JSON.stringify({}),
+  });
+}
+
+export async function respondToProposal(
+  id: string,
+  action: "accept" | "decline",
+): Promise<Pattern & { rule?: ProfileRule }> {
+  return fetchApi<Pattern & { rule?: ProfileRule }>(`/patterns/${id}/proposal`, {
+    method: "POST",
+    body: JSON.stringify({ action }),
+  });
+}
+
+export async function detachSighting(
+  id: string,
+  sightingId: string,
+): Promise<{ source: Pattern; newPattern: Pattern }> {
+  return fetchApi<{ source: Pattern; newPattern: Pattern }>(`/patterns/${id}/detach`, {
+    method: "POST",
+    body: JSON.stringify({ sightingId }),
+  });
+}
+
+export async function mergePatterns(id: string, duplicateId: string): Promise<Pattern> {
+  return fetchApi<Pattern>(`/patterns/${id}/merge`, {
+    method: "POST",
+    body: JSON.stringify({ duplicateId }),
+  });
+}
+
+export async function dismissPattern(id: string): Promise<Pattern> {
+  return fetchApi<Pattern>(`/patterns/${id}/dismiss`, {
+    method: "POST",
+    body: JSON.stringify({}),
+  });
+}
+
+export async function retirePattern(id: string): Promise<Pattern> {
+  return fetchApi<Pattern>(`/patterns/${id}/retire`, {
+    method: "POST",
+    body: JSON.stringify({}),
+  });
+}
+
+export async function reactivatePattern(id: string): Promise<Pattern> {
+  return fetchApi<Pattern>(`/patterns/${id}/reactivate`, {
+    method: "POST",
+    body: JSON.stringify({}),
+  });
+}
+
+export async function reaffirmRule(patternId: string): Promise<ProfileRule> {
+  return fetchApi<ProfileRule>(`/patterns/${patternId}/reaffirm`, {
+    method: "POST",
+    body: JSON.stringify({}),
+  });
+}
+
+export async function getWatchList(): Promise<{ watchList: Dossier[] }> {
+  return fetchApi<{ watchList: Dossier[] }>("/patterns/watch");
+}
+
+// --- Profile ---
 
 export async function getProfile(): Promise<Profile & { markdown: string }> {
   return fetchApi<Profile & { markdown: string }>("/profile");
@@ -105,22 +211,82 @@ export async function requestNudge(
 }
 
 /**
- * Subscribe to observation events via SSE.
- * Returns a cleanup function to close the connection.
+ * Handlers for the versioned SSE event contract (REQ-LPC-29). Every handler
+ * is optional: callers subscribe only to the events they care about, so a
+ * component that just wants to know an entry produced a sighting doesn't
+ * have to also branch on pattern-discovery/proposal/watch-resolution
+ * payloads it has no use for.
+ *
+ * `onPatternDiscovered` is wired today: journal-editor.tsx uses it inside its
+ * existing submission-scoped SSE window (see DiscoveredPatterns there).
+ *
+ * `onPatternProposal` and `onPatternWatchResolved` are intentionally
+ * unwired right now. Both events fire during curation-session assembly
+ * (`GET /patterns/session`, `GET /patterns/watch` in the daemon's
+ * routes/patterns.ts), which has no relationship to entry submission — there
+ * is no SSE connection open during curation today. curation-panel.tsx
+ * already gets this same data fresher, on every load, via the direct fetch
+ * response (PatternCurationSession.proposals / getWatchList), so there is no
+ * live-push consumer surface for these two events yet. Opening a
+ * curation-panel SSE subscription just to carry them would mean holding a
+ * connection open for the panel's whole open-ended review session, which is
+ * exactly the "opens on mount, holds forever" anti-pattern this project's
+ * SSE-scoping lesson (CLAUDE.md) warns against — curation has no natural
+ * request-scoped window the way entry submission does. These two handler
+ * slots exist for a future feature (near-real-time updates across multiple
+ * open tabs/sessions), not a current gap; wiring them here today would be
+ * scope creep, not a fix.
  */
-export function subscribeObservations(
-  onObservation: (observation: Observation) => void,
-  onError?: (error: Event) => void,
-): () => void {
+export interface PatternEventHandlers {
+  onObservation?: (observation: ObservationCreatedEvent) => void;
+  onPatternDiscovered?: (event: PatternDiscoveredEvent) => void;
+  onPatternProposal?: (event: PatternProposalEvent) => void;
+  onPatternWatchResolved?: (event: PatternWatchResolvedEvent) => void;
+  onError?: (error: Event) => void;
+}
+
+/**
+ * Subscribe to observation/pattern events via SSE (REQ-LPC-29's versioned
+ * contract). Returns a cleanup function to close the connection.
+ *
+ * Per this project's SSE-scoping lesson (CLAUDE.md): callers should open
+ * this only for the duration they need it (e.g. around an entry submission)
+ * and call the returned cleanup as soon as they're done, not hold it open
+ * for a component's whole mounted lifetime.
+ */
+export function subscribeObservations(handlers: PatternEventHandlers): () => void {
   const source = new EventSource("/api/events/observations");
 
-  source.addEventListener("observation", (event) => {
-    const observation = JSON.parse(event.data) as Observation;
-    onObservation(observation);
-  });
+  if (handlers.onObservation) {
+    const onObservation = handlers.onObservation;
+    source.addEventListener("observation", (event: MessageEvent<string>) => {
+      onObservation(JSON.parse(event.data) as ObservationCreatedEvent);
+    });
+  }
 
-  if (onError) {
-    source.onerror = onError;
+  if (handlers.onPatternDiscovered) {
+    const onPatternDiscovered = handlers.onPatternDiscovered;
+    source.addEventListener("pattern:discovered", (event: MessageEvent<string>) => {
+      onPatternDiscovered(JSON.parse(event.data) as PatternDiscoveredEvent);
+    });
+  }
+
+  if (handlers.onPatternProposal) {
+    const onPatternProposal = handlers.onPatternProposal;
+    source.addEventListener("pattern:proposal", (event: MessageEvent<string>) => {
+      onPatternProposal(JSON.parse(event.data) as PatternProposalEvent);
+    });
+  }
+
+  if (handlers.onPatternWatchResolved) {
+    const onPatternWatchResolved = handlers.onPatternWatchResolved;
+    source.addEventListener("pattern:watch-resolved", (event: MessageEvent<string>) => {
+      onPatternWatchResolved(JSON.parse(event.data) as PatternWatchResolvedEvent);
+    });
+  }
+
+  if (handlers.onError) {
+    source.onerror = handlers.onError;
   }
 
   return () => source.close();

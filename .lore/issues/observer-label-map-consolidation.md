@@ -1,7 +1,7 @@
 ---
 title: "Consolidate dimension-to-label mapping into @ink-mirror/shared"
 date: 2026-04-21
-status: open
+status: resolved
 priority: medium
 type: refactor
 origin: .lore/brainstorm/observer-dimension-extension-20260420.md
@@ -51,3 +51,14 @@ Out of scope: changing label text, adding translations, moving any other dimensi
 
 - Full motivation and cost analysis: `.lore/brainstorm/observer-dimension-extension-20260420.md` Section 4 ("Prompt-only vs. Structural"), Section 6 ("Recommended Next Move"), and "Open Threads" first bullet.
 - First dimension addition using all three sites in place: `.lore/specs/observer-paragraph-structure.md` Section 4 "Touch Points".
+
+## Resolution
+
+`DIMENSION_LABELS` (`packages/shared/src/observations.ts`) landed during the
+longitudinal-pattern-confirmation work (`.lore/work/plans/longitudinal-pattern-confirmation.md`,
+Phase 5 for daemon/CLI, Phase 6 item 5 for web). The daemon and CLI sites
+were consolidated in Phase 5. Phase 6 closed the loop for web: the local
+`DIMENSION_LABELS` map in `packages/web/app/entries/[id]/page.tsx` and the
+ad-hoc `dimension.replace(/-/g, " ")` in `packages/web/components/profile-editor.tsx`
+were both replaced with the shared import. All known sites now import from
+`@ink-mirror/shared`.

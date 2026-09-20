@@ -6,7 +6,8 @@ export async function GET() {
     const res = await daemonFetch("/profile");
     const data = await res.json();
     return NextResponse.json(data, { status: res.status });
-  } catch {
+  } catch (err) {
+    console.error(`[api] GET /api/profile failed:`, err);
     return NextResponse.json({ error: "Daemon unavailable" }, { status: 502 });
   }
 }
@@ -17,7 +18,8 @@ export async function PUT(request: Request) {
     const res = await daemonFetch("/profile", { method: "PUT", body });
     const data = await res.json();
     return NextResponse.json(data, { status: res.status });
-  } catch {
+  } catch (err) {
+    console.error(`[api] PUT /api/profile failed:`, err);
     return NextResponse.json({ error: "Daemon unavailable" }, { status: 502 });
   }
 }

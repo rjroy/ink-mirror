@@ -2,13 +2,69 @@
 
 import { useState, useCallback, useMemo } from "react";
 import { updateProfileRule, deleteProfileRule, replaceProfile } from "@/lib/api";
-import type { Profile, ProfileRule } from "@ink-mirror/shared";
+import { DIMENSION_LABELS } from "@ink-mirror/shared";
+import type {
+  Profile,
+  ProfileRule,
+  ResurfacedRule,
+  ResurfacedRuleReason,
+  RuleProvenance,
+  Pattern,
+} from "@ink-mirror/shared";
 
 interface ProfileEditorProps {
   initialProfile: Profile & { markdown: string };
+  /** Rules currently flagged for reaffirm-or-retire (REQ-LPC-19/20/21). */
+  resurfacedRules: ResurfacedRule[];
+  /** The pattern ledger, joined against rule.patternId for dossier links and migrated state (REQ-LPC-18/27). */
+  patterns: Pattern[];
 }
 
-export function ProfileEditor({ initialProfile }: ProfileEditorProps) {
+export type HealthState = "fine" | "stale" | "drift" | "stale-and-drift";
+
+/** Reduces a resurfaced rule's reasons (zero or more) to a single display state. */
+export function healthState(reasons: ResurfacedRuleReason[]): HealthState {
+  const stale = reasons.includes("stale");
+  const drift = reasons.includes("drift");
+  if (stale && drift) return "stale-and-drift";
+  if (stale) return "stale";
+  if (drift) return "drift";
+  return "fine";
+}
+
+export function healthLabel(state: HealthState): string {
+  switch (state) {
+    case "fine":
+      return "Fine";
+    case "stale":
+      return "Stale";
+    case "drift":
+      return "Drifting";
+    case "stale-and-drift":
+      return "Stale + Drifting";
+  }
+}
+
+// The stylesheet only defines .im-health-stale/-drift/-fine (no combined
+// variant): "stale-and-drift" borrows the drift color since drift is the
+// more actionable of the two reasons.
+function healthClassSuffix(state: HealthState): "fine" | "stale" | "drift" {
+  return state === "stale-and-drift" ? "drift" : state;
+}
+
+/**
+ * REQ-LPC-16: a rule either came from the writer's own say-so or from
+ * evidence crossing the promotion thresholds. Older rules (pre-Phase-5
+ * migration) recorded neither, so this degrades honestly instead of
+ * guessing.
+ */
+export function provenanceLabel(provenance?: RuleProvenance): string {
+  if (provenance === "writer-asserted") return "Writer-asserted";
+  if (provenance === "evidence-confirmed") return "Evidence-confirmed";
+  return "Unspecified provenance";
+}
+
+export function ProfileEditor({ initialProfile, resurfacedRules, patterns }: ProfileEditorProps) {
   const [profile, setProfile] = useState(initialProfile);
   const [editing, setEditing] = useState<string | null>(null);
   const [editValue, setEditValue] = useState("");
@@ -16,6 +72,12 @@ export function ProfileEditor({ initialProfile }: ProfileEditorProps) {
   const [markdownContent, setMarkdownContent] = useState(initialProfile.markdown);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const patternsById = useMemo(() => new Map(patterns.map((p) => [p.id, p])), [patterns]);
+  const resurfacedByRuleId = useMemo(
+    () => new Map(resurfacedRules.map((r) => [r.rule.id, r])),
+    [resurfacedRules],
+  );
 
   const handleEditRule = useCallback(
     async (ruleId: string) => {
@@ -149,51 +211,80 @@ export function ProfileEditor({ initialProfile }: ProfileEditorProps) {
         dimensionEntries.map(([dimension, rules]) => (
           <div key={dimension} className="im-dim-section">
             <div className="im-dim-head">
-              <h3>{dimension.replace(/-/g, " ")}</h3>
+              <h3>{DIMENSION_LABELS[dimension as keyof typeof DIMENSION_LABELS] ?? dimension}</h3>
               <span className="rule" />
               <span className="ct">
                 {rules.length} rule{rules.length === 1 ? "" : "s"}
               </span>
             </div>
-            {rules.map((rule) => (
-              <div key={rule.id} className="im-rule-row">
-                <div>
-                  {editing === rule.id ? (
-                    <input
-                      type="text"
-                      value={editValue}
-                      onChange={(e) => setEditValue(e.target.value)}
-                      className="im-markdown"
-                      style={{ minHeight: "auto", padding: 8, fontFamily: "var(--font-serif)" }}
-                    />
-                  ) : (
-                    <>
-                      <p className="im-rule-text">{rule.pattern}</p>
-                      <div className="im-rule-meta">
-                        <Pips n={rule.sourceCount} />
-                        <span>{rule.sourceSummary}</span>
-                      </div>
-                    </>
-                  )}
+            {rules.map((rule) => {
+              const pattern = rule.patternId ? patternsById.get(rule.patternId) : undefined;
+              const migrated = pattern?.migratedNoHistory === true;
+              const reasons = resurfacedByRuleId.get(rule.id)?.reasons ?? [];
+              const state = healthState(reasons);
+
+              return (
+                <div key={rule.id} className="im-rule-row">
+                  <div>
+                    {editing === rule.id ? (
+                      <input
+                        type="text"
+                        value={editValue}
+                        onChange={(e) => setEditValue(e.target.value)}
+                        className="im-markdown"
+                        style={{ minHeight: "auto", padding: 8, fontFamily: "var(--font-serif)" }}
+                      />
+                    ) : (
+                      <>
+                        <p className="im-rule-text">{rule.pattern}</p>
+                        <div className="im-rule-meta">
+                          {!migrated && <Pips n={rule.sourceCount} />}
+                          <span>
+                            {migrated
+                              ? "Migrated — no historical sightings recorded"
+                              : rule.sourceSummary}
+                          </span>
+                        </div>
+                        <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 6 }}>
+                          <span
+                            className={`im-badge${
+                              rule.provenance ? ` im-badge-${rule.provenance}` : ""
+                            }`}
+                          >
+                            {provenanceLabel(rule.provenance)}
+                          </span>
+                          {migrated && <span className="im-badge im-badge-migrated">Migrated</span>}
+                          <span className={`im-health im-health-${healthClassSuffix(state)}`}>
+                            {healthLabel(state)}
+                          </span>
+                          {pattern && (
+                            <a href={`/patterns/${pattern.id}`} className="im-dossier-link">
+                              Why does it say this?
+                            </a>
+                          )}
+                        </div>
+                      </>
+                    )}
+                  </div>
+                  <div className="im-rule-actions">
+                    <button
+                      className="btn btn-sm btn-ghost"
+                      onClick={() => void handleEditRule(rule.id)}
+                      disabled={saving}
+                    >
+                      {editing === rule.id ? "Save" : "Edit"}
+                    </button>
+                    <button
+                      className="btn btn-sm btn-ghost"
+                      onClick={() => void handleDeleteRule(rule.id)}
+                      style={{ color: "var(--oxblood-500)" }}
+                    >
+                      Remove
+                    </button>
+                  </div>
                 </div>
-                <div className="im-rule-actions">
-                  <button
-                    className="btn btn-sm btn-ghost"
-                    onClick={() => void handleEditRule(rule.id)}
-                    disabled={saving}
-                  >
-                    {editing === rule.id ? "Save" : "Edit"}
-                  </button>
-                  <button
-                    className="btn btn-sm btn-ghost"
-                    onClick={() => void handleDeleteRule(rule.id)}
-                    style={{ color: "var(--oxblood-500)" }}
-                  >
-                    Remove
-                  </button>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         ))
       )}

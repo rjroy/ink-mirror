@@ -60,5 +60,15 @@ export function createApp(deps: AppDeps = {}): App {
   // Health check
   hono.get("/health", (c) => c.json({ status: "ok" }));
 
+  // Safety net: any route handler that throws without its own try/catch
+  // (most routes already catch and translate their own errors — see
+  // routes/*.ts) would otherwise fall through to Hono's default 500 with
+  // no server-side log line at all. This is the last point that can name
+  // the request and the actual error before responding.
+  hono.onError((err, c) => {
+    console.error(`[daemon] unhandled error on ${c.req.method} ${c.req.path}:`, err);
+    return c.json({ error: "Internal server error" }, 500);
+  });
+
   return { hono, registry, eventBus };
 }
