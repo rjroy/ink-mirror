@@ -40,6 +40,9 @@ describe("events routes", () => {
       pattern: "Test pattern from observer",
       evidence: ["cited text"],
       dimension: "sentence-rhythm",
+      validationStatus: "verified",
+      validationWarnings: [],
+      validationDiagnostics: [],
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };

@@ -55,7 +55,12 @@ describe("YAML serialization", () => {
     const yaml = toYaml(obs);
     const parsed = fromYaml(yaml);
 
-    expect(parsed).toEqual(obs);
+    expect(parsed).toEqual({
+      ...obs,
+      validationStatus: "verified",
+      validationWarnings: [],
+      validationDiagnostics: [],
+    });
   });
 
   test("handles multiline patterns", () => {
@@ -74,6 +79,28 @@ describe("YAML serialization", () => {
     const parsed = fromYaml(yaml);
 
     expect(parsed?.pattern).toBe("Line one\nLine two");
+  });
+
+  test("round-trips unverified evidence diagnostics", () => {
+    const obs = {
+      id: "obs-001",
+      entryId: "entry-001",
+      patternId: SAMPLE_PATTERN_ID,
+      pattern: "A pattern",
+      evidence: ["Fabricated evidence"],
+      dimension: "word-level-habits" as const,
+      validationStatus: "unverified" as const,
+      validationWarnings: ["evidence-not-found-in-entry" as const],
+      validationDiagnostics: [{
+        code: "evidence-not-found-in-entry" as const,
+        fragment: "Fabricated evidence",
+        message: "Cited evidence was not found in the source entry",
+      }],
+      createdAt: "2026-03-27T10:00:00Z",
+      updatedAt: "2026-03-27T10:00:00Z",
+    };
+
+    expect(fromYaml(toYaml(obs))).toEqual(obs);
   });
 
   test("preserves trailing whitespace in evidence fragments", () => {

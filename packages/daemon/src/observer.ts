@@ -18,6 +18,8 @@ import type {
   Pattern,
   Sighting,
   ObservationDimension,
+  ObservationValidationDiagnostic,
+  ObservationValidationWarning,
 } from "@ink-mirror/shared";
 import { ObserverOutputSchema, isLinkableMetricKey } from "@ink-mirror/shared";
 import type { SessionRunner } from "./session-runner.js";
@@ -153,7 +155,7 @@ export async function observe(
 async function resolveAndStoreObservation(
   deps: Pick<ObserverDeps, "observationStore" | "patternStore">,
   entryId: string,
-  raw: RawObservation,
+  raw: ValidatedRawObservation,
 ): Promise<{ observation: Observation; discoveredPattern?: Pattern } | { error: string }> {
   const { observationStore, patternStore } = deps;
   const ref = raw.patternRef;
@@ -187,7 +189,7 @@ async function resolveAndStoreObservation(
     return { error: `Observation "${raw.pattern.slice(0, 60)}" has no resolvable pattern reference` };
   }
 
-  const obs = await observationStore.save(entryId, raw, resolvedPatternId);
+  const obs = await observationStore.save(entryId, raw, resolvedPatternId, raw.validation);
 
   const sighting: Sighting = {
     id: obs.id,
@@ -476,9 +478,17 @@ export function parseObserverOutput(content: string): ParseSuccess | ParseFailur
 }
 
 interface ValidationResult {
-  valid: RawObservation[];
+  valid: ValidatedRawObservation[];
   errors: string[];
 }
+
+type ValidatedRawObservation = RawObservation & {
+  validation: {
+    validationStatus: "verified" | "unverified";
+    validationWarnings: ObservationValidationWarning[];
+    validationDiagnostics: ObservationValidationDiagnostic[];
+  };
+};
 
 /**
  * Validates each observation against the entry text and the pattern ledger.
@@ -498,12 +508,13 @@ export function validateObservations(
   ledger: LedgerEntry[] = [],
 ): ValidationResult {
   const ledgerIds = new Set(ledger.map((e) => e.id));
-  const valid: RawObservation[] = [];
+  const valid: ValidatedRawObservation[] = [];
   const errors: string[] = [];
   const normalizedEntry = entryText.toLowerCase();
 
   for (const obs of observations) {
     const issueList: string[] = [];
+    const diagnostics: ObservationValidationDiagnostic[] = [];
 
     // REQ-V1-5: must have a named pattern
     if (!obs.pattern || obs.pattern.trim().length === 0) {
@@ -518,7 +529,11 @@ export function validateObservations(
         if (fragment.trim().length === 0) {
           issueList.push("Missing cited evidence");
         } else if (!normalizedEntry.includes(fragment.toLowerCase())) {
-          issueList.push(`Cited evidence not found in entry text: "${fragment.slice(0, 80)}"`);
+          diagnostics.push({
+            code: "evidence-not-found-in-entry",
+            fragment,
+            message: `Cited evidence was not found in the source entry: "${fragment.slice(0, 80)}"`,
+          });
         }
       }
     }
@@ -548,9 +563,21 @@ export function validateObservations(
           ...obs.patternRef,
           newPattern: { ...newPattern, metricLink: undefined },
         },
+        validation: {
+          validationStatus: diagnostics.length > 0 ? "unverified" : "verified",
+          validationWarnings: diagnostics.length > 0 ? ["evidence-not-found-in-entry"] : [],
+          validationDiagnostics: diagnostics,
+        },
       });
     } else {
-      valid.push(obs);
+      valid.push({
+        ...obs,
+        validation: {
+          validationStatus: diagnostics.length > 0 ? "unverified" : "verified",
+          validationWarnings: diagnostics.length > 0 ? ["evidence-not-found-in-entry"] : [],
+          validationDiagnostics: diagnostics,
+        },
+      });
     }
   }
 

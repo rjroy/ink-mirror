@@ -54,6 +54,9 @@ export {
 
 export {
   ObservationDimensionSchema,
+  ObservationValidationStatusSchema,
+  ObservationValidationWarningSchema,
+  ObservationValidationDiagnosticSchema,
   ObservationSchema,
   RawObservationSchema,
   ObserverOutputSchema,
@@ -64,6 +67,9 @@ export {
   NewPatternDeclarationSchema,
   PatternRefSchema,
   type ObservationDimension,
+  type ObservationValidationStatus,
+  type ObservationValidationWarning,
+  type ObservationValidationDiagnostic,
   type Observation,
   type RawObservation,
   type ObserverOutput,

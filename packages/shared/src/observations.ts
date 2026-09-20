@@ -21,8 +21,31 @@ export const DIMENSION_LABELS: Record<ObservationDimension, string> = {
 // --- Single observation ---
 
 export const EvidenceFragmentsSchema = z
-  .array(z.string().min(1))
+  .array(z.string().refine((fragment) => fragment.trim().length > 0, {
+    message: "Evidence fragment must not be blank",
+  }))
   .min(1);
+
+// --- Evidence validation metadata ---
+
+/** Whether the cited evidence was found in the source entry. */
+export const ObservationValidationStatusSchema = z.enum(["verified", "unverified"]);
+
+export type ObservationValidationStatus = z.infer<typeof ObservationValidationStatusSchema>;
+
+/** A non-blocking concern discovered while checking an observation's evidence. */
+export const ObservationValidationWarningSchema = z.enum(["evidence-not-found-in-entry"]);
+
+export type ObservationValidationWarning = z.infer<typeof ObservationValidationWarningSchema>;
+
+/** Identifies the specific citation that prevented evidence verification. */
+export const ObservationValidationDiagnosticSchema = z.object({
+  code: z.literal("evidence-not-found-in-entry"),
+  fragment: z.string().min(1),
+  message: z.string().min(1),
+});
+
+export type ObservationValidationDiagnostic = z.infer<typeof ObservationValidationDiagnosticSchema>;
 
 export const ObservationSchema = z.object({
   id: z.string(),
@@ -38,6 +61,9 @@ export const ObservationSchema = z.object({
   pattern: z.string().min(1),
   evidence: EvidenceFragmentsSchema,
   dimension: ObservationDimensionSchema,
+  validationStatus: ObservationValidationStatusSchema.default("verified"),
+  validationWarnings: z.array(ObservationValidationWarningSchema).default([]),
+  validationDiagnostics: z.array(ObservationValidationDiagnosticSchema).default([]),
   createdAt: z.string(),
   updatedAt: z.string(),
 });

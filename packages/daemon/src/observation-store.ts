@@ -1,6 +1,8 @@
 import {
   observationId,
   ObservationDimensionSchema,
+  type ObservationValidationDiagnostic,
+  type ObservationValidationWarning,
   type ObservationId,
 } from "@ink-mirror/shared";
 import type {
@@ -26,7 +28,12 @@ export interface ObservationStore {
    * calling save — either matched against an existing ledger pattern or
    * assigned the ID of a pattern just created for it.
    */
-  save(entryId: string, raw: RawObservation, patternId: string): Promise<Observation>;
+  save(
+    entryId: string,
+    raw: RawObservation,
+    patternId: string,
+    validation?: ObservationValidation,
+  ): Promise<Observation>;
   list(): Promise<Observation[]>;
   get(id: ObservationId): Promise<Observation | undefined>;
   /**
@@ -38,6 +45,11 @@ export interface ObservationStore {
    */
   reassignPattern(id: ObservationId, patternId: string): Promise<Observation | undefined>;
 }
+
+export type ObservationValidation = Pick<
+  Observation,
+  "validationStatus" | "validationWarnings" | "validationDiagnostics"
+>;
 
 export interface ObservationStoreDeps {
   observationsDir: string;
@@ -57,7 +69,12 @@ export interface ObservationStoreDeps {
  * Serialize an observation to YAML.
  * Hand-rolled to avoid a YAML library dependency for a simple flat structure.
  */
-export function toYaml(obs: Observation): string {
+export function toYaml(obs: Observation | (Omit<Observation, keyof ObservationValidation> & Partial<ObservationValidation>)): string {
+  const validation: ObservationValidation = {
+    validationStatus: obs.validationStatus ?? "verified",
+    validationWarnings: obs.validationWarnings ?? [],
+    validationDiagnostics: obs.validationDiagnostics ?? [],
+  };
   const evidenceBlock = (fragment: string): string[] => {
     const endsWithNewline = fragment.endsWith("\n");
     const lines = fragment.split("\n");
@@ -78,6 +95,9 @@ export function toYaml(obs: Observation): string {
     `entryId: ${obs.entryId}`,
     `patternId: ${obs.patternId}`,
     `dimension: ${obs.dimension}`,
+    `validationStatus: ${validation.validationStatus}`,
+    `validationWarnings: ${JSON.stringify(validation.validationWarnings)}`,
+    `validationDiagnostics: ${JSON.stringify(validation.validationDiagnostics)}`,
     `createdAt: ${obs.createdAt}`,
     `updatedAt: ${obs.updatedAt}`,
     `pattern: |`,
@@ -168,6 +188,9 @@ export function fromYaml(content: string): Observation | undefined {
   const entryId = scalar("entryId");
   const patternId = scalar("patternId");
   const dimension = scalar("dimension");
+  const validationStatus = scalar("validationStatus") ?? "verified";
+  const validationWarnings = parseValidationWarnings(scalar("validationWarnings"));
+  const validationDiagnostics = parseValidationDiagnostics(scalar("validationDiagnostics"));
   const createdAt = scalar("createdAt");
   const updatedAt = scalar("updatedAt");
   const pattern = block("pattern");
@@ -186,16 +209,53 @@ export function fromYaml(content: string): Observation | undefined {
     return undefined;
   }
 
+  if (!validationWarnings || !validationDiagnostics || (validationStatus !== "verified" && validationStatus !== "unverified")) {
+    return undefined;
+  }
+
   return {
     id,
     entryId,
     patternId: patternId ?? LEGACY_UNLINKED_PATTERN_ID,
     dimension: parsedDimension.data,
+    validationStatus,
+    validationWarnings,
+    validationDiagnostics,
     createdAt,
     updatedAt,
     pattern,
     evidence,
   };
+}
+
+function parseValidationWarnings(content: string | undefined): ObservationValidationWarning[] | undefined {
+  if (!content) return [];
+  try {
+    const parsed: unknown = JSON.parse(content);
+    return Array.isArray(parsed) && parsed.every((warning) => warning === "evidence-not-found-in-entry")
+      ? parsed
+      : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+function parseValidationDiagnostics(content: string | undefined): ObservationValidationDiagnostic[] | undefined {
+  if (!content) return [];
+  try {
+    const parsed: unknown = JSON.parse(content);
+    if (!Array.isArray(parsed)) return undefined;
+    return parsed.every(
+      (diagnostic): diagnostic is ObservationValidationDiagnostic =>
+        typeof diagnostic === "object" &&
+        diagnostic !== null &&
+        diagnostic.code === "evidence-not-found-in-entry" &&
+        typeof diagnostic.fragment === "string" && diagnostic.fragment.length > 0 &&
+        typeof diagnostic.message === "string" && diagnostic.message.length > 0,
+    ) ? parsed : undefined;
+  } catch {
+    return undefined;
+  }
 }
 
 import { readdir, readFile, writeFile, mkdir } from "node:fs/promises";
@@ -263,7 +323,16 @@ export function createObservationStore(deps: ObservationStoreDeps): ObservationS
   const now = deps.now ?? (() => new Date().toISOString());
 
   return {
-    async save(entryId: string, raw: RawObservation, patternId: string): Promise<Observation> {
+    async save(
+      entryId: string,
+      raw: RawObservation,
+      patternId: string,
+      validation: ObservationValidation = {
+        validationStatus: "verified",
+        validationWarnings: [],
+        validationDiagnostics: [],
+      },
+    ): Promise<Observation> {
       await fs.mkdir(observationsDir, { recursive: true });
 
       const dateStr = now().slice(0, 10);
@@ -277,6 +346,7 @@ export function createObservationStore(deps: ObservationStoreDeps): ObservationS
         pattern: raw.pattern,
         evidence: raw.evidence,
         dimension: raw.dimension,
+        ...validation,
         createdAt: timestamp,
         updatedAt: timestamp,
       };

@@ -84,6 +84,40 @@ describe("RawObservationSchema", () => {
   });
 });
 
+describe("ObservationSchema validation metadata", () => {
+  const observation = {
+    id: "obs-2026-07-09-001",
+    entryId: "entry-2026-07-09-001",
+    patternId: "pat-2026-07-09-001",
+    pattern: "Uses short sentences for emphasis",
+    evidence: ["I stopped."],
+    dimension: "sentence-rhythm",
+    createdAt: "2026-07-09T00:00:00.000Z",
+    updatedAt: "2026-07-09T00:00:00.000Z",
+  };
+
+  test("defaults validation metadata to verified", () => {
+    const result = ObservationSchema.parse(observation);
+    expect(result.validationStatus).toBe("verified");
+    expect(result.validationWarnings).toEqual([]);
+    expect(result.validationDiagnostics).toEqual([]);
+  });
+
+  test("accepts actionable diagnostics for unverified evidence", () => {
+    const result = ObservationSchema.safeParse({
+      ...observation,
+      validationStatus: "unverified",
+      validationWarnings: ["evidence-not-found-in-entry"],
+      validationDiagnostics: [{
+        code: "evidence-not-found-in-entry",
+        fragment: "I invented this.",
+        message: "Cited evidence was not found in the source entry",
+      }],
+    });
+    expect(result.success).toBe(true);
+  });
+});
+
 describe("PatternRefSchema (existing-ID vs. new-pattern XOR, REQ-LPC-4)", () => {
   test("accepts patternId alone", () => {
     const result = PatternRefSchema.safeParse({ patternId: "pat-2026-07-09-001" });

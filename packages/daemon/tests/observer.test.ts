@@ -543,7 +543,7 @@ describe("validateObservations", () => {
     expect(result.errors).toHaveLength(0);
   });
 
-  test("rejects observation with evidence not in entry (REQ-V1-7)", () => {
+  test("accepts observation with unverified evidence and records diagnostics", () => {
     const observations: RawObservation[] = [
       {
         pattern: "Some pattern",
@@ -554,9 +554,17 @@ describe("validateObservations", () => {
     ];
 
     const result = validateObservations(observations, SAMPLE_ENTRY);
-    expect(result.valid).toHaveLength(0);
-    expect(result.errors).toHaveLength(1);
-    expect(result.errors[0]).toContain("not found in entry text");
+    expect(result.valid).toHaveLength(1);
+    expect(result.errors).toHaveLength(0);
+    expect(result.valid[0].validation).toEqual({
+      validationStatus: "unverified",
+      validationWarnings: ["evidence-not-found-in-entry"],
+      validationDiagnostics: [{
+        code: "evidence-not-found-in-entry",
+        fragment: "This text is not in the entry at all",
+        message: 'Cited evidence was not found in the source entry: "This text is not in the entry at all"',
+      }],
+    });
   });
 
   test("rejects observation with empty pattern (REQ-V1-5)", () => {
@@ -619,7 +627,7 @@ describe("validateObservations", () => {
     expect(result.errors).toHaveLength(0);
   });
 
-  test("rejects paragraph-structure observation with fabricated evidence", () => {
+  test("marks paragraph-structure observations with fabricated evidence unverified", () => {
     const observations: RawObservation[] = [
       {
         pattern: "Long lead paragraph followed by shorter body",
@@ -630,12 +638,12 @@ describe("validateObservations", () => {
     ];
 
     const result = validateObservations(observations, SAMPLE_ENTRY);
-    expect(result.valid).toHaveLength(0);
-    expect(result.errors).toHaveLength(1);
-    expect(result.errors[0]).toContain("not found in entry text");
+    expect(result.valid).toHaveLength(1);
+    expect(result.errors).toHaveLength(0);
+    expect(result.valid[0].validation.validationStatus).toBe("unverified");
   });
 
-  test("keeps valid observations and reports invalid ones separately", () => {
+  test("keeps verified and unverified observations separately identifiable", () => {
     const observations: RawObservation[] = [
       {
         pattern: "Valid pattern",
@@ -652,9 +660,10 @@ describe("validateObservations", () => {
     ];
 
     const result = validateObservations(observations, SAMPLE_ENTRY);
-    expect(result.valid).toHaveLength(1);
-    expect(result.errors).toHaveLength(1);
-    expect(result.valid[0].pattern).toBe("Valid pattern");
+    expect(result.valid).toHaveLength(2);
+    expect(result.errors).toHaveLength(0);
+    expect(result.valid[0].validation.validationStatus).toBe("verified");
+    expect(result.valid[1].validation.validationStatus).toBe("unverified");
   });
 
   // --- Phase 3: ledger integrity (REQ-LPC-2/4) ---
@@ -924,22 +933,16 @@ describe("observe (pipeline)", () => {
     expect(result.observations[0].dimension).toBe("paragraph-structure");
   });
 
-  test("returns errors when LLM output has invalid evidence", async () => {
+  test("preserves whitespace-padded evidence and persists it as unverified", async () => {
     const { observationStore, patternStore } = makeStores(() => "2026-03-27T10:00:00.000Z");
 
     const badOutput = JSON.stringify({
       observations: [
         {
-          pattern: "Valid pattern",
-          evidence: ["I stopped."],
-          dimension: "sentence-rhythm",
-          patternRef: { newPattern: { statement: "x", dimension: "sentence-rhythm" } },
-        },
-        {
-          pattern: "Fabricated evidence",
-          evidence: ["Text that doesn't exist in the entry"],
+          pattern: "Whitespace-padded evidence",
+          evidence: [" cited text "],
           dimension: "word-level-habits",
-          patternRef: { newPattern: { statement: "y", dimension: "word-level-habits" } },
+          patternRef: { newPattern: { statement: "x", dimension: "word-level-habits" } },
         },
       ],
     });
@@ -951,12 +954,19 @@ describe("observe (pipeline)", () => {
     const result = await observe(
       { sessionRunner, observationStore, patternStore, computeMetrics: computeEntryMetrics },
       "entry-001",
-      SAMPLE_ENTRY,
+      "cited text",
     );
 
     expect(result.observations).toHaveLength(1);
-    expect(result.errors).toHaveLength(1);
-    expect(result.errors[0]).toContain("not found in entry text");
+    expect(result.errors).toHaveLength(0);
+    expect(result.observations[0].evidence).toEqual([" cited text "]);
+    expect(result.observations[0].validationStatus).toBe("unverified");
+    expect(result.observations[0].validationWarnings).toEqual(["evidence-not-found-in-entry"]);
+    expect(result.observations[0].validationDiagnostics).toEqual([{
+      code: "evidence-not-found-in-entry",
+      fragment: " cited text ",
+      message: 'Cited evidence was not found in the source entry: " cited text "',
+    }]);
   });
 
   test("returns errors when LLM output is not valid JSON", async () => {
@@ -1175,7 +1185,7 @@ describe("observe (pipeline)", () => {
 // that worst-case construction in as a regression guard so a future change
 // to buildSystemPrompt/buildUserMessage/buildLedger can't silently balloon
 // the per-entry cost without a test failing first.
-test("validateObservations rejects the whole observation when any ordered evidence fragment is invalid", () => {
+test("validateObservations preserves ordered evidence and marks an invalid fragment unverified", () => {
   const result = validateObservations(
     [
       {
@@ -1193,9 +1203,11 @@ test("validateObservations rejects the whole observation when any ordered eviden
     "I stopped. I turned. I left.",
   );
 
-  expect(result.valid).toEqual([]);
-  expect(result.errors).toHaveLength(1);
-  expect(result.errors[0]).toContain('Cited evidence not found in entry text: "This fragment was fabricated"');
+  expect(result.valid).toHaveLength(1);
+  expect(result.errors).toEqual([]);
+  expect(result.valid[0].validation.validationStatus).toBe("unverified");
+  expect(result.valid[0].validation.validationDiagnostics).toHaveLength(1);
+  expect(result.valid[0].validation.validationDiagnostics[0]?.fragment).toBe("This fragment was fabricated");
 });
 
 describe("Observer prompt cost budget (worst-case ledger)", () => {

@@ -378,6 +378,9 @@ async function migrateLegacyObservations(
       pattern: record.pattern,
       evidence: [record.evidence],
       dimension: record.dimension,
+      validationStatus: "verified",
+      validationWarnings: [],
+      validationDiagnostics: [],
       createdAt: record.createdAt,
       updatedAt: record.updatedAt,
     };
