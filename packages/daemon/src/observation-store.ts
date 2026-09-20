@@ -257,11 +257,13 @@ function parseValidationDiagnostics(content: string | undefined): ObservationVal
         if (typeof candidate !== "object" || candidate === null || Array.isArray(candidate)) {
           return false;
         }
-        const record: Record<string, unknown> = candidate;
         return (
-          record.code === "evidence-not-found-in-entry" &&
-          typeof record.fragment === "string" && record.fragment.length > 0 &&
-          typeof record.message === "string" && record.message.length > 0
+          "code" in candidate &&
+          candidate.code === "evidence-not-found-in-entry" &&
+          "fragment" in candidate &&
+          typeof candidate.fragment === "string" && candidate.fragment.length > 0 &&
+          "message" in candidate &&
+          typeof candidate.message === "string" && candidate.message.length > 0
         );
       },
     ) ? parsed : undefined;
