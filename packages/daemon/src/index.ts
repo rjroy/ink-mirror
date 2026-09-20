@@ -81,6 +81,65 @@ type PiBindings = {
   modelId: string;
 };
 
+type ProductionResourceLoader = {
+  reload(): Promise<void>;
+};
+
+type ProductionAssistantMessage = {
+  role: "assistant";
+  content: Array<{ type: string; text?: string }>;
+  provider: string;
+  model: string;
+  responseModel?: string;
+  stopReason: string;
+  usage: unknown;
+  diagnostics?: Array<{
+    type: string;
+    error?: { name?: string; message: string; code?: string | number };
+    details?: unknown;
+  }>;
+  errorMessage?: string;
+};
+
+type ProductionAgentSession = {
+  bindExtensions(extensions: Record<string, never>): Promise<void>;
+  modelRegistry: { find(provider: string, modelId: string): unknown };
+  setModel(model: unknown): Promise<void>;
+  subscribe: ProductionSession["subscribe"];
+  prompt(content: string): Promise<void>;
+  messages: Array<
+    | ProductionAssistantMessage
+    | { role: string }
+  >;
+};
+
+function isProductionAssistantMessage(
+  message: ProductionAgentSession["messages"][number],
+): message is ProductionAssistantMessage {
+  return message.role === "assistant" && "content" in message;
+}
+
+export type ProductionPiBindings = {
+  cwd: string;
+  agentDir: string;
+  provider: string;
+  modelId: string;
+  createDefaultResourceLoader(options: {
+    cwd: string;
+    agentDir: string;
+    systemPrompt: string;
+    noContextFiles: boolean;
+    noSkills: boolean;
+    noPromptTemplates: boolean;
+    noThemes: boolean;
+    noExtensions: boolean;
+  }): ProductionResourceLoader;
+  createAgentSession(): Promise<{
+    session: ProductionAgentSession;
+    modelFallbackMessage?: string;
+  }>;
+};
+
 let piBindings: Promise<PiBindings> | undefined;
 
 async function getPiBindings(): Promise<PiBindings> {
@@ -137,7 +196,121 @@ async function getPiBindings(): Promise<PiBindings> {
   return piBindings;
 }
 
-async function productionQueryFn(
+type ProductionSession = {
+  subscribe(callback: (event: {
+    type: string;
+    assistantMessageEvent?: { type: string };
+  }) => void): () => void;
+  prompt(content: string): Promise<void>;
+  getLastAssistant(): {
+    content: Array<{ type: string; text?: string }>;
+    provider: string;
+    model: string;
+    responseModel?: string;
+    stopReason: string;
+    usage: unknown;
+    diagnostics?: Array<{
+      type: string;
+      error?: { name?: string; message: string; code?: string | number };
+      details?: unknown;
+    }>;
+    errorMessage?: string;
+  } | undefined;
+};
+
+export type ProductionPiAdapter = {
+  createResourceLoader(systemPrompt: string): void;
+  createReadySession(): Promise<{
+    session: ProductionSession;
+    modelFallbackMessage?: string;
+  }>;
+};
+
+async function getProductionPiAdapter(): Promise<ProductionPiAdapter> {
+  const pi = await getPiBindings();
+  let resourceLoader: InstanceType<PiCodingAgent["DefaultResourceLoader"]> | undefined;
+  return createProductionPiAdapter({
+    cwd: pi.cwd,
+    agentDir: pi.agentDir,
+    provider: pi.provider,
+    modelId: pi.modelId,
+    createDefaultResourceLoader: (options) => {
+      resourceLoader = new pi.DefaultResourceLoader({
+        ...options,
+        settingsManager: pi.settingsManager,
+      });
+      return resourceLoader;
+    },
+    createAgentSession: () => {
+      if (!resourceLoader) {
+        throw new Error("session-runner: resource loader was not created");
+      }
+      return pi.createAgentSession({
+        cwd: pi.cwd,
+        agentDir: pi.agentDir,
+        authStorage: pi.authStorage,
+        modelRegistry: pi.modelRegistry,
+        settingsManager: pi.settingsManager,
+        resourceLoader,
+        sessionManager: pi.SessionManager.inMemory(pi.cwd),
+        noTools: "all",
+      });
+    },
+  });
+}
+
+export function createProductionPiAdapter(
+  pi: ProductionPiBindings,
+): ProductionPiAdapter {
+  let loader: ProductionResourceLoader | undefined;
+  return {
+    createResourceLoader(systemPrompt) {
+      loader = pi.createDefaultResourceLoader({
+        cwd: pi.cwd,
+        agentDir: pi.agentDir,
+        systemPrompt,
+        noContextFiles: true,
+        noSkills: true,
+        noPromptTemplates: true,
+        noThemes: true,
+        noExtensions: true,
+      });
+    },
+    async createReadySession() {
+      if (!loader) {
+        throw new Error("session-runner: resource loader was not created");
+      }
+      await loader.reload();
+      const { session, modelFallbackMessage } = await pi.createAgentSession();
+      await session.bindExtensions({});
+      const model = session.modelRegistry.find(pi.provider, pi.modelId);
+      if (!model) {
+        throw new Error(
+          `Model ${pi.provider}/${pi.modelId} not found in session registry. ` +
+            `Check that the providing extension is enabled, or override with INK_MIRROR_MODEL=provider:modelId.`,
+        );
+      }
+      await session.setModel(model);
+      return {
+        session: {
+          subscribe: (callback) => session.subscribe(callback),
+          prompt: (content) => session.prompt(content),
+          getLastAssistant: () => {
+            return [...session.messages]
+              .reverse()
+              .find(isProductionAssistantMessage);
+          },
+        },
+        modelFallbackMessage,
+      };
+    },
+  };
+}
+
+export function createProductionQueryFn(
+  getAdapter: () => Promise<ProductionPiAdapter> = getProductionPiAdapter,
+): (request: SessionRequest) => Promise<{ content: string }> {
+  return async function productionQueryFn(
   request: SessionRequest,
 ): Promise<{ content: string }> {
   // Every stage below is logged with its own elapsed time. Before this, the
@@ -148,7 +321,7 @@ async function productionQueryFn(
   const callStart = performance.now();
   const elapsed = () => (performance.now() - callStart).toFixed(0);
 
-  const pi = await getPiBindings();
+  const pi = await getAdapter();
   console.log(`[pi-agent] bindings resolved (${elapsed()}ms total)`);
 
   const lastUserMsg = [...request.messages]
@@ -162,54 +335,16 @@ async function productionQueryFn(
   // user-installed providers (e.g. fallback) can register themselves and wire
   // their streamSimple hooks. Other resource categories are suppressed to keep
   // the system prompt under daemon control.
-  const loader = new pi.DefaultResourceLoader({
-    cwd: pi.cwd,
-    agentDir: pi.agentDir,
-    settingsManager: pi.settingsManager,
-    systemPrompt: request.system,
-    noContextFiles: true,
-    noSkills: true,
-    noPromptTemplates: true,
-    noThemes: true,
-    noExtensions: true,
-  });
-  await loader.reload();
+  pi.createResourceLoader(request.system);
+  const { session, modelFallbackMessage } = await pi.createReadySession();
   console.log(`[pi-agent] resource loader reloaded (${elapsed()}ms total)`);
 
-  const { session, modelFallbackMessage } = await pi.createAgentSession({
-    cwd: pi.cwd,
-    agentDir: pi.agentDir,
-    authStorage: pi.authStorage,
-    modelRegistry: pi.modelRegistry,
-    settingsManager: pi.settingsManager,
-    resourceLoader: loader,
-    sessionManager: pi.SessionManager.inMemory(pi.cwd),
-    // Observer/nudger generate text, not tool calls.
-    noTools: "all",
-  });
   console.log(`[pi-agent] agent session created (${elapsed()}ms total)`);
   if (modelFallbackMessage) {
     console.warn(`[pi-agent] ${modelFallbackMessage}`);
   }
 
-  // bindExtensions runs the queued registerProvider() calls from extensions,
-  // so the session's modelRegistry is the only place dynamic models exist.
-  // Look up + setModel must happen after this; the constructor-time `model`
-  // option on createAgentSession does not actually wire the model in.
-  await session.bindExtensions({});
-  console.log(`[pi-agent] extensions bound (${elapsed()}ms total)`);
-
-  const model = session.modelRegistry.find(pi.provider, pi.modelId);
-  if (!model) {
-    throw new Error(
-      `Model ${pi.provider}/${pi.modelId} not found in session registry. ` +
-        `Check that the providing extension is enabled, or override with INK_MIRROR_MODEL=provider:modelId.`,
-    );
-  }
-  await session.setModel(model);
-  console.log(
-    `[pi-agent] model set: ${pi.provider}/${pi.modelId} (${elapsed()}ms total)`,
-  );
+  console.log(`[pi-agent] extensions bound and model set (${elapsed()}ms total)`);
 
   // Subscribed before prompt() so the first-token timestamp is visible even
   // if the overall call is still in flight — the only way to tell "no
@@ -239,10 +374,8 @@ async function productionQueryFn(
       ")",
   );
 
-  const lastAssistant = [...session.messages]
-    .reverse()
-    .find((m) => m.role === "assistant");
-  if (!lastAssistant || lastAssistant.role !== "assistant") {
+  const lastAssistant = session.getLastAssistant();
+  if (!lastAssistant) {
     throw new Error("session-runner: agent produced no assistant message");
   }
 
@@ -290,8 +423,10 @@ async function productionQueryFn(
   }
 
   return { content: text };
+  };
 }
 
+const productionQueryFn = createProductionQueryFn();
 const sessionRunner = createSessionRunner({ queryFn: productionQueryFn });
 
 export interface OnEntryCreatedDeps {

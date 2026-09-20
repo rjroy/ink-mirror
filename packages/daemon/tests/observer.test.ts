@@ -13,7 +13,7 @@ import { createObservationStore, type ObservationStoreFs } from "../src/observat
 import { createPatternStore, type PatternStoreFs } from "../src/pattern-store.js";
 import { computeEntryMetrics } from "../src/metrics/index.js";
 import { DEFAULT_CONFIG } from "../src/config.js";
-import type { RawObservation, Pattern, MetricSnapshot, LinkableMetricKey } from "@ink-mirror/shared";
+import { ObserverOutputSchema, type RawObservation, type Pattern, type MetricSnapshot, type LinkableMetricKey } from "@ink-mirror/shared";
 
 // --- Test fixtures ---
 
@@ -116,98 +116,57 @@ const stubMetrics = computeEntryMetrics(SAMPLE_ENTRY);
 // --- System prompt tests ---
 
 describe("buildSystemPrompt", () => {
-  test("includes observation rules", () => {
-    const prompt = buildSystemPrompt();
-    expect(prompt).toContain("2-3 observations per entry");
-    expect(prompt).toContain("curation test");
-  });
-
-  test("includes no-generation constraint", () => {
+  test("contains stable behavioral guardrails only", () => {
     const prompt = buildSystemPrompt();
     expect(prompt).toContain("NEVER");
     expect(prompt).toContain("Generate text for the writer");
-  });
-
-  test("includes no-external-comparison rule (REQ-V1-9)", () => {
-    const prompt = buildSystemPrompt();
     expect(prompt).toContain("external norms");
     expect(prompt).toContain("other writers");
-  });
-
-  test("includes all four active dimensions", () => {
-    const prompt = buildSystemPrompt();
-    expect(prompt).toContain("sentence-rhythm");
-    expect(prompt).toContain("word-level-habits");
-    expect(prompt).toContain("sentence-structure");
-    expect(prompt).toContain("paragraph-structure");
-  });
-
-  test("includes paragraph-structure definition and not-this boundary", () => {
-    const prompt = buildSystemPrompt();
-    expect(prompt).toContain("**paragraph-structure**");
-    expect(prompt).toContain("Paragraph-length distribution");
-    expect(prompt).toMatch(/sentence-structure[\s\S]*paragraph-structure/);
-    expect(prompt).toContain("Not this");
-  });
-
-  test("specifies JSON output format with worked examples", () => {
-    const prompt = buildSystemPrompt();
-    expect(prompt).toContain('"observations"');
-    expect(prompt).toContain('"pattern"');
-    expect(prompt).toContain('"evidence"');
-    expect(prompt).toContain('"dimension"');
-    expect(prompt).toContain('"dimension": "sentence-rhythm"');
-    expect(prompt).toContain('"dimension": "word-level-habits"');
-    expect(prompt).toContain('"dimension": "sentence-structure"');
-    expect(prompt).toContain('"dimension": "paragraph-structure"');
-  });
-
-  test("includes context description section (REQ-V1-13)", () => {
-    const prompt = buildSystemPrompt();
-    expect(prompt).toContain("Context You Receive");
-    expect(prompt).toContain("Pre-computed metrics");
-    expect(prompt).toContain("Style Profile");
-    expect(prompt).toContain("Recent Entries");
-    expect(prompt).toContain("Current Entry");
-  });
-
-  test("includes evidence citation emphasis", () => {
-    const prompt = buildSystemPrompt();
-    expect(prompt).toContain("character for character");
-    expect(prompt).toContain("rejected by validation");
-  });
-
-  test("includes dimension diversity nudge", () => {
-    const prompt = buildSystemPrompt();
-    expect(prompt).toContain("different dimensions");
-  });
-
-  // --- Phase 3: pattern ledger / match-or-declare contract (REQ-LPC-4/10) ---
-
-  test("describes the match-or-declare output contract", () => {
-    const prompt = buildSystemPrompt();
-    expect(prompt).toContain("Pattern Ledger and Identity Matching");
-    expect(prompt).toContain("patternRef.patternId");
-    expect(prompt).toContain("patternRef.newPattern");
-    expect(prompt).toContain("rejected outright");
-  });
-
-  test("instructs the model to cite supplied numbers, never estimate", () => {
-    const prompt = buildSystemPrompt();
-    expect(prompt).toContain("never estimate");
-    expect(prompt).toContain("supplied");
-  });
-
-  test("includes a dismiss-aware note against re-declaring ledger patterns", () => {
-    const prompt = buildSystemPrompt();
-    expect(prompt).toContain("genuinely new");
-    expect(prompt).toContain("previously judged wrong");
+    expect(prompt).not.toContain("Observer Task");
+    expect(prompt).not.toContain("Pattern Matching and Output Contract");
+    expect(prompt).not.toContain("Respond with valid JSON only");
+    expect(prompt).not.toContain('"observations"');
+    expect(prompt).not.toContain("## Current Entry");
+    expect(prompt).not.toContain("**Not this (boundary between sentence-structure and paragraph-structure)**");
+    expect(prompt).not.toContain("every candidate is a near-duplicate of an existing ledger pattern already declined by the writer");
   });
 });
 
 // --- User message / context assembly tests ---
 
 describe("buildUserMessage", () => {
+  test("puts the complete task and JSON contract in the user message", () => {
+    const message = buildUserMessage(SAMPLE_ENTRY, stubMetrics, "");
+    expect(message).toContain("## Observer Task");
+    expect(message).toContain("2-3 distinctive writing patterns");
+    expect(message).toContain("Pattern Matching and Output Contract");
+    expect(message).toContain("patternRef.patternId");
+    expect(message).toContain("Respond with valid JSON only");
+    expect(message).toContain("no more than three observations");
+    expect(message).toContain('{"observations": []}');
+  });
+
+  test("keeps dimension-boundary and declined-candidate empty-result rules in user content", () => {
+    const message = buildUserMessage(SAMPLE_ENTRY, stubMetrics, "");
+    const system = buildSystemPrompt();
+    const dimensionBoundary = "**Not this (boundary between sentence-structure and paragraph-structure)**: If the unit is a sentence, the observation belongs in sentence-structure. Paragraph-opener word classes (e.g., \"most paragraphs start with 'I'\") stay in sentence-structure because the unit is the opening sentence. Paragraph-opener topic-sentence behavior (does the first sentence announce the paragraph's subject?) goes in paragraph-structure because the unit is the paragraph's shape. Do not manufacture a paragraph-structure observation on a 1-2 paragraph entry to satisfy coverage; the entry must support the pattern.";
+    const declinedCandidateRule = "If nothing in the entry clears the bar in Rule 2 — no habit is distinctive enough to name, or every candidate is a near-duplicate of an existing ledger pattern already declined by the writer — respond with `{" + "\"observations\": []}` and nothing else. Never explain the absence of observations in prose; an empty array is a complete, valid response.";
+
+    expect(message).toContain(dimensionBoundary);
+    expect(message).toContain(declinedCandidateRule);
+    expect(system).not.toContain(dimensionBoundary);
+    expect(system).not.toContain(declinedCandidateRule);
+  });
+
+  test("contains a schema-valid worked JSON example with at most three observations", () => {
+    const message = buildUserMessage(SAMPLE_ENTRY, stubMetrics, "");
+    const example = message.match(/\{\n  "observations": \[[\s\S]*?\n  \]\n\}/)?.[0];
+    expect(example).toBeDefined();
+    const parsed = ObserverOutputSchema.safeParse(JSON.parse(example ?? "{}"));
+    expect(parsed.success).toBe(true);
+    if (parsed.success) expect(parsed.data.observations).toHaveLength(3);
+  });
+
   test("places current entry at the end (REQ-V1-15)", () => {
     const metrics = computeEntryMetrics(SAMPLE_ENTRY);
     const message = buildUserMessage(SAMPLE_ENTRY, metrics, "");
@@ -832,6 +791,10 @@ describe("observe (pipeline)", () => {
         expect(req.messages[0].content).toContain("## Current Entry");
         expect(req.messages[0].content).toContain(SAMPLE_ENTRY);
         expect(req.messages[0].content).toContain("## Pre-computed Metrics");
+        expect(req.messages[0].content).toContain("Respond with valid JSON only");
+        expect(req.messages[0].content).toContain("patternRef.patternId");
+        expect(req.system).not.toContain("Respond with valid JSON only");
+        expect(req.system).not.toContain("patternRef.patternId");
 
         return { content: VALID_OBSERVER_JSON_WITH_REFS };
       },

@@ -9,6 +9,7 @@
     "build": "cd packages/web && bun run build",
     "test": "bun test packages/shared packages/daemon/tests packages/cli/tests packages/web/tests",
     "lint": "eslint",
+    "smoke:ollama": "cd packages/daemon && bun run smoke:ollama",
     "typecheck": "tsc --build && tsc --noEmit -p packages/web"
   },
   "devDependencies": {
