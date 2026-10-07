@@ -9,7 +9,6 @@ related:
   - .lore/work/intents/v1-core-loop.md
   - .lore/explorations/review-as-reflection.md
   - .lore/work/research/good-writing-principles.md
-legacy_source_type: spec
 legacy_status: implemented
 ---
 

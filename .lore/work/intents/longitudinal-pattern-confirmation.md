@@ -1,9 +1,9 @@
 ---
 title: Longitudinal pattern confirmation layer
 date: 2026-07-03
-status: draft
-tags: [spec, observer, curation, profile, longitudinal, pattern-ledger, watch-list]
-modules: [daemon, shared, observer, curation, profile-store, metrics]
+status: completed
+tags: [ spec, observer, curation, profile, longitudinal, pattern-ledger, watch-list ]
+modules: [ daemon, shared, observer, curation, profile-store, metrics ]
 req-prefix: LPC
 related:
   - .lore/work/brainstorm/longitudinal-gap.md
@@ -12,7 +12,6 @@ related:
   - .lore/work/research/profile-versioning.md
   - .lore/work/issues/observation-evaluation-methodology.md
   - .lore/work/issues/observer-selection-pressure-policy.md
-legacy_source_type: spec
 ---
 
 # Spec: Longitudinal pattern confirmation layer

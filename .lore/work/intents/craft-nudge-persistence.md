@@ -1,14 +1,13 @@
 ---
 title: "Craft Nudge Persistence"
 date: 2026-04-21
-status: approved
-tags: [spec, craft-nudge, persistence, caching]
+status: completed
+tags: [ spec, craft-nudge, persistence, caching ]
 req-prefix: CNP
 related:
   - .lore/work/intents/craft-nudge.md
   - .lore/vision.md
 supersedes-requirement: REQ-CN scope line "Storage of nudge results. Nudges are ephemeral."
-legacy_source_type: spec
 ---
 
 # Spec: Craft Nudge Persistence
