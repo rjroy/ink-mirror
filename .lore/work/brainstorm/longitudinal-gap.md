@@ -4,7 +4,7 @@ date: 2026-07-03
 status: resolved
 tags: [observer, curation, profile, longitudinal, aggregation, pattern-identity]
 modules: [daemon, observer, curation, profile-store]
-related: [.lore/work/research/stylometry-and-feedback-for-longitudinal-design.md, .lore/specs/v1-core-loop.md]
+related: [.lore/work/research/stylometry-and-feedback-for-longitudinal-design.md, .lore/work/intents/v1-core-loop.md]
 ---
 
 # Fixing the longitudinal gap in observe→curate→profile
