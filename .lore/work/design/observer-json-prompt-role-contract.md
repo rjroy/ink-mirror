@@ -1,9 +1,9 @@
 ---
 title: Observer JSON prompt-role contract
 date: 2026-09-19
-status: draft
-tags: [observer, json, prompt-roles, pi, reliability]
-modules: [daemon, observer, session-runner]
+status: completed
+tags: [ observer, json, prompt-roles, pi, reliability ]
+modules: [ daemon, observer, session-runner ]
 related: []
 ---
 

@@ -1,8 +1,8 @@
 ---
 title: "Craft Nudge Persistence"
 date: 2026-04-21
-status: approved
-tags: [spec, craft-nudge, persistence, caching]
+status: completed
+tags: [ spec, craft-nudge, persistence, caching ]
 req-prefix: CNP
 related:
   - .lore/work/intents/craft-nudge.md
