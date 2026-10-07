@@ -8,7 +8,6 @@ related:
   - .lore/work/intents/craft-nudge.md
   - .lore/vision.md
 supersedes-requirement: REQ-CN scope line "Storage of nudge results. Nudges are ephemeral."
-legacy_source_type: spec
 ---
 
 # Spec: Craft Nudge Persistence

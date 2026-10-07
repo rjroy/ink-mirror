@@ -12,7 +12,6 @@ related:
   - .lore/work/research/profile-versioning.md
   - .lore/work/issues/observation-evaluation-methodology.md
   - .lore/work/issues/observer-selection-pressure-policy.md
-legacy_source_type: spec
 ---
 
 # Spec: Longitudinal pattern confirmation layer

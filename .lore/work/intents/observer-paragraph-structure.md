@@ -10,7 +10,6 @@ related:
   - .lore/work/research/observation-granularity.md
   - .lore/work/research/minimum-viable-observation.md
   - .lore/vision.md
-legacy_source_type: spec
 legacy_status: resolved
 ---
 

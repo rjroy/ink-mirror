@@ -11,7 +11,6 @@ related:
   - .lore/issues/research-minimum-viable-observation.md
   - .lore/issues/research-observer-history-window.md
   - .lore/issues/research-profile-versioning.md
-legacy_source_type: spec
 legacy_status: implemented
 ---
 
